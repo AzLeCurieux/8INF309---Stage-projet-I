@@ -1,0 +1,10 @@
+.env
+.claude/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.log
+.venv/
+venv/
+mysql_data/

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promo Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#f0f2f5; }
+    .navbar-brand { font-size:1.3rem; letter-spacing:.5px; }
+    .card { border:none; border-radius:12px; transition: transform .15s, box-shadow .15s; }
+    .card:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.12); }
+    .stat-badge { font-size:.75rem; font-weight:600; border-radius:20px; padding:.25em .7em; }
+    .grade-pill { display:inline-block; width:32px; height:32px; border-radius:50%;
+                  line-height:32px; text-align:center; font-weight:800; font-size:.85rem; color:#fff; }
+    .gAp { background:#198754; } .gA  { background:#20c997; }
+    .gB  { background:#0dcaf0; color:#000; } .gC  { background:#ffc107; color:#000; }
+    .gD  { background:#dc3545; } .gNA { background:#adb5bd; }
+
+    /* Job panel (fire-and-forget status) */
+    #jobPanel {
+      position:fixed; bottom:1.5rem; right:1.5rem;
+      width:380px; max-height:60vh; overflow-y:auto;
+      z-index:9000; display:flex; flex-direction:column; gap:.5rem;
+    }
+    .job-card {
+      background:#1e1e2e; color:#fff; border-radius:12px;
+      padding:.75rem 1rem; font-size:.85rem;
+      box-shadow:0 4px 20px rgba(0,0,0,.4);
+      transition:opacity .3s;
+    }
+    .job-card.done   { border-left:4px solid #20c997; }
+    .job-card.error  { border-left:4px solid #dc3545; }
+    .job-card.running{ border-left:4px solid #ffc107; }
+    .job-card.pending{ border-left:4px solid #6c757d; }
+    .job-name { font-weight:700; }
+    .job-detail { color:#adb5bd; margin-top:.25rem; }
+    .spin { display:inline-block; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .btn-close-sm { background:none; border:none; color:#adb5bd;
+                    font-size:.85rem; float:right; cursor:pointer; }
+    .btn-close-sm:hover { color:#fff; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark mb-4 px-3">
+  <a class="navbar-brand fw-bold" href="/">Promo Dashboard</a>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge bg-secondary" title="Auto-scrape toutes les {{ scrape_interval_hours }}h">
+      Auto /{{ scrape_interval_hours }}h
+    </span>
+    <a href="/about" class="btn btn-outline-light btn-sm">A propos</a>
+    <button class="btn btn-warning btn-sm" onclick="crawlAll()">Scraper tout</button>
+    <button class="btn btn-info btn-sm text-dark" onclick="classifyAll()">Classer tout</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="alert-zone" class="mb-3"></div>
+
+  <!-- Ajouter un restaurant -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white fw-bold">
+      Ajouter un restaurant a surveiller
+    </div>
+    <div class="card-body">
+      <form action="/add_restaurant" method="POST" class="row g-2">
+        <div class="col-md-4">
+          <input type="text" name="name" class="form-control" placeholder="Nom du restaurant" required>
+        </div>
+        <div class="col-md-5">
+          <input type="url" name="url" class="form-control" placeholder="URL de la page promotions" required>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Legende grades -->
+  <div class="d-flex gap-3 align-items-center mb-3 flex-wrap">
+    <small class="text-muted fw-bold">Grades :</small>
+    {% for g,cls,label in [('A+','gAp','< 7$'),('A','gA','7-12$'),('B','gB','12-16$'),('C','gC','16-20$'),('D','gD','> 20$')] %}
+    <span class="grade-pill {{ cls }}">{{ g }}</span><small class="text-muted me-2">{{ label }}</small>
+    {% endfor %}
+  </div>
+
+  <!-- Cartes restaurants -->
+  <div class="row row-cols-1 row-cols-md-3 g-3">
+    {% for r in restaurants %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title fw-bold">{{ r.name }}</h5>
+          <span class="badge bg-secondary mb-2">Scrapling</span>
+          <p class="card-text small text-truncate mb-2">
+            <a href="{{ r.url }}" target="_blank" class="text-decoration-none text-muted">{{ r.url }}</a>
+          </p>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            <span class="stat-badge bg-dark text-white">{{ r.active_promos or 0 }} actives</span>
+            <span class="stat-badge bg-success text-white">{{ r.top_promos or 0 }} top (A+/A)</span>
+            {% if r.total_promos != r.active_promos %}
+            <span class="stat-badge bg-secondary text-white">
+              {{ (r.total_promos or 0) - (r.active_promos or 0) }} expirees
+            </span>
+            {% endif %}
+          </div>
+          {% if r.last_scraped %}
+          <p class="small text-muted mb-0">Dernier crawl : {{ r.last_scraped }}</p>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-transparent border-top d-flex gap-2 flex-wrap">
+          <a href="/restaurant/{{ r.id }}" class="btn btn-sm btn-outline-primary flex-fill">Voir promos</a>
+          <button class="btn btn-sm btn-warning flex-fill"
+                  data-rid="{{ r.id }}"
+                  data-rname="{{ r.name }}"
+                  onclick="crawlOne(this)">
+            Scraper
+          </button>
+          <form action="/delete_restaurant/{{ r.id }}" method="POST"
+                onsubmit="return confirm('Supprimer {{ r.name }} ?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger px-2">X</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+      <div class="alert alert-info">
+        Aucun restaurant. Ajoutez-en un ci-dessus pour commencer.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Job status panel (bottom-right) -->
+<div id="jobPanel"></div>
+
+<script>
+// ── Job tracking ────────────────────────────────────────────────────────────
+const _activeJobs = {};  // jid → { card, interval }
+
+function _jobCard(jid, name) {
+  const card = document.createElement('div');
+  card.className = 'job-card pending';
+  card.id = 'job-' + jid;
+  card.innerHTML = `
+    <button class="btn-close-sm" onclick="this.closest('.job-card').remove()">✕</button>
+    <div class="job-name"><span class="spin">⟳</span> ${name}</div>
+    <div class="job-detail" id="jd-${jid}">En file d'attente…</div>`;
+  document.getElementById('jobPanel').prepend(card);
+  return card;
+}
+
+function _pollJob(jid, card) {
+  const detail = document.getElementById('jd-' + jid);
+  const ivl = setInterval(async () => {
+    try {
+      const r = await fetch('/job/' + jid);
+      const d = await r.json();
+      const status = d.status;
+      card.className = 'job-card ' + status;
+
+      if (status === 'running') {
+        detail.textContent = 'Scraping en cours…';
+        card.querySelector('.job-name span').textContent = '⟳';
+      } else if (status === 'done') {
+        clearInterval(ivl);
+        const res = d.result || {};
+        card.querySelector('.job-name span').textContent = '✓';
+        card.querySelector('.job-name span').style.animation = 'none';
+        detail.innerHTML =
+          `<span class="text-success">+${res.inserted||0} nouvelles</span> · ` +
+          `${res.updated||0} confirmees · ` +
+          `${res.marked_inactive||0} expirees`;
+        // Auto-reload after 3s if page is the dashboard
+        setTimeout(() => location.reload(), 3000);
+      } else if (status === 'error') {
+        clearInterval(ivl);
+        card.querySelector('.job-name span').textContent = '✕';
+        card.querySelector('.job-name span').style.animation = 'none';
+        detail.innerHTML = `<span class="text-danger">Erreur : ${d.error}</span>`;
+      }
+    } catch(e) {
+      // network error – keep polling
+    }
+  }, 2000);
+  _activeJobs[jid] = { card, ivl };
+}
+
+function _launchJob(jid, name) {
+  const card = _jobCard(jid, name);
+  _pollJob(jid, card);
+}
+
+function showAlert(type, html) {
+  document.getElementById('alert-zone').innerHTML =
+    `<div class="alert alert-${type} alert-dismissible fade show">
+      ${html}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+  window.scrollTo(0, 0);
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+async function crawlOne(btn) {
+  const rid  = btn.dataset.rid;
+  const name = btn.dataset.rname;
+  try {
+    const r = await fetch('/crawl/' + rid, {method:'POST'});
+    const d = await r.json();
+    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
+    _launchJob(d.job_id, d.name);
+  } catch(e) {
+    showAlert('danger', 'Erreur reseau : ' + e);
+  }
+}
+
+async function crawlAll() {
+  try {
+    const r = await fetch('/crawl_all', {method:'POST'});
+    const d = await r.json();
+    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
+    for (const job of (d.jobs || [])) {
+      _launchJob(job.job_id, job.name);
+    }
+  } catch(e) {
+    showAlert('danger', 'Erreur : ' + e);
+  }
+}
+
+async function classifyAll() {
+  try {
+    const r = await fetch('/classify_all', {method:'POST'});
+    const d = await r.json();
+    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
+    showAlert('success', d.classified + ' promotions classifiees.');
+  } catch(e) {
+    showAlert('danger', 'Erreur : ' + e);
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

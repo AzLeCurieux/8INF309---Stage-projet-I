@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ restaurant.name }} – Promotions</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#f0f2f5; }
+    .grade-badge {
+      display:inline-block; width:40px; height:40px; border-radius:50%;
+      line-height:40px; text-align:center; font-weight:800; font-size:.95rem; color:#fff;
+    }
+    .gAp { background:#198754; }
+    .gA  { background:#20c997; }
+    .gB  { background:#0dcaf0; color:#000; }
+    .gC  { background:#ffc107; color:#000; }
+    .gD  { background:#dc3545; }
+    .gNA { background:#adb5bd; }
+    .promo-img { width:90px; height:68px; object-fit:cover; border-radius:8px; cursor:pointer; }
+    .inactive-row { opacity:.5; background:#fff8f8 !important; }
+    .expired-badge { font-size:.7rem; background:#6c757d; color:#fff;
+                     border-radius:4px; padding:.1em .45em; vertical-align:middle; }
+    .savings-pos { color:#198754; font-weight:700; }
+    .description-cell { max-width:320px; white-space:pre-wrap; word-break:break-word; }
+    .spinner-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+                       z-index:9999; align-items:center; justify-content:center; }
+    .spinner-overlay.show { display:flex; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark mb-4 px-3">
+  <a class="navbar-brand fw-bold" href="/">← Dashboard</a>
+  <span class="navbar-text text-white fw-bold fs-5">{{ restaurant.name }}</span>
+  <button class="btn btn-warning btn-sm" onclick="crawlNow()">Scraper maintenant</button>
+</nav>
+
+<div class="container-fluid px-4">
+  <div id="alert-zone" class="mb-3"></div>
+
+  <!-- Filters bar -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <form class="d-flex flex-wrap gap-2 align-items-center" method="GET">
+        <strong class="me-1">Filtres :</strong>
+        <select name="category" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+          <option value="">Toutes catégories</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if cat==category_filter %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <select name="grade" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+          <option value="">Tous grades</option>
+          {% for g in ['A+','A','B','C','D','N/A'] %}
+          <option value="{{ g }}" {% if g==grade_filter %}selected{% endif %}>Grade {{ g }}</option>
+          {% endfor %}
+        </select>
+        {% if inactive_count > 0 %}
+        <div class="form-check ms-2 mb-0">
+          <input class="form-check-input" type="checkbox" name="show_all" value="1"
+                 id="showAll" {% if show_all %}checked{% endif %} onchange="this.form.submit()">
+          <label class="form-check-label small" for="showAll">
+            Afficher aussi les {{ inactive_count }} promos expirées
+          </label>
+        </div>
+        {% endif %}
+        {% if category_filter or grade_filter %}
+        <a href="/restaurant/{{ restaurant.id }}" class="btn btn-sm btn-outline-secondary">✕ Effacer</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="d-flex gap-3 align-items-center mb-3 flex-wrap">
+    <span class="badge bg-dark fs-6">{{ promos|length }} promotions affichées</span>
+    <span class="badge bg-secondary">scraper : {{ restaurant.scraper_type }}</span>
+    <a href="{{ restaurant.url }}" target="_blank" class="badge bg-primary text-decoration-none">
+      Voir le site ↗
+    </a>
+    {% if inactive_count > 0 and not show_all %}
+    <span class="badge bg-warning text-dark">{{ inactive_count }} expirées masquées</span>
+    {% endif %}
+  </div>
+
+  {% if promos %}
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered bg-white align-middle small">
+      <thead class="table-dark">
+        <tr>
+          <th style="width:50px">Grade</th>
+          <th style="width:90px">Image</th>
+          <th style="width:110px">Type</th>
+          <th>Description complète</th>
+          <th style="width:80px">Prix</th>
+          <th style="width:90px">Économies</th>
+          <th style="width:110px">Catégorie</th>
+          <th style="width:130px">Validité</th>
+          <th style="width:60px">Lien</th>
+          <th style="width:120px">Vu le</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in promos %}
+        {% set inactive = (p.is_active == 0) %}
+        {% set g = p.grade or 'N/A' %}
+        {% set gcls = g.replace('+','p').replace('/','').replace(' ','') %}
+        <tr class="{% if inactive %}inactive-row{% endif %}">
+          <td class="text-center">
+            <span class="grade-badge g{{ gcls }}">{{ g }}</span>
+          </td>
+          <td>
+            {% if p.image_url and p.image_url not in ('Not Provided', '', 'None', None) %}
+            <a href="{{ p.image_url }}" target="_blank">
+              <img src="{{ p.image_url }}" class="promo-img" alt="promo image"
+                   onerror="this.parentElement.innerHTML='<span class=text-muted>—</span>'">
+            </a>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {{ p.promo_type or '—' }}
+            {% if inactive %}<span class="expired-badge ms-1">EXPIRÉ</span>{% endif %}
+          </td>
+          <td class="description-cell">{{ p.promo_details or '—' }}</td>
+          <td class="fw-bold text-center">
+            {% if p.price and p.price not in ('Not Provided','N/A','','None',None) %}
+            {{ p.price }}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if p.savings_estimate and p.savings_estimate > 0 %}
+            <span class="savings-pos">+{{ "%.2f"|format(p.savings_estimate) }} $</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.category %}
+            <span class="badge bg-info text-dark">{{ p.category }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted">{{ p.promo_date or '—' }}</td>
+          <td>
+            {% if p.link and p.link not in ('Not Provided','','None',None) %}
+            <a href="{{ p.link }}" target="_blank" class="btn btn-xs btn-outline-primary px-2 py-1">↗</a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted" style="font-size:.75rem;">
+            {{ p.last_seen or p.saved_date_time or '—' }}
+            {% if inactive %}
+            <br>
+            <button class="btn btn-xs btn-outline-success px-1 py-0 mt-1"
+                    onclick="reactivate({{ p.id }})">Réactiver</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-secondary mt-3">
+    Aucune promotion trouvée.
+    {% if not show_all and inactive_count > 0 %}
+    <a href="?show_all=1">Afficher aussi les {{ inactive_count }} promos expirées ?</a>
+    {% else %}
+    Cliquez sur <strong>⚡ Scraper maintenant</strong> pour lancer le crawl.
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Job status toast -->
+<div id="jobToast" style="display:none; position:fixed; bottom:1.5rem; right:1.5rem;
+     background:#1e1e2e; color:#fff; border-radius:12px; padding:.9rem 1.2rem;
+     min-width:280px; z-index:9000; box-shadow:0 4px 20px rgba(0,0,0,.4); font-size:.87rem;">
+  <div class="fw-bold" id="toastTitle"><span id="toastSpin" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> Scraping…</div>
+  <div id="toastDetail" style="color:#adb5bd; margin-top:.3rem;">Demarrage…</div>
+</div>
+
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<script>
+function showAlert(type, html) {
+  document.getElementById('alert-zone').innerHTML =
+    `<div class="alert alert-${type} alert-dismissible fade show">
+      ${html}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+}
+
+async function crawlNow() {
+  const toast = document.getElementById('jobToast');
+  document.getElementById('toastDetail').textContent = 'Lancement du scraper…';
+  document.getElementById('toastSpin').style.animation = 'spin 1s linear infinite';
+  toast.style.display = 'block';
+
+  try {
+    const r = await fetch('/crawl/{{ restaurant.id }}', {method:'POST'});
+    const d = await r.json();
+    if (d.error) {
+      toast.style.display = 'none';
+      showAlert('danger', `Erreur : ${d.error}`);
+      return;
+    }
+    // Poll job until done
+    const jid = d.job_id;
+    const ivl = setInterval(async () => {
+      try {
+        const rj = await fetch('/job/' + jid);
+        const dj = await rj.json();
+        if (dj.status === 'running') {
+          document.getElementById('toastDetail').textContent = 'Scrapling + GPT-4o en cours…';
+        } else if (dj.status === 'done') {
+          clearInterval(ivl);
+          toast.style.display = 'none';
+          const res = dj.result || {};
+          showAlert('success',
+            `✅ ${res.inserted||0} nouvelles · ${res.updated||0} confirmees · ${res.marked_inactive||0} expirees`);
+          setTimeout(() => location.reload(), 2000);
+        } else if (dj.status === 'error') {
+          clearInterval(ivl);
+          toast.style.display = 'none';
+          showAlert('danger', `Erreur scraper : ${dj.error}`);
+        }
+      } catch(e) { /* keep polling */ }
+    }, 2000);
+  } catch(e) {
+    toast.style.display = 'none';
+    showAlert('danger', `Erreur reseau : ${e}`);
+  }
+}
+
+async function reactivate(pid) {
+  const r = await fetch(`/reactivate/${pid}`, {method:'POST'});
+  if ((await r.json()).ok) location.reload();
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

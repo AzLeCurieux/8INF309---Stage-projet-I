@@ -1,0 +1,51 @@
+version: '3.8'
+# ── Promo Dashboard – full stack ──────────────────────────────────────────────
+# Quick start:
+#   1. cp .env.example .env  → add your OPENAI_API_KEY
+#   2. docker compose up
+#   3. Open http://localhost:5000
+#
+# First run: tables are created automatically and the 4 default restaurants
+# are seeded (Benny and Co, Boston Pizza, Mike, Normandin).
+
+services:
+
+  # ── Flask app ───────────────────────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: "${DB_PASSWORD:-1234}"
+      DB_NAME: promotions_db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    shm_size: '256mb'   # Chromium needs shared memory
+
+  # ── MySQL database ───────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-1234}"
+      MYSQL_DATABASE: promotions_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-uroot", "-p${DB_PASSWORD:-1234}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
