@@ -4,6 +4,9 @@ Système automatisé de surveillance et classification des promotions de restaur
 
 Scrape les pages promotions, extrait les offres avec GPT-4o-mini, les classe par grade de valeur et les affiche dans un dashboard web.
 
+| Dashboard principal | Liste des promotions |
+|:---:|:---:|
+| [![Dashboard](https://github.com/AzLeCurieux/8INF309---Stage-projet-I/blob/main/Img/dashboard.png?raw=true)](https://github.com/AzLeCurieux/8INF309---Stage-projet-I/blob/main/Img/dashboard.png) | [![Promos](https://github.com/AzLeCurieux/8INF309---Stage-projet-I/blob/main/Img/promos.png?raw=true)](https://github.com/AzLeCurieux/8INF309---Stage-projet-I/blob/main/Img/promos.png) |
 ---
 
 ## Démarrage rapide (Docker)
@@ -151,3 +154,4 @@ Référence : **20 $** · Économies estimées = `max(0, 20 − prix)`
     ├── restaurant.html # Détail promotions
     └── about.html      # Documentation technique
 ```
+
