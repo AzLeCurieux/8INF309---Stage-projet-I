@@ -1,20 +1,10 @@
 version: '3.8'
-# ── Promo Dashboard – full stack ──────────────────────────────────────────────
-# Quick start:
-#   1. cp .env.example .env  → add your OPENAI_API_KEY
-#   2. docker compose up
-#   3. Open http://localhost:5000
-#
-# First run: tables are created automatically and the 4 default restaurants
-# are seeded (Benny and Co, Boston Pizza, Mike, Normandin).
 
 services:
 
   # ── Flask app ───────────────────────────────────────────────────────────────
   app:
     build: .
-    ports:
-      - "5000:5000"
     env_file:
       - .env
     environment:
@@ -27,7 +17,20 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
-    shm_size: '256mb'   # Chromium needs shared memory
+    shm_size: '256mb'
+
+  # ── LE BUNKER (Proxy Auth avec Nginx Officiel) ──────────────────────────────
+  gatekeeper:
+    image: nginx:alpine
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      BUNKER_PASSWORD: "${BUNKER_PASSWORD:-sx0y58n0ufm5}"
+    volumes:
+      - ./nginx_bunker.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./htpasswd:/etc/nginx/.htpasswd:ro
+    depends_on:
+      - app
 
   # ── MySQL database ───────────────────────────────────────────────────────────
   db:
@@ -37,8 +40,6 @@ services:
       MYSQL_DATABASE: promotions_db
     volumes:
       - mysql_data:/var/lib/mysql
-    ports:
-      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
              "-uroot", "-p${DB_PASSWORD:-1234}"]
