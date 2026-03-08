@@ -61,16 +61,30 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO,
 # Prevents multiple simultaneous browser instances that would crash the machine.
 _playwright_lock = threading.Lock()
 
+# Contexte local pour capturer les logs par thread/job
+_thread_context = threading.local()
+
 # ── In-memory job store ───────────────────────────────────────────────────────
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
+
+class JobLogHandler(logging.Handler):
+    """Handler qui capture TOUS les logs système et les redirige vers le bon job."""
+    def emit(self, record):
+        jid = getattr(_thread_context, 'job_id', None)
+        if jid:
+            msg = self.format(record)
+            with _jobs_lock:
+                if jid in _jobs:
+                    if "logs" not in _jobs[jid]: _jobs[jid]["logs"] = []
+                    _jobs[jid]["logs"].append(msg)
 
 def _new_job(name: str) -> str:
     jid = str(uuid.uuid4())[:8]
     with _jobs_lock:
         _jobs[jid] = {"status": "pending", "name": name, "result": None,
                       "error": None, "started_at": datetime.now().isoformat(),
-                      "pages_crawled": [], "finished_at": None}
+                      "pages_crawled": [], "finished_at": None, "logs": []}
     return jid
 
 def _set_job(jid: str, status: str, result=None, error=None, pages=None):
@@ -164,10 +178,11 @@ def _html_to_text(html: str, base_url: str = "") -> str:
     Image URLs are embedded as [IMAGE:url] markers so the LLM can associate
     them with nearby promotions.
     """
-    html = html[:400_000]  # Hard cap: prevent OOM on JS-heavy pages (400KB is plenty)
+    html = html[:600_000]  # Hard cap
     soup = BeautifulSoup(html, "html.parser")
+    # Aggreresively remove junk tags that bloat the text
     for tag in soup(["script", "style", "nav", "footer", "header", "aside",
-                     "noscript", "form", "svg"]):
+                     "noscript", "form", "svg", "iframe", "button", "input"]):
         tag.decompose()
 
     # Embed image URLs as text markers before stripping HTML
@@ -310,37 +325,32 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
     from scrapling.fetchers import AsyncFetcher, DynamicFetcher
 
     html = text = ""
-    try:
-        fetcher = AsyncFetcher()
-        resp = await fetcher.get(url, stealthy_headers=True, follow_redirects=True, timeout=20)
-        html = resp.html_content or ""
-        text = _html_to_text(html, url)
-        logging.info(f"AsyncFetcher → {url} ({len(text)} chars)")
-    except Exception as exc:
-        logging.warning(f"AsyncFetcher failed for {url}: {exc}")
+    is_hard_antibot = "doordash.com" in url or "ubereats.com" in url or "timhortons.ca" in url
+    
+    if not is_hard_antibot:
+        try:
+            fetcher = AsyncFetcher()
+            resp = await fetcher.get(url, stealthy_headers=True, follow_redirects=True, timeout=20)
+            html = resp.html_content or ""
+            text = _html_to_text(html, url)
+            logging.info(f"AsyncFetcher → {url} ({len(text)} chars)")
+        except Exception as exc:
+            logging.warning(f"AsyncFetcher failed for {url}: {exc}")
 
-    if not _content_looks_static(text):
-        logging.info(f"Content looks JS-rendered ({len(text)} chars) – trying Playwright for {url}")
+    if is_hard_antibot or not _content_looks_static(text):
+        logging.info(f"Content looks JS-rendered or hard antibot ({len(text)} chars) – trying Playwright for {url}")
         # Acquire the global lock so only ONE Chromium instance runs at a time.
-        # Use run_in_executor to avoid blocking the event loop while waiting.
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, _playwright_lock.acquire)
         try:
             resp = await DynamicFetcher.async_fetch(
                 url,
                 headless=True,
-                network_idle=True,    # OK – settles fast because resources are blocked
-                timeout=25_000,       # 25 s (reduced from 30 s)
-                retries=1,            # Minimum allowed (disable_resources keeps it light)
-                disable_resources=True,  # Block images/fonts/media/stylesheets → huge I/O reduction
-                blocked_domains={     # Block analytics/tracking that never add promo content
-                    "google-analytics.com", "analytics.google.com",
-                    "googletagmanager.com", "doubleclick.net",
-                    "googlesyndication.com", "facebook.net",
-                    "connect.facebook.net", "hotjar.com",
-                    "mixpanel.com", "segment.com", "intercom.io",
-                    "clarity.ms", "sentry.io",
-                },
+                network_idle=True,
+                timeout=45_000,
+                wait=5000,
+                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                retries=1,
                 page_action=_scroll_and_wait,
             )
             html2 = resp.html_content or ""
@@ -348,24 +358,6 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
             if len(text2) > len(text):
                 html, text = html2, text2
                 logging.info(f"Playwright → {url} ({len(text)} chars)")
-            elif html2:
-                # Playwright content not longer, but may have image src attributes
-                # that the static HTML lacks. Append any new image URLs to the text.
-                from bs4 import BeautifulSoup as _BS
-                _soup = _BS(html2[:400_000], "html.parser")
-                _imgs = []
-                for _img in _soup.find_all("img"):
-                    _src = (_img.get("src") or _img.get("data-src") or
-                            _img.get("data-lazy-src") or "").strip()
-                    if _src and not _src.startswith("data:") and "http" in _src:
-                        if _src.startswith("/"):
-                            from urllib.parse import urlparse as _up
-                            _p = _up(url)
-                            _src = f"{_p.scheme}://{_p.netloc}{_src}"
-                        _imgs.append(f"[IMAGE:{_src}]")
-                if _imgs:
-                    text = text + "\n" + " ".join(_imgs[:40])
-                    logging.info(f"Playwright images appended ({len(_imgs)} imgs) for {url}")
         except Exception as exc:
             logging.warning(f"Playwright failed for {url}: {exc}")
         finally:
@@ -426,7 +418,7 @@ def _extract_promos_sync(text: str, restaurant_name: str, page_url: str) -> list
     Retries if empty result (model is occasionally non-deterministic).
     Called SYNCHRONOUSLY with NO asyncio event loop active in the thread.
     """
-    content = text[:10_000]  # ~2.5k tokens input, leaves room for large JSON responses
+    content = text[:15_000]  # Increased limit to 15k chars
     prompt = f"""You are a promotion extractor for a restaurant analytics system.
 
 Restaurant: {restaurant_name}
@@ -489,31 +481,40 @@ Page content:
 
 
 # ── Sync wrapper: Phase 1 async fetch → Phase 2 sync LLM ─────────────────────
-def _scrape_sync(url: str, restaurant_name: str) -> tuple[list[dict], list[str]]:
+def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[dict], list[str]]:
     """
     Two-phase pipeline (safe for background threads):
     1. Async fetch + discovery (isolated event loop, then closed)
     2. Sync LLM extraction (NO event loop active → avoids httpx/anyio bug)
     Returns (promo_list, crawled_url_list).
     """
-    logging.info(f"Scraping {restaurant_name} @ {url}")
+    msg = f"Scraping {restaurant_name} @ {url}"
+    logging.info(msg)
 
     # Phase 1: async web crawl
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         text, crawled = loop.run_until_complete(_smart_crawl(url))
+        logging.info(f"Crawl finished. Pages: {len(crawled)}")
     finally:
         loop.close()
         asyncio.set_event_loop(None)   # ← MUST clear before calling OpenAI
 
     if not text or len(text) < 50:
-        logging.warning(f"No content scraped for {restaurant_name}")
+        msg = f"No content scraped for {restaurant_name}"
+        logging.warning(msg)
         return [], [url]
 
     # Phase 2: LLM extraction (synchronous, no event loop)
+    logging.info(f"Starting LLM extraction ({len(text)} chars)...")
     promos = _extract_promos_sync(text, restaurant_name, url)
+    logging.info(f"LLM finished. Promos found: {len(promos)}")
     return promos, crawled
+
+
+# ── DB: dedup + save ──────────────────────────────────────────────────────────
+# ... (rest of methods)
 
 
 # ── DB: dedup + save ──────────────────────────────────────────────────────────
@@ -564,19 +565,19 @@ def save_promos_to_db(restaurant_name: str, new_promos: list[dict]) -> dict:
                 emb = emb_arr = None
 
             if emb_arr is not None:
-                for ex in existing:
-                    if ex["emb"] is not None:
-                        cos = float(cosine_similarity(emb_arr, ex["emb"])[0][0])
+                for x in existing:
+                    if x["emb"] is not None:
+                        cos = float(cosine_similarity(emb_arr, x["emb"])[0][0])
                         score = (1 - PRICE_WEIGHT) * cos + PRICE_WEIGHT * _price_sim(
-                            new_price, _parse_price_float(ex["price"]))
+                            new_price, _parse_price_float(x["price"]))
                         if score > best_score:
-                            best_score, best_id = score, ex["id"]
-                    elif ex["det"] == det_lower:
-                        best_score, best_id = SIMILARITY_THRESHOLD, ex["id"]; break
+                            best_score, best_id = score, x["id"]
+                    elif x["det"] == det_lower:
+                        best_score, best_id = SIMILARITY_THRESHOLD, x["id"]; break
             else:
-                for ex in existing:
-                    if ex["det"] == det_lower:
-                        best_score, best_id = SIMILARITY_THRESHOLD, ex["id"]; break
+                for x in existing:
+                    if x["det"] == det_lower:
+                        best_score, best_id = SIMILARITY_THRESHOLD, x["id"]; break
 
             if best_score >= SIMILARITY_THRESHOLD and best_id:
                 cur.execute("UPDATE promotions_table SET last_seen=%s, is_active=1 WHERE id=%s",
@@ -628,21 +629,22 @@ def mark_inactive_promos(restaurant_name: str) -> int:
 
 
 # ── Background scrape thread ──────────────────────────────────────────────────
-def _run_scrape_blocking(restaurant_name: str, url: str) -> dict:
-    promos, crawled = _scrape_sync(url, restaurant_name)
+def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dict:
+    promos, crawled = _scrape_sync(url, restaurant_name, jid=jid)
     stats = save_promos_to_db(restaurant_name, promos)
     stats["marked_inactive"] = mark_inactive_promos(restaurant_name)
     stats["pages_crawled"] = crawled
     return stats
 
 def _background_scrape(jid: str, restaurant_name: str, url: str):
+    _thread_context.job_id = jid # On lie ce thread au JID pour capturer les logs
     _set_job(jid, "running")
     try:
-        result = _run_scrape_blocking(restaurant_name, url)
+        result = _run_scrape_blocking(restaurant_name, url, jid=jid)
         _set_job(jid, "done", result=result, pages=result.get("pages_crawled", []))
-        logging.info(f"[Job {jid}] Done {restaurant_name}: {result}")
+        logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
-        logging.error(f"[Job {jid}] Error {restaurant_name}: {exc}\n{traceback.format_exc()}")
+        logging.error(f"Job {jid} error: {exc}")
         _set_job(jid, "error", error=str(exc))
 
 
@@ -812,6 +814,14 @@ def job_status(jid):
     return jsonify(job)
 
 
+@app.route("/api/job/<jid>/logs")
+def job_logs(jid):
+    with _jobs_lock:
+        job = _jobs.get(jid)
+    if not job: return jsonify({"error": "Job not found"}), 404
+    return jsonify({"logs": job.get("logs", [])})
+
+
 @app.route("/classify_all", methods=["POST"])
 def classify_all():
     try:
@@ -959,6 +969,13 @@ def _init_db():
 if __name__ == "__main__":
     import hypercorn.asyncio
     import hypercorn.config
+    
+    # Configuration avancée des logs pour tout capturer (Scrapling, Playwright, etc.)
+    job_handler = JobLogHandler()
+    job_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.getLogger().addHandler(job_handler)
+    logging.getLogger().setLevel(logging.INFO)
+
     _init_db()
     _scheduler = _start_scheduler()
     cfg = hypercorn.config.Config()
