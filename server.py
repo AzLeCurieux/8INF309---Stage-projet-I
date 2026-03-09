@@ -183,7 +183,7 @@ _IMG_SKIP_KW = [
     "1x1", "pixel", "track", "blank", "placeholder", ".svg",
 ]
 
-def _find_candidate_promo_images(text: str, max_candidates: int = 15) -> list[dict]:
+def _find_candidate_promo_images(text: str, max_candidates: int = 35) -> list[dict]:
     """
     Scan combined page text for [IMG_N:url ALT:text] markers and score each.
     Returns top candidates sorted by score.

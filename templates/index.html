@@ -36,7 +36,7 @@
       --border-hi: #c8c8e0;
       --text: #0f0f1e;
       --muted: #8080a0;
-      --muted-hi: #5050708;
+      --muted-hi: #505070;
       --accent: #d4850a;
       --accent-dim: rgba(212,133,10,0.1);
       --accent-glow: rgba(212,133,10,0.2);
@@ -329,12 +329,30 @@
       font-size: 11px; font-weight: 600; color: var(--accent);
       margin-bottom: 0.625rem; letter-spacing: 0.02em;
     }
-    .img-thumbs {
-      display: flex; gap: 6px; margin-bottom: 0.625rem; flex-wrap: wrap;
+    .img-thumbs-scroll {
+      display: flex; gap: 8px; margin-bottom: 0.75rem; overflow-x: auto;
+      padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
-    .img-thumbs img {
-      width: 62px; height: 42px; object-fit: cover;
-      border-radius: 4px; border: 1px solid var(--border);
+    .img-thumb-item { position: relative; flex-shrink: 0; }
+    .img-thumb-label { cursor: pointer; display: block; position: relative; }
+    .img-thumb-label img {
+      width: 85px; height: 60px; object-fit: cover;
+      border-radius: 6px; border: 2px solid var(--border);
+      transition: all 0.15s;
+    }
+    .img-thumb-label input[type="checkbox"] {
+      position: absolute; top: 4px; left: 4px; z-index: 2;
+      width: 16px; height: 16px; accent-color: var(--accent);
+    }
+    .img-thumb-label input[type="checkbox"]:checked + img {
+      border-color: var(--accent); box-shadow: 0 0 8px rgba(245,166,35,0.3);
+    }
+    .img-score {
+      position: absolute; bottom: 4px; right: 4px;
+      font-size: 8px; font-weight: 800; background: rgba(0,0,0,0.6);
+      color: #fff; padding: 1px 3px; border-radius: 3px;
     }
     .img-meta {
       font-family: 'JetBrains Mono', monospace;
@@ -373,7 +391,7 @@
       font-size: 13px; color: var(--red);
     }
 
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 
@@ -488,7 +506,7 @@
       .row-actions { padding-top: 0.25rem; gap: 0.4rem; }
       .btn-row { flex: 1; justify-content: center; height: 36px; font-size: 12px; }
 
-    #jobPanel { width: calc(100% - 1rem); left: 0.5rem; bottom: 0.5rem; }
+      #jobPanel { width: calc(100% - 1rem); left: 0.5rem; bottom: 0.5rem; }
     }
 
     /* ── SELECTION OF THE DAY STYLES ── */
@@ -573,7 +591,6 @@
 <div class="layout">
   <div id="alert-zone"></div>
 
-  <!-- Summary bar (computed from restaurants) -->
   <div class="summary-bar">
     <div class="summary-item">
       <span class="summary-value sv-amber">{{ restaurants|length }}</span>
@@ -593,7 +610,6 @@
     </div>
   </div>
 
-  <!-- Add restaurant form -->
   <form action="/add_restaurant" method="POST" class="add-section">
     <span class="add-label">+ <span class="fr">Ajouter</span><span class="en">Add</span></span>
     <input type="text" name="name" class="input-field" placeholder="Nom (ex: KFC)" style="max-width:200px" required>
@@ -603,7 +619,6 @@
     </button>
   </form>
 
-  <!-- Section header -->
   <div class="section-head">
     <span class="section-title">
       <span class="fr">Sources surveillées</span>
@@ -612,18 +627,17 @@
     <span class="section-count">{{ restaurants|length }} <span class="fr">entrées</span><span class="en">entries</span></span>
   </div>
 
-  <!-- Column headers -->
   <div class="table-header" id="tableHeader">
     <div class="th col-name sortable" data-col="name" onclick="sortTable('name')">
       <span class="fr">Source</span><span class="en">Source</span>
       <span class="sort-arrow" id="arr-name">↕</span>
     </div>
     <div class="th col-stats">
-      <div class="col-stat sortable" data-col="active" onclick="sortTable('active')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem; transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color=''">
+      <div class="col-stat sortable" data-col="active" onclick="sortTable('active')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
         <span class="fr">Actives</span><span class="en">Active</span>
         <span class="sort-arrow" id="arr-active">↕</span>
       </div>
-      <div class="col-stat sortable" data-col="top" onclick="sortTable('top')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem; transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color=''">
+      <div class="col-stat sortable" data-col="top" onclick="sortTable('top')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
         Top A+/A
         <span class="sort-arrow" id="arr-top">↕</span>
       </div>
@@ -635,7 +649,6 @@
     <div class="th col-act"><span class="fr">Actions</span><span class="en">Actions</span></div>
   </div>
 
-  <!-- Restaurant list -->
   <div class="restaurant-list">
     {% if restaurants %}
       {% for r in restaurants %}
@@ -646,12 +659,10 @@
            data-date="{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '0000-00-00' }}"
            style="animation-delay: {{ loop.index0 * 0.04 }}s">
         <div class="row-accent-bar"></div>
-
         <div class="row-name col-name">
           <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="favicon" alt="">
           <a href="/restaurant/{{ r.id }}" class="name-link">{{ r.name }}</a>
         </div>
-
         <div class="row-stats col-stats">
           <div class="stat-cell col-stat" data-label="Actives">
             <span class="stat-num {{ 'amber' if r.active_promos else 'muted' }}">{{ r.active_promos or 0 }}</span>
@@ -660,11 +671,9 @@
             <span class="stat-num {{ 'green' if r.top_promos else 'muted' }}">{{ r.top_promos or 0 }}</span>
           </div>
         </div>
-
         <div class="row-date col-date">
           {{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '—' }}
         </div>
-
         <div class="row-actions col-act">
           <a href="/restaurant/{{ r.id }}" class="btn-row">
             <span class="fr">Voir</span><span class="en">View</span>
@@ -681,12 +690,11 @@
     {% else %}
       <div class="empty-state">
         <div class="empty-icon">[ — ]</div>
-        <p><span class="fr">Aucune source configurée. Ajoutez votre premier restaurant ci-dessus.</span><span class="en">No sources configured. Add your first restaurant above.</span></p>
+        <p><span class="fr">Aucune source configurée.</span><span class="en">No sources configured.</span></p>
       </div>
     {% endif %}
   </div>
 
-  <!-- SELECTION OF THE DAY -->
   {% if selection %}
   <div class="section-head" style="margin-top: 3rem;">
     <span class="section-title">
@@ -695,30 +703,21 @@
     </span>
     <span class="section-count">{{ selection|length }} <span class="fr">pépites</span><span class="en">gems</span></span>
   </div>
-
   <div class="selection-grid">
     {% for p in selection %}
     <div class="selection-card" style="animation-delay: {{ 0.2 + loop.index0 * 0.05 }}s">
-      <!-- Image & Badges -->
       <div class="card-img-wrap">
         {% if p.image_url and p.image_url != 'Not Provided' %}
         <img src="{{ p.image_url }}" class="card-img" alt="" loading="lazy">
         {% else %}
         <div class="card-img-placeholder">🍗</div>
         {% endif %}
-        
-        <!-- Source attribution -->
         <div class="source-tag">
           <img src="https://www.google.com/s2/favicons?domain={{ p.restaurant_url }}&sz=32" class="source-icon" alt="">
           <span class="source-name">{{ p.restaurant }}</span>
         </div>
-
-        <!-- Grade badge -->
-        <span class="grade-badge {{ 'g-Ap' if p.grade == 'A+' else 'g-A' }}">
-          {{ p.grade }}
-        </span>
+        <span class="grade-badge {{ 'g-Ap' if p.grade == 'A+' else 'g-A' }}">{{ p.grade }}</span>
       </div>
-
       <div class="card-body">
         <div class="card-price-row">
           {% if p.price and p.price != 'Not Provided' %}
@@ -728,9 +727,7 @@
           {% endif %}
           <span class="card-type">{{ p.promo_type or 'Combo' }}</span>
         </div>
-
         <div class="card-details">{{ p.promo_details }}</div>
-
         <div class="card-footer">
           <span class="card-type" style="border:none; background:var(--bg); color:var(--muted);">{{ p.category or 'Autre' }}</span>
           <a href="{{ p.link }}" target="_blank" class="card-link">
@@ -742,7 +739,6 @@
     {% endfor %}
   </div>
   {% endif %}
-
 </div>
 
 <div id="jobPanel"></div>
@@ -754,8 +750,7 @@ function toggleTheme() {
   else document.documentElement.removeAttribute('data-theme');
   localStorage.setItem('pref-theme', t || 'dark');
 }
-if (localStorage.getItem('pref-theme') === 'light')
-  document.documentElement.setAttribute('data-theme', 'light');
+if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
 function toggleLang() {
   const isEn = document.body.classList.toggle('lang-en');
@@ -775,9 +770,7 @@ function _jobCard(jid, name) {
       <button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button>
     </div>
     <div class="job-card-body">
-      <div class="job-status" id="jd-${jid}">
-        <span class="fr">Initialisation…</span><span class="en">Initializing…</span>
-      </div>
+      <div class="job-status" id="jd-${jid}"><span class="fr">Initialisation…</span><span class="en">Initializing…</span></div>
       <div class="job-logs" id="jl-${jid}"></div>
     </div>`;
   document.getElementById('jobPanel').prepend(card);
@@ -797,33 +790,39 @@ async function _updateLogs(jid) {
 }
 
 function _showImageConfirm(jid, rid, images, card) {
-  const toAnalyze = images.slice(0, 5);
+  if (!images || images.length === 0) return;
+  const toAnalyze = images.slice(0, 35);
   const inputTok  = toAnalyze.length * (85 + 350);
   const outputTok = toAnalyze.length * 400;
   const costUSD   = ((inputTok / 1e6) * 2.5 + (outputTok / 1e6) * 10).toFixed(4);
-  const thumbs = toAnalyze.slice(0, 4).map(img =>
-    `<img src="${img.url}" onerror="this.style.display='none'" alt="">`
-  ).join('');
+  
+  const thumbs = toAnalyze.map((img, i) => `
+    <div class="img-thumb-item">
+      <label class="img-thumb-label">
+        <input type="checkbox" checked data-url="${img.url}" data-score="${img.score}" data-ctx="${(img.context||'').replace(/"/g, '&quot;')}">
+        <img src="${img.url}" onerror="this.parentElement.parentElement.style.display='none'" alt="">
+        <span class="img-score">${img.score}</span>
+      </label>
+    </div>
+  `).join('');
 
   const div = document.createElement('div');
   div.className = 'img-confirm'; div.id = 'imgconfirm-' + jid;
-  div._imgData = images;
   div.innerHTML = `
     <div class="img-confirm-title">
       🖼 ${images.length}
-      <span class="fr"> bannière(s) promo détectée(s)</span>
-      <span class="en"> promo banner(s) detected</span>
+      <span class="fr"> bannières détectées (max 35)</span>
+      <span class="en"> banners detected (max 35)</span>
     </div>
-    <div class="img-thumbs">${thumbs}</div>
+    <div class="img-thumbs-scroll">${thumbs}</div>
     <div class="img-meta">
-      <span class="fr">Analyser ${toAnalyze.length} img avec GPT-4o Vision ?</span>
-      <span class="en">Analyze ${toAnalyze.length} img with GPT-4o Vision?</span><br>
-      ~${inputTok + outputTok} tokens · ~$${costUSD}
-      <span class="fr">(estimé)</span><span class="en">(est.)</span>
+      <span class="fr">Analyser la sélection avec GPT-4o Vision ?</span>
+      <span class="en">Analyze selection with GPT-4o Vision?</span><br>
+      <span style="opacity:0.7">~${inputTok + outputTok} tokens · ~$${costUSD} (est.)</span>
     </div>
     <div class="img-actions">
       <button class="btn-vision" onclick="_runImageAnalysis('${jid}', ${rid}, this)">
-        <span class="fr">Analyser images</span><span class="en">Analyze images</span>
+        <span class="fr">Analyser la sélection</span><span class="en">Analyze selection</span>
       </button>
       <button class="btn-skip" onclick="_skipImages('${jid}')">
         <span class="fr">Ignorer</span><span class="en">Skip</span>
@@ -835,21 +834,31 @@ function _showImageConfirm(jid, rid, images, card) {
 function _skipImages(jid) {
   const div = document.getElementById('imgconfirm-' + jid);
   if (div) div.remove();
-  setTimeout(() => location.reload(), 1500);
+  setTimeout(() => location.reload(), 500);
 }
 
 async function _runImageAnalysis(jid, rid, btn) {
   const div = document.getElementById('imgconfirm-' + jid);
-  const images = div ? div._imgData : [];
+  if (!div) return;
+  const selected = [];
+  div.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+    selected.push({
+      url: cb.dataset.url,
+      score: parseInt(cb.dataset.score),
+      context: cb.dataset.ctx
+    });
+  });
+  if (selected.length === 0) { alert("Selection vide"); return; }
+
   btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span>';
   try {
     const r = await fetch('/api/analyze_images', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({restaurant_id: rid, images: images.slice(0,5)}),
+      body: JSON.stringify({restaurant_id: rid, images: selected}),
     });
     const d = await r.json();
     if (d.error) throw new Error(d.error);
-    if (div) div.remove();
+    div.remove();
     _launchJob(d.job_id, '🖼 ' + d.name, null);
   } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
 }
@@ -909,44 +918,26 @@ async function crawlAll() {
   } catch(e) {}
 }
 
-async function classifyAll() {
-  try { await fetch('/classify_all', {method:'POST'}); location.reload(); } catch(e) {}
-}
-
 let _sortCol = null, _sortDir = 1;
 function sortTable(col) {
   const list = document.querySelector('.restaurant-list');
   const rows = Array.from(list.querySelectorAll('.restaurant-row'));
   if (!rows.length) return;
-
   if (_sortCol === col) _sortDir *= -1;
   else { _sortCol = col; _sortDir = 1; }
-
-  // Reset arrows
   document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '↕');
   const arrow = document.getElementById('arr-' + col);
   if (arrow) arrow.textContent = _sortDir === 1 ? '↑' : '↓';
-
-  // Reset header colors
-  document.querySelectorAll('.th.sortable').forEach(el => {
-    el.classList.remove('sort-asc', 'sort-desc');
-  });
+  document.querySelectorAll('.th.sortable').forEach(el => el.classList.remove('sort-asc', 'sort-desc'));
   const headerEl = document.querySelector(`.th[data-col="${col}"]`);
   if (headerEl) headerEl.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
-
   rows.sort((a, b) => {
     let va = a.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
     let vb = b.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
-    if (col === 'active' || col === 'top') {
-      return _sortDir * (parseInt(vb) - parseInt(va)); // desc by default (most first)
-    }
-    if (col === 'date') {
-      return _sortDir * vb.localeCompare(va); // newest first
-    }
+    if (col === 'active' || col === 'top') return _sortDir * (parseInt(vb) - parseInt(va));
+    if (col === 'date') return _sortDir * vb.localeCompare(va);
     return _sortDir * va.localeCompare(vb);
   });
-
-  // Reinsert without re-animating
   rows.forEach(r => { r.style.animation = 'none'; list.appendChild(r); });
 }
 </script>
