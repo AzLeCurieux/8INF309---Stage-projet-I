@@ -17,6 +17,7 @@ import threading
 import traceback
 import uuid
 from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from urllib.parse import urljoin, urlparse
 
 import mysql.connector
@@ -44,6 +45,9 @@ DATABASE_USER     = os.environ.get("DB_USER", "root")
 DATABASE_PASSWORD = os.environ.get("DB_PASSWORD", "1234")
 DATABASE_NAME     = os.environ.get("DB_NAME", "promotions_db")
 OPENAI_API_KEY    = os.environ.get("OPENAI_API_KEY", "")
+# Optional HTTP/SOCKS5 proxy for Cloudflare-protected sites
+# Format: "http://user:pass@host:port"  or  "socks5://host:port"
+SCRAPER_PROXY     = os.environ.get("SCRAPER_PROXY", "")
 
 # LLM models: mini is ~16x cheaper, used for attempts 1-2; full for attempt 3
 EXTRACT_MODEL_PRIMARY  = "gpt-4o-mini"
@@ -172,6 +176,88 @@ def classify_promotion(price_str, promo_type="", promo_details=""):
 
 
 # ── HTML → text ───────────────────────────────────────────────────────────────
+# ── Candidate promo-image detector ────────────────────────────────────────────
+_IMG_URL_PROMO_KW = [
+    "banner", "promo", "promotion", "offre", "deal", "special", "feature",
+    "vedette", "hero", "slide", "carousel", "offer", "highlight", "featured",
+    "ad-", "-ad", "annonce", "publicite", "pub-",
+]
+_IMG_CTX_PROMO_KW = [
+    "promo", "promotion", "offre", "offer", "special", "spécial", "rabais",
+    "réduction", "deal", "discount", "combo", "économie", "vedette", "featured",
+    "happy hour", "limited", "limité", "midi", "lunch", "prix", "price",
+    "save", "gratuit", "free", "%",
+]
+_IMG_SKIP_KW = [
+    "logo", "icon", "favicon", "sprite", "avatar", "profile", "thumb-", "-tiny",
+    "1x1", "pixel", "track", "blank", "placeholder", ".svg",
+]
+
+def _find_candidate_promo_images(text: str, max_candidates: int = 10) -> list[dict]:
+    """
+    Scan combined page text for [IMAGE:url] markers and score each by:
+      - URL pattern match (banner, promo, hero…)
+      - Proximity to price patterns or promo keywords in surrounding text
+    Returns top candidates sorted by score.
+    """
+    pattern = re.compile(r'\[IMAGE:(https?://[^\]\s]{10,})\]')
+    candidates: list[dict] = []
+    seen: set[str] = set()
+
+    for m in pattern.finditer(text):
+        url = m.group(1).strip()
+        if url in seen:
+            continue
+        url_lower = url.lower()
+
+        # Skip non-image URLs (must look like an image resource or a CDN path)
+        is_img_ext = any(
+            url_lower.endswith(ext) or f"{ext}?" in url_lower or f"{ext}&" in url_lower
+            for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]
+        )
+        is_img_cdn = any(
+            tok in url_lower for tok in ["cdn", "images", "/img/", "/media/", "upload", "static"]
+        )
+        if not is_img_ext and not is_img_cdn:
+            continue
+
+        # Skip obvious non-promo images
+        if any(skip in url_lower for skip in _IMG_SKIP_KW):
+            continue
+
+        score = 0
+
+        # URL keyword bonus
+        for kw in _IMG_URL_PROMO_KW:
+            if kw in url_lower:
+                score += 20
+                break
+
+        # Context window around the [IMAGE:…] marker
+        start = m.start()
+        ctx_s = max(0, start - 400)
+        ctx_e = min(len(text), start + len(m.group(0)) + 400)
+        ctx   = text[ctx_s:ctx_e].lower()
+
+        for kw in _IMG_CTX_PROMO_KW:
+            if kw in ctx:
+                score += 8
+        if re.search(r"\$\s*\d+|\d+[.,]\d{2}", ctx):
+            score += 25   # price nearby → very likely a promo banner
+
+        if score < 8:     # minimum bar to be a candidate
+            continue
+
+        seen.add(url)
+        # Clean context snippet (strip the [IMAGE:…] marker itself)
+        ctx_snippet = text[ctx_s:ctx_e].replace(m.group(0), " ").strip()[:250]
+        candidates.append({"url": url, "score": score, "context": ctx_snippet})
+
+    candidates.sort(key=lambda x: -x["score"])
+    logging.info(f"Candidate promo images found: {len(candidates[:max_candidates])}")
+    return candidates[:max_candidates]
+
+
 def _html_to_text(html: str, base_url: str = "") -> str:
     """
     Convert HTML to clean text for LLM processing.
@@ -296,9 +382,20 @@ def _discover_promo_links(html: str, base_url: str) -> list[str]:
     return result
 
 
-# ── Single-page fetch (AsyncFetcher → DynamicFetcher fallback) ────────────────
+# ── Cloudflare / antibot detection ───────────────────────────────────────────
+def _is_cloudflare_block(html: str) -> bool:
+    lh = html.lower()
+    return (
+        "cloudflare" in lh and (
+            "you have been blocked" in lh or
+            "attention required" in lh or
+            "enable cookies" in lh or
+            "cf-error" in lh
+        )
+    )
+
 def _content_looks_static(text: str) -> bool:
-    if len(text) < 2500:   # Raised: avoid Playwright when HTTP fetch already got useful content
+    if len(text) < 2500:
         return False
     has_price = bool(re.search(r"\$\s*\d+|\d+[.,]\d{2}", text))
     promo_kws = ["promo", "offre", "offer", "special", "rabais",
@@ -308,7 +405,7 @@ def _content_looks_static(text: str) -> bool:
     return has_price or has_kw
 
 async def _scroll_and_wait(page):
-    """Scroll to trigger lazy-loading of text content (resources already blocked at browser level)."""
+    """Scroll pour déclencher le lazy-load."""
     try:
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         await page.wait_for_timeout(1000)
@@ -316,48 +413,98 @@ async def _scroll_and_wait(page):
         pass
 
 
+def _curl_cffi_fetch_sync(url: str, proxy: str = "") -> tuple[str, str]:
+    """
+    Fetch synchrone via curl_cffi avec impersonation Chrome (meilleur TLS fingerprint).
+    Optionnellement passe par un proxy HTTP/SOCKS5.
+    Retourne (text, html).
+    """
+    try:
+        from curl_cffi import requests as cf
+        kwargs = dict(
+            impersonate="chrome131",
+            timeout=20,
+            allow_redirects=True,
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "fr-CA,fr;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Cache-Control": "max-age=0",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": "1",
+            },
+        )
+        if proxy:
+            kwargs["proxies"] = {"https": proxy, "http": proxy}
+        r = cf.get(url, **kwargs)
+        if r.status_code == 200 and not _is_cloudflare_block(r.text):
+            text = _html_to_text(r.text, url)
+            label = f"proxy={proxy[:20]}…" if proxy else "direct"
+            logging.info(f"curl_cffi({label}) → {url} ({len(text)} chars)")
+            return text, r.text
+        if _is_cloudflare_block(r.text or ""):
+            logging.warning(f"Cloudflare hard-block ({r.status_code}) for {url}")
+        return "", ""
+    except Exception as exc:
+        logging.warning(f"curl_cffi failed for {url}: {exc}")
+        return "", ""
+
+
 async def _fetch_single_page(url: str) -> tuple[str, str]:
     """
-    Fetch one URL: try AsyncFetcher (HTTP) first, DynamicFetcher (Playwright)
-    if content looks like a JS shell or has no promo signals.
-    Returns (text, html).
+    Pipeline de fetch en 3 étapes :
+      1. curl_cffi (Chrome TLS impersonation, synchrone dans executor)
+      2. Si CF-bloqué et SCRAPER_PROXY configuré → curl_cffi + proxy
+      3. DynamicFetcher (Playwright/patchright) pour les sites JS-rendered
+    Retourne (text, html).
     """
-    from scrapling.fetchers import AsyncFetcher, DynamicFetcher
+    from scrapling.fetchers import DynamicFetcher
 
     html = text = ""
-    is_hard_antibot = "doordash.com" in url or "ubereats.com" in url or "timhortons.ca" in url
-    
-    if not is_hard_antibot:
-        try:
-            fetcher = AsyncFetcher()
-            resp = await fetcher.get(url, stealthy_headers=True, follow_redirects=True, timeout=20)
-            html = resp.html_content or ""
-            text = _html_to_text(html, url)
-            logging.info(f"AsyncFetcher → {url} ({len(text)} chars)")
-        except Exception as exc:
-            logging.warning(f"AsyncFetcher failed for {url}: {exc}")
+    loop = asyncio.get_running_loop()
 
-    if is_hard_antibot or not _content_looks_static(text):
-        logging.info(f"Content looks JS-rendered or hard antibot ({len(text)} chars) – trying Playwright for {url}")
-        # Acquire the global lock so only ONE Chromium instance runs at a time.
-        loop = asyncio.get_running_loop()
+    # Étape 1 : curl_cffi direct
+    text, html = await loop.run_in_executor(None, _curl_cffi_fetch_sync, url, "")
+
+    # Étape 2 : retry via proxy si Cloudflare bloqué
+    if not html and SCRAPER_PROXY:
+        logging.info(f"Retrying {url} with proxy {SCRAPER_PROXY[:30]}…")
+        text, html = await loop.run_in_executor(None, _curl_cffi_fetch_sync, url, SCRAPER_PROXY)
+
+    # Étape 3 : DynamicFetcher pour JS-rendered
+    # Skip si curl_cffi a déjà récupéré un HTML substantiel (>15k) avec du texte (>500)
+    is_hard_antibot  = "doordash.com" in url or "ubereats.com" in url or "timhortons.ca" in url
+    curl_got_content = len(html) > 15_000 and len(text) > 500
+    need_playwright  = is_hard_antibot or (not curl_got_content and not _content_looks_static(text))
+
+    if need_playwright:
+        logging.info(f"Playwright needed ({len(text)} chars) for {url}")
         await loop.run_in_executor(None, _playwright_lock.acquire)
         try:
-            resp = await DynamicFetcher.async_fetch(
-                url,
-                headless=True,
-                network_idle=True,
-                timeout=45_000,
-                wait=5000,
+            proxy_cfg = {"server": SCRAPER_PROXY} if SCRAPER_PROXY and not html else None
+            pw_kwargs = dict(
+                headless=True, network_idle=True,
+                timeout=45_000, wait=5000,
                 useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                retries=1,
-                page_action=_scroll_and_wait,
+                retries=1, page_action=_scroll_and_wait,
             )
+            if proxy_cfg:
+                pw_kwargs["proxy"] = proxy_cfg
+            resp  = await DynamicFetcher.async_fetch(url, **pw_kwargs)
             html2 = resp.html_content or ""
-            text2 = _html_to_text(html2, url)
-            if len(text2) > len(text):
-                html, text = html2, text2
-                logging.info(f"Playwright → {url} ({len(text)} chars)")
+            if html2 and not _is_cloudflare_block(html2):
+                text2 = _html_to_text(html2, url)
+                if len(text2) > len(text):
+                    html, text = html2, text2
+                    logging.info(f"Playwright → {url} ({len(text)} chars)")
+            elif _is_cloudflare_block(html2):
+                logging.warning(
+                    f"Cloudflare blocked {url}. "
+                    f"{'Set SCRAPER_PROXY in .env to bypass.' if not SCRAPER_PROXY else 'Even proxy was blocked.'}"
+                )
         except Exception as exc:
             logging.warning(f"Playwright failed for {url}: {exc}")
         finally:
@@ -480,6 +627,80 @@ Page content:
     return []
 
 
+# ── Vision-based image extraction (GPT-4o low-detail = ~85 tokens/image) ──────
+_MAX_IMAGES_PER_BATCH = 5   # hard cap to keep costs low
+
+def _analyze_images_with_vision(images: list[dict], restaurant_name: str, page_url: str) -> list[dict]:
+    """
+    Send each candidate image to GPT-4o Vision (detail=low).
+    detail=low uses ~85 tokens per image regardless of resolution.
+    Each call costs roughly $0.0002–$0.0005 total; 5 images ≈ $0.001–$0.002.
+    """
+    if not images or not OPENAI_API_KEY:
+        return []
+
+    all_promos: list[dict] = []
+    client = OpenAIClient(api_key=OPENAI_API_KEY)
+    batch = images[:_MAX_IMAGES_PER_BATCH]
+
+    for img in batch:
+        url     = img.get("url", "")
+        context = img.get("context", "")[:300]
+        if not url:
+            continue
+        logging.info(f"[Vision] Analyzing image: {url[:80]}")
+        try:
+            resp = client.chat.completions.create(
+                model=EXTRACT_MODEL_FALLBACK,   # GPT-4o (vision-capable)
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"Restaurant: {restaurant_name}\n"
+                                f"Page: {page_url}\n"
+                                f"Text near image: {context}\n\n"
+                                "Analyze this image and extract ANY visible promotions, "
+                                "special deals, prices, combos, or featured items.\n"
+                                "Return a JSON ARRAY. Each element:\n"
+                                '  "promo_type": "Duo"/"Famille"/"Solo"/"Happy Hour"/'
+                                '"Spécial du Jour"/"Limited Time"/"Featured"/"Combo"/"Other"\n'
+                                '  "promo_details": full description\n'
+                                '  "price": "12.99" or "Not Provided"\n'
+                                '  "promo_date": validity or "Not Provided"\n'
+                                f'  "link": "{page_url}"\n'
+                                f'  "image_url": "{url}"\n'
+                                "If the image has NO promotional content (logo, decoration, "
+                                "photo only), return [].\n"
+                                "Return ONLY valid JSON array, no markdown."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": url, "detail": "low"},
+                        },
+                    ],
+                }],
+                max_tokens=1024,
+                temperature=0,
+                timeout=30,
+            )
+            raw = resp.choices[0].message.content.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            parsed = json.loads(raw)
+            if isinstance(parsed, list) and parsed:
+                logging.info(f"[Vision] Found {len(parsed)} promo(s) in {url[:60]}")
+                all_promos.extend(parsed)
+        except json.JSONDecodeError as exc:
+            logging.warning(f"[Vision] JSON parse error for {url[:60]}: {exc}")
+        except Exception as exc:
+            logging.warning(f"[Vision] Failed for {url[:60]}: {exc}")
+
+    return all_promos
+
+
 # ── Sync wrapper: Phase 1 async fetch → Phase 2 sync LLM ─────────────────────
 def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[dict], list[str]]:
     """
@@ -504,13 +725,16 @@ def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[
     if not text or len(text) < 50:
         msg = f"No content scraped for {restaurant_name}"
         logging.warning(msg)
-        return [], [url]
+        return [], [url], []
+
+    # Detect candidate promotional images before passing to LLM
+    candidate_images = _find_candidate_promo_images(text)
 
     # Phase 2: LLM extraction (synchronous, no event loop)
     logging.info(f"Starting LLM extraction ({len(text)} chars)...")
     promos = _extract_promos_sync(text, restaurant_name, url)
     logging.info(f"LLM finished. Promos found: {len(promos)}")
-    return promos, crawled
+    return promos, crawled, candidate_images
 
 
 # ── DB: dedup + save ──────────────────────────────────────────────────────────
@@ -628,20 +852,199 @@ def mark_inactive_promos(restaurant_name: str) -> int:
         logging.error(f"mark_inactive_promos error: {err}"); return 0
 
 
-# ── Background scrape thread ──────────────────────────────────────────────────
-def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dict:
-    promos, crawled = _scrape_sync(url, restaurant_name, jid=jid)
-    stats = save_promos_to_db(restaurant_name, promos)
-    stats["marked_inactive"] = mark_inactive_promos(restaurant_name)
-    stats["pages_crawled"] = crawled
-    return stats
+# ── Promotion Cleaner ─────────────────────────────────────────────────────────
+# Seuils de similarité pour la déduplication fuzzy
+_DEDUP_TEXT_THRESHOLD  = 0.82   # textes similaires → duplicate
+_DEDUP_PRICE_THRESHOLD = 0.68   # seuil plus bas si le prix est aussi identique
+_NON_PROMO_VERY_SHORT  = 14     # détails trop courts → clairement pas une promo
 
-def _background_scrape(jid: str, restaurant_name: str, url: str):
-    _thread_context.job_id = jid # On lie ce thread au JID pour capturer les logs
+# Mots/phrases de navigation fréquemment extraits par erreur
+_NAV_PHRASES = {
+    "view more", "see more", "learn more", "read more", "click here",
+    "see all", "show all", "back", "next", "previous", "share", "follow",
+    "contact", "about", "home", "order", "checkout", "find us", "locations",
+    "gift card", "loyalty", "sign in", "log in", "register",
+    "voir plus", "lire la suite", "en savoir plus", "retour", "suivant",
+    "précédent", "fermer", "partager", "nous contacter", "à propos",
+    "trouver un resto", "emploi", "carte cadeau", "commander", "livraison",
+    "télécharger", "download", "reserve", "réserver",
+}
+
+# Mots-clés qui confirment qu'il s'agit d'une vraie promo
+_PROMO_CONFIRM_KW = [
+    "$", "%", "promo", "offre", "deal", "special", "spécial", "combo",
+    "rabais", "gratuit", "free", "save", "économ", "vedette", "featured",
+    "happy hour", "pizza", "burger", "poulet", "chicken", "ailes", "wings",
+    "plat", "repas", "meal", "trio", "duo", "famille", "family", "entrée",
+    "sandwich", "soupe", "dessert", "boisson", "drink", "assiette", "wrap",
+]
+
+
+def _normalize_for_dedup(text: str) -> str:
+    """Normalise le texte pour comparaison : minuscules, sans ponctuation, sans stop-words."""
+    t = re.sub(r"[^\w\s]", " ", (text or "").lower())
+    for sw in ("avec", "et", "de", "la", "le", "les", "un", "une", "du", "des",
+               "au", "aux", "the", "a", "an", "and", "with", "of", "in", "for",
+               "your", "our", "this", "that", "these", "those"):
+        t = re.sub(rf"\b{sw}\b", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _is_not_promo(det: str, price: str) -> bool:
+    """Retourne True si l'entrée est clairement une non-promotion."""
+    det = (det or "").strip()
+    if len(det) < _NON_PROMO_VERY_SHORT:
+        return True
+    det_l = det.lower()
+    # Phrase de navigation exacte
+    if det_l in _NAV_PHRASES:
+        return True
+    # Commence par une phrase de nav (avec peu de texte en plus)
+    for phrase in _NAV_PHRASES:
+        if det_l.startswith(phrase) and len(det_l) < len(phrase) + 12:
+            return True
+    # URL seule
+    if re.match(r"^https?://\S+$", det_l):
+        return True
+    # Pas de prix ET pas de mot-clé promo ET texte court
+    has_price = (price or "Not Provided").strip().lower() not in (
+        "not provided", "n/a", "", "none")
+    has_kw = any(k in det_l for k in _PROMO_CONFIRM_KW)
+    if not has_price and not has_kw and len(det) < 55:
+        return True
+    return False
+
+
+def _find_duplicate_ids(promos: list[dict]) -> set[int]:
+    """
+    Compare toutes les paires de promos (O(n²)).
+    Retourne les IDs à désactiver (on garde le plus récemment vu de chaque paire).
+    """
+    to_remove: set[int] = set()
+    for i, a in enumerate(promos):
+        if a["id"] in to_remove:
+            continue
+        for b in promos[i + 1:]:
+            if b["id"] in to_remove:
+                continue
+            na = _normalize_for_dedup(a.get("promo_details") or "")[:300]
+            nb = _normalize_for_dedup(b.get("promo_details") or "")[:300]
+            if not na or not nb:
+                continue
+            sim = SequenceMatcher(None, na, nb).ratio()
+            price_eq = (a.get("price") or "") == (b.get("price") or "")
+            threshold = _DEDUP_PRICE_THRESHOLD if price_eq else _DEDUP_TEXT_THRESHOLD
+            if sim >= threshold:
+                # Garder le plus récemment vu (last_seen), sinon le plus grand id
+                def _ts(p):
+                    return str(p.get("last_seen") or ""), p["id"]
+                keep_id   = a["id"] if _ts(a) >= _ts(b) else b["id"]
+                remove_id = b["id"] if keep_id == a["id"] else a["id"]
+                to_remove.add(remove_id)
+                logging.debug(f"[Dedup] sim={sim:.2f} keep={keep_id} drop={remove_id}")
+    return to_remove
+
+
+def clean_promos_sync(restaurant_name: str) -> dict:
+    """
+    Nettoyage en 2 phases :
+      1. Suppression rule-based des non-promotions (rapide, sans coût LLM)
+      2. Déduplication fuzzy des promos restantes (SequenceMatcher)
+    Désactive les entrées problématiques (is_active=0), ne les supprime pas.
+    """
+    try:
+        db  = get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, promo_type, promo_details, price, last_seen "
+            "FROM promotions_table WHERE restaurant = %s AND is_active = 1",
+            (restaurant_name,),
+        )
+        promos = cur.fetchall()
+        if not promos:
+            cur.close(); db.close()
+            return {"non_promo_removed": 0, "deduped": 0, "total_checked": 0}
+
+        logging.info(f"[Clean] {restaurant_name}: {len(promos)} promos actives à analyser")
+
+        # ── Phase 1 : non-promos ──────────────────────────────────────────────
+        non_promo_ids = [
+            p["id"] for p in promos
+            if _is_not_promo(p.get("promo_details"), p.get("price"))
+        ]
+        if non_promo_ids:
+            fmt = ",".join(["%s"] * len(non_promo_ids))
+            cur.execute(
+                f"UPDATE promotions_table SET is_active=0 WHERE id IN ({fmt})",
+                non_promo_ids,
+            )
+            db.commit()
+            logging.info(f"[Clean] {restaurant_name}: {len(non_promo_ids)} non-promos supprimées")
+
+        # ── Phase 2 : déduplication fuzzy ─────────────────────────────────────
+        remaining = [p for p in promos if p["id"] not in set(non_promo_ids)]
+        dup_ids   = _find_duplicate_ids(remaining)
+        if dup_ids:
+            fmt = ",".join(["%s"] * len(dup_ids))
+            cur.execute(
+                f"UPDATE promotions_table SET is_active=0 WHERE id IN ({fmt})",
+                list(dup_ids),
+            )
+            db.commit()
+            logging.info(f"[Clean] {restaurant_name}: {len(dup_ids)} doublons supprimés")
+
+        cur.close(); db.close()
+        return {
+            "non_promo_removed": len(non_promo_ids),
+            "deduped":           len(dup_ids),
+            "total_checked":     len(promos),
+        }
+    except Exception as exc:
+        logging.error(f"clean_promos_sync error for {restaurant_name}: {exc}")
+        return {"error": str(exc), "non_promo_removed": 0, "deduped": 0, "total_checked": 0}
+
+
+def _background_clean(jid: str, restaurant_name: str):
+    _thread_context.job_id = jid
     _set_job(jid, "running")
     try:
-        result = _run_scrape_blocking(restaurant_name, url, jid=jid)
-        _set_job(jid, "done", result=result, pages=result.get("pages_crawled", []))
+        logging.info(f"[Clean] Job {jid} démarré pour {restaurant_name}")
+        stats = clean_promos_sync(restaurant_name)
+        stats["clean"] = True
+        _set_job(jid, "done", result=stats)
+        logging.info(f"[Clean] Job {jid} terminé: {stats}")
+    except Exception as exc:
+        logging.error(f"[Clean] Job {jid} erreur: {exc}")
+        _set_job(jid, "error", error=str(exc))
+
+
+# ── Background scrape thread ──────────────────────────────────────────────────
+AUTO_CLEAN_AFTER_SCRAPE = os.environ.get("AUTO_CLEAN_AFTER_SCRAPE", "1") == "1"
+
+def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dict:
+    promos, crawled, _ = _scrape_sync(url, restaurant_name, jid=jid)
+    stats = save_promos_to_db(restaurant_name, promos)
+    stats["marked_inactive"] = mark_inactive_promos(restaurant_name)
+    stats["pages_crawled"]   = crawled
+    if AUTO_CLEAN_AFTER_SCRAPE:
+        clean_stats = clean_promos_sync(restaurant_name)
+        stats["auto_cleaned"] = clean_stats
+    return stats
+
+def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None):
+    _thread_context.job_id = jid  # Lie ce thread au JID pour capturer les logs
+    _set_job(jid, "running")
+    try:
+        promos, crawled, candidate_images = _scrape_sync(url, restaurant_name, jid=jid)
+        stats = save_promos_to_db(restaurant_name, promos)
+        stats["marked_inactive"]   = mark_inactive_promos(restaurant_name)
+        stats["pages_crawled"]     = crawled
+        stats["candidate_images"]  = candidate_images
+        if rid is not None:
+            stats["restaurant_id"] = rid
+        if AUTO_CLEAN_AFTER_SCRAPE:
+            stats["auto_cleaned"]  = clean_promos_sync(restaurant_name)
+        _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
         logging.error(f"Job {jid} error: {exc}")
@@ -722,7 +1125,7 @@ def restaurant_detail(rid):
         if not show_all: query += " AND is_active = 1"
         if cat_filter:   query += " AND category = %s"; params.append(cat_filter)
         if grade_filter: query += " AND grade = %s";    params.append(grade_filter)
-        query += " ORDER BY is_active DESC, last_seen DESC"
+        query += " ORDER BY is_active DESC, FIELD(grade,'A+','A','B','C','D'), last_seen DESC"
         cur.execute(query, params); promos = cur.fetchall()
 
         cur.execute("SELECT DISTINCT category FROM promotions_table "
@@ -786,8 +1189,10 @@ def crawl_one(rid):
     if not rest: return jsonify({"error": "Restaurant not found"}), 404
     jid = _new_job(rest["name"])
     threading.Thread(target=_background_scrape,
-                     args=(jid, rest["name"], rest["url"]), daemon=True).start()
-    return jsonify({"job_id": jid, "status": "pending", "name": rest["name"]}), 202
+                     args=(jid, rest["name"], rest["url"]),
+                     kwargs={"rid": rest["id"]}, daemon=True).start()
+    return jsonify({"job_id": jid, "status": "pending", "name": rest["name"],
+                    "restaurant_id": rest["id"]}), 202
 
 
 @app.route("/crawl_all", methods=["POST"])
@@ -801,8 +1206,10 @@ def crawl_all():
     for rest in restaurants:
         jid = _new_job(rest["name"])
         threading.Thread(target=_background_scrape,
-                         args=(jid, rest["name"], rest["url"]), daemon=True).start()
-        jobs.append({"job_id": jid, "name": rest["name"], "status": "pending"})
+                         args=(jid, rest["name"], rest["url"]),
+                         kwargs={"rid": rest["id"]}, daemon=True).start()
+        jobs.append({"job_id": jid, "name": rest["name"], "status": "pending",
+                     "restaurant_id": rest["id"]})
     return jsonify({"jobs": jobs}), 202
 
 
@@ -820,6 +1227,71 @@ def job_logs(jid):
         job = _jobs.get(jid)
     if not job: return jsonify({"error": "Job not found"}), 404
     return jsonify({"logs": job.get("logs", [])})
+
+
+@app.route("/api/analyze_images", methods=["POST"])
+def analyze_images():
+    """
+    Approuver l'extraction des promotions depuis des images bannières.
+    Body JSON: { restaurant_id: int, images: [{url, score, context}, …] }
+    Retourne un job_id à poller.
+    """
+    data = request.get_json(force=True) or {}
+    rid    = data.get("restaurant_id")
+    images = data.get("images", [])
+    if not rid or not images:
+        return jsonify({"error": "restaurant_id and images are required"}), 400
+
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM restaurants WHERE id = %s", (rid,))
+        rest = cur.fetchone(); cur.close(); db.close()
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    if not rest:
+        return jsonify({"error": "Restaurant not found"}), 404
+
+    jid = _new_job(f"[Vision] {rest['name']}")
+
+    def _run_image_job():
+        _thread_context.job_id = jid
+        _set_job(jid, "running")
+        try:
+            logging.info(f"[Vision] Starting image analysis: {len(images[:_MAX_IMAGES_PER_BATCH])} images for {rest['name']}")
+            promos = _analyze_images_with_vision(images, rest["name"], rest["url"])
+            stats  = save_promos_to_db(rest["name"], promos) if promos else \
+                     {"inserted": 0, "updated": 0, "skipped": 0}
+            stats["images_analyzed"] = len(images[:_MAX_IMAGES_PER_BATCH])
+            _set_job(jid, "done", result=stats)
+            logging.info(f"[Vision] Job {jid} done: {stats}")
+        except Exception as exc:
+            logging.error(f"[Vision] Job {jid} error: {exc}")
+            _set_job(jid, "error", error=str(exc))
+
+    threading.Thread(target=_run_image_job, daemon=True).start()
+    return jsonify({
+        "job_id":       jid,
+        "name":         rest["name"],
+        "image_count":  len(images[:_MAX_IMAGES_PER_BATCH]),
+    }), 202
+
+
+@app.route("/clean/<int:rid>", methods=["POST"])
+def clean_restaurant(rid):
+    """Lance un job de nettoyage (dédoublonnage + suppression non-promos) en arrière-plan."""
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM restaurants WHERE id = %s", (rid,))
+        rest = cur.fetchone(); cur.close(); db.close()
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    if not rest:
+        return jsonify({"error": "Restaurant not found"}), 404
+
+    jid = _new_job(f"[Clean] {rest['name']}")
+    threading.Thread(target=_background_clean,
+                     args=(jid, rest["name"]), daemon=True).start()
+    return jsonify({"job_id": jid, "name": rest["name"]}), 202
 
 
 @app.route("/classify_all", methods=["POST"])

@@ -1,173 +1,630 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Documentation | Chiken Wings</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Documentation — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>CW</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #fafafa; --fg: #111827; --border: #e5e7eb; --muted: #6b7280; --hover: #f3f4f6; --card-bg: #ffffff; --accent: #2563eb;
+      --bg: #07070c;
+      --surface: #0e0e18;
+      --surface2: #14141f;
+      --border: #1e1e32;
+      --border-hi: rgba(245,166,35,0.25);
+      --amber: #f5a623;
+      --amber-dim: rgba(245,166,35,0.1);
+      --amber-glow: rgba(245,166,35,0.04);
+      --fg: #e2e2f0;
+      --muted: #5a5a7a;
+      --muted2: #8888aa;
+      --green: #10b981;
+      --green-dim: rgba(16,185,129,0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96,165,250,0.12);
+      --red: #ef4444;
+      --radius: 10px;
     }
-    [data-theme="dark"] {
-      --bg: #0f172a; --fg: #f8fafc; --border: #334155; --muted: #94a3b8; --hover: #1e293b; --card-bg: #1e293b; --accent: #38bdf8;
+    [data-theme="light"] {
+      --bg: #f4f4f8; --surface: #ffffff; --surface2: #f0f0f5;
+      --border: #e0e0ec; --border-hi: rgba(212,133,10,0.3);
+      --amber: #d4850a; --amber-dim: rgba(212,133,10,0.1);
+      --amber-glow: rgba(212,133,10,0.04);
+      --fg: #0f0f1e; --muted: #8080a0; --muted2: #555570;
     }
-    body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; padding: 0; line-height: 1.6; transition: background 0.3s, color 0.3s; }
-    .navbar { border-bottom: 1px solid var(--border); background: var(--card-bg); padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; position: sticky; top: 0; z-index: 100; }
-    .btn-minimal { background: var(--card-bg); border: 1px solid var(--border); color: var(--fg); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.875rem; cursor: pointer; text-decoration: none; transition: background 0.2s; }
-    .btn-minimal:hover { background: var(--hover); }
-    
-    .container { max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; }
-    .hero { text-align: center; margin-bottom: 4rem; border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
-    .hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
-    
-    .section-title { font-size: 1.5rem; font-weight: 700; margin-top: 4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--accent); }
-    .section-title::before { content: ""; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
-    
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .card h3 { font-size: 1.1rem; font-weight: 600; margin-top: 0; margin-bottom: 1rem; color: var(--fg); }
-    
-    .process-step { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
-    .step-icon { width: 40px; height: 40px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
-    .step-content { flex: 1; }
-    .step-content h4 { margin: 0 0 0.5rem 0; font-weight: 600; }
-    .step-content p { margin: 0; font-size: 0.925rem; color: var(--muted); }
 
-    .tech-tag { display: inline-block; background: var(--hover); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; border: 1px solid var(--border); }
-    
-    code { font-family: 'JetBrains Mono', monospace; background: var(--hover); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.875rem; color: var(--accent); }
-    pre { background: #111827; color: #f9fafb; padding: 1.5rem; border-radius: 10px; overflow-x: auto; font-size: 0.875rem; border: 1px solid var(--border); margin: 1.5rem 0; }
-    
-    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.875rem; }
-    th { text-align: left; padding: 0.75rem; background: var(--hover); border-bottom: 2px solid var(--border); }
-    td { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 400;
+      line-height: 1.7;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px
+      );
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,12,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
+
+    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .logo-icon { width: 26px; height: 26px; background: var(--amber); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 10px; color: #000; letter-spacing: -0.03em; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.05em; color: var(--fg); }
+    .logo-text span { color: var(--amber); }
+
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+
+    .nav-spacer { flex: 1; }
+    .nav-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted2);
+      padding: 0 0.75rem; height: 30px; border-radius: 5px;
+      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+      transition: all 0.15s; text-decoration: none; white-space: nowrap;
+    }
+    .nav-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; z-index: 1;
+      padding: 4.5rem 2rem 3.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero::after {
+      content: '';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(245,166,35,0.06) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 1rem; opacity: 0.7;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      letter-spacing: -0.04em; line-height: 1.1;
+      margin-bottom: 0.875rem;
+    }
+    .hero h1 em { color: var(--amber); font-style: normal; }
+    .hero-sub { color: var(--muted2); font-size: 0.95rem; font-weight: 300; max-width: 480px; margin: 0 auto; }
+
+    /* ── LAYOUT ── */
+    .page-wrap {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto; padding: 2.5rem 2rem 5rem;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 1.05rem; letter-spacing: -0.01em;
+      color: var(--amber);
+      margin: 3rem 0 1.25rem;
+    }
+    .section-title::before {
+      content: ''; width: 3px; height: 18px;
+      background: var(--amber); border-radius: 2px; flex-shrink: 0;
+    }
+    .section-title .mono {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.15em; color: var(--muted); font-weight: 400; margin-left: auto;
+    }
+
+    /* ── STEPS ── */
+    .steps { display: flex; flex-direction: column; gap: 0.875rem; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.375rem 1.625rem;
+      display: flex; gap: 1.25rem; align-items: flex-start;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .step::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 2px; height: 0; background: var(--amber);
+      transition: height 0.3s ease;
+    }
+    .step:hover { border-color: var(--border-hi); }
+    .step:hover::before { height: 100%; }
+
+    .step-num {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.5rem; color: var(--amber); opacity: 0.2;
+      line-height: 1; flex-shrink: 0; width: 1.75rem; text-align: right;
+    }
+    .step-body h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+      font-size: 0.9rem; margin-bottom: 0.375rem; color: var(--fg);
+    }
+    .step-body p { font-size: 0.85rem; color: var(--muted2); line-height: 1.65; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem;
+      margin-bottom: 0.875rem;
+    }
+    .card h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+      font-size: 0.9rem; margin-bottom: 0.625rem; color: var(--fg);
+    }
+    .card p, .card li { font-size: 0.85rem; color: var(--muted2); line-height: 1.65; }
+    .card ul { padding-left: 1.125rem; margin-top: 0.4rem; }
+    .card li { margin-bottom: 0.3rem; }
+
+    /* ── TECH TAGS ── */
+    .tech-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .tech-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600;
+      background: var(--amber-dim); color: var(--amber);
+      border: 1px solid var(--border-hi); padding: 0.2rem 0.6rem;
+      border-radius: 4px; letter-spacing: 0.04em;
+    }
+    .tech-tag.blue { background: var(--blue-dim); color: var(--blue); border-color: rgba(96,165,250,0.25); }
+    .tech-tag.green { background: var(--green-dim); color: var(--green); border-color: rgba(16,185,129,0.25); }
+
+    /* ── SCRAPER PIPELINE ── */
+    .pipeline {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 0.875rem;
+    }
+    .pipeline-header {
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1.25rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+      letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase;
+    }
+    .pipeline-step {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .pipeline-step:last-child { border-bottom: none; }
+    .pipeline-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700;
+      padding: 0.2rem 0.5rem; border-radius: 4px; flex-shrink: 0;
+      margin-top: 2px; letter-spacing: 0.06em;
+    }
+    .pb-1 { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--border-hi); }
+    .pb-2 { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .pb-3 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+    .pb-fb { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .pipeline-step-body h5 {
+      font-size: 0.85rem; font-weight: 600; color: var(--fg);
+      margin-bottom: 0.2rem;
+    }
+    .pipeline-step-body p { font-size: 0.8rem; color: var(--muted2); }
+
+    /* ── SECURITY GRID ── */
+    .sec-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;
+    }
+    @media (max-width: 600px) { .sec-grid { grid-template-columns: 1fr; } }
+    .sec-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.125rem 1.375rem;
+    }
+    .sec-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+      font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 0.35rem;
+    }
+    .sec-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--fg); margin-bottom: 0.25rem; }
+    .sec-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── CODE BLOCK ── */
+    pre {
+      background: #050508; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.375rem 1.5rem;
+      overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; line-height: 1.75; color: #b0aec8;
+      position: relative;
+    }
+    pre[data-label]::before {
+      content: attr(data-label);
+      position: absolute; top: 0.55rem; right: 1rem;
+      font-size: 0.62rem; letter-spacing: 0.12em; color: var(--muted);
+      text-transform: uppercase;
+    }
+    .kw  { color: var(--amber); }
+    .cm  { color: #3a3a58; font-style: italic; }
+    .str { color: #7dd3a8; }
+    .fn  { color: var(--blue); }
+
+    code {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.82em;
+      background: var(--amber-dim); color: var(--amber);
+      padding: 0.1rem 0.35rem; border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--surface2); padding: 0.65rem 1rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted2); text-align: left; border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--amber-glow); }
+    tbody td { padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted2); }
+    tbody td:first-child { color: var(--amber); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+    .type-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--blue); padding: 0.12rem 0.45rem; border-radius: 3px;
+    }
+
+    /* ── LANG ── */
     body.lang-en .fr { display: none !important; }
     body.lang-fr .en { display: none !important; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body class="lang-fr">
 
 <nav class="navbar">
-  <a href="/" class="btn-minimal">← <span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
-  <div style="font-weight: 600;">🍗 Chiken Wings <span class="fr">Documentation</span><span class="en">Docs</span></div>
-  <div style="flex:1"></div>
-  <button class="btn-minimal" onclick="toggleTheme()">🌓</button>
-  <button class="btn-minimal" onclick="toggleLang()">
-      <span class="fr">FR</span><span class="en">EN</span>
+  <a href="/" class="logo">
+    <div class="logo-icon">CW</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label">Docs v2.0</span>
+  <div class="nav-spacer"></div>
+  <a href="/" class="nav-btn">
+    <span class="fr">Dashboard</span><span class="en">Dashboard</span>
+  </a>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <button class="nav-btn" onclick="toggleLang()">
+    <span class="fr">FR</span><span class="en">EN</span>
   </button>
 </nav>
 
-<div class="container">
-  
-  <div class="hero">
-    <h1><span class="fr">Comment ça marche ?</span><span class="en">How it works?</span></h1>
-    <p style="color: var(--muted); font-size: 1.1rem;">
-      <span class="fr">Découvrez les coulisses de l'ingénierie derrière Chiken Wings v2.0.</span>
-      <span class="en">Discover the engineering behind Chiken Wings v2.0.</span>
-    </p>
+<div class="hero">
+  <div class="hero-eyebrow">
+    <span class="fr">Documentation Technique</span>
+    <span class="en">Technical Documentation</span>
+  </div>
+  <h1>
+    <span class="fr">Architecture <em>& ingénierie</em></span>
+    <span class="en">Architecture <em>& engineering</em></span>
+  </h1>
+  <p class="hero-sub">
+    <span class="fr">Chicken Wings v2.0 — pipeline de scraping adaptatif, extraction IA, et système de nettoyage automatique.</span>
+    <span class="en">Chicken Wings v2.0 — adaptive scraping pipeline, AI extraction, and automatic deduplication system.</span>
+  </p>
+</div>
+
+<div class="page-wrap">
+
+  <!-- ── EXTRACTION PROCESS ── -->
+  <div class="section-title">
+    <span class="fr">Pipeline d'Extraction</span>
+    <span class="en">Extraction Pipeline</span>
+    <span class="mono">4 STAGES</span>
   </div>
 
-  <!-- PROCESS -->
-  <div class="section-title"><span class="fr">Le Procédé d'Extraction</span><span class="en">Extraction Process</span></div>
-  
-  <div class="process-step">
-    <div class="step-icon">1</div>
-    <div class="step-content">
-      <h4><span class="fr">Découverte de Liens (Link Discovery)</span><span class="en">Link Discovery</span></h4>
-      <p>
-        <span class="fr">Avant de scraper, le système analyse la page d'accueil pour trouver des sous-pages de promotions cachées (ex: <code>/offres</code>, <code>/deals</code>). Il utilise un système de scoring par mots-clés pour prioriser les liens les plus pertinents.</span>
-        <span class="en">Before scraping, the system analyzes the home page to find hidden promo sub-pages (e.g., <code>/deals</code>, <code>/offers</code>). It uses a keyword scoring system to prioritize the most relevant links.</span>
-      </p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4><span class="fr">Découverte de liens</span><span class="en">Link Discovery</span></h4>
+        <p>
+          <span class="fr">La page d'accueil de chaque restaurant est analysée pour trouver les sous-pages de promotions cachées (ex: <code>/offres</code>, <code>/deals</code>, <code>/menu-specials</code>). Un système de scoring par mots-clés priorise les liens les plus pertinents avant tout téléchargement.</span>
+          <span class="en">Each restaurant's home page is analyzed to discover hidden promo sub-pages (e.g., <code>/deals</code>, <code>/offers</code>, <code>/menu-specials</code>). A keyword scoring system ranks and prioritizes the most relevant links before any content download.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4><span class="fr">Scraping adaptatif (Scrapling)</span><span class="en">Adaptive Scraping (Scrapling)</span></h4>
+        <p>
+          <span class="fr">Le moteur utilise la librairie <strong style="color:var(--fg)">Scrapling</strong> avec un pipeline à trois niveaux : <code>Fetcher</code> HTTP classique, puis <code>curl_cffi</code> avec impersonation TLS Chrome 131 pour contourner les WAF basiques, et enfin <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> pour les sites à rendu JavaScript complexe. Chaque niveau n'est déclenché que si le précédent échoue ou retourne un contenu insuffisant.</span>
+          <span class="en">The engine uses the <strong style="color:var(--fg)">Scrapling</strong> library with a three-tier pipeline: standard HTTP <code>Fetcher</code>, then <code>curl_cffi</code> with Chrome 131 TLS impersonation to bypass basic WAFs, and finally <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> for complex JS-rendered sites. Each tier is only triggered if the previous one fails or returns insufficient content.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4><span class="fr">Analyse par intelligence artificielle</span><span class="en">AI Analysis</span></h4>
+        <p>
+          <span class="fr">Le HTML est converti en texte structuré (balises inutiles supprimées, marqueurs <code>[IMAGE:url]</code> préservés). Ce texte est envoyé à <strong style="color:var(--fg)">GPT-4o-mini</strong> (modèle primaire) ou <strong style="color:var(--fg)">GPT-4o</strong> (fallback) qui extrait noms, prix, types et dates sous format JSON. Pour les promotions visuelles (bannières), <strong style="color:var(--fg)">GPT-4o Vision</strong> est utilisé avec <code>detail="low"</code> (~85 tokens/image).</span>
+          <span class="en">HTML is converted to structured text (useless tags removed, <code>[IMAGE:url]</code> markers preserved). This text is sent to <strong style="color:var(--fg)">GPT-4o-mini</strong> (primary model) or <strong style="color:var(--fg)">GPT-4o</strong> (fallback) which extracts names, prices, types, and dates in JSON format. For visual promotions (banners), <strong style="color:var(--fg)">GPT-4o Vision</strong> is used with <code>detail="low"</code> (~85 tokens/image).</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4><span class="fr">Nettoyage automatique post-scrape</span><span class="en">Automatic Post-Scrape Cleaning</span></h4>
+        <p>
+          <span class="fr">Après chaque cycle, le système de nettoyage se déclenche automatiquement. <strong style="color:var(--fg)">Phase 1</strong> : suppression des entrées non-promotionnelles via règles (textes de navigation, entrées trop courtes, sans prix ni mot-clé promo). <strong style="color:var(--fg)">Phase 2</strong> : déduplication floue via <code>SequenceMatcher</code> (seuil 0.82, réduit à 0.68 si les prix coïncident). Peut aussi être déclenché manuellement depuis la page du restaurant.</span>
+          <span class="en">After each cycle, the cleaning system fires automatically. <strong style="color:var(--fg)">Phase 1</strong>: rule-based removal of non-promotional entries (navigation text, too-short entries, no price and no promo keyword). <strong style="color:var(--fg)">Phase 2</strong>: fuzzy deduplication via <code>SequenceMatcher</code> (threshold 0.82, lowered to 0.68 when prices match). Can also be triggered manually from the restaurant page.</span>
+        </p>
+      </div>
     </div>
   </div>
 
-  <div class="process-step">
-    <div class="step-icon">2</div>
-    <div class="step-content">
-      <h4><span class="fr">Scraping Adaptatif (Scrapling)</span><span class="en">Adaptive Scraping</span></h4>
-      <p>
-        <span class="fr">Le moteur bascule entre deux modes : <strong>HTTP Ultra-rapide</strong> pour les sites simples, et <strong>Navigateur Réel (Playwright)</strong> pour les sites complexes comme Tim Hortons ou DoorDash. Il simule des comportements humains pour contourner les protections anti-bot.</span>
-        <span class="en">The engine toggles between two modes: <strong>Ultra-fast HTTP</strong> for simple sites, and <strong>Real Browser (Playwright)</strong> for complex sites like Tim Hortons or DoorDash. It simulates human behavior to bypass anti-bot protections.</span>
-      </p>
+  <!-- ── SCRAPLING PIPELINE ── -->
+  <div class="section-title">
+    <span class="fr">Pipeline Scrapling — Niveaux de Fetch</span>
+    <span class="en">Scrapling Pipeline — Fetch Tiers</span>
+    <span class="mono">3 TIERS</span>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-header">
+      <span class="fr">Ordre de priorité — le tier suivant s'active uniquement si le précédent échoue ou retourne &lt;15 kB</span>
+      <span class="en">Priority order — next tier activates only if previous fails or returns &lt;15 kB</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="pipeline-badge pb-1">TIER 1</span>
+      <div class="pipeline-step-body">
+        <h5>curl_cffi — Chrome TLS Impersonation</h5>
+        <p>
+          <span class="fr">Requête HTTP avec <code>impersonate="chrome131"</code>. Bypasse la majorité des WAF de niveau 1 (Akamai, Cloudflare Bot Management basique). Rapide, sans overhead de navigateur. Détection du blocage Cloudflare via pattern matching sur le HTML retourné.</span>
+          <span class="en">HTTP request with <code>impersonate="chrome131"</code>. Bypasses most tier-1 WAFs (Akamai, basic Cloudflare Bot Management). Fast, no browser overhead. Cloudflare block detection via HTML pattern matching on the response.</span>
+        </p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <span class="pipeline-badge pb-2">TIER 2</span>
+      <div class="pipeline-step-body">
+        <h5>curl_cffi — Proxy Retry</h5>
+        <p>
+          <span class="fr">Si un blocage IP Cloudflare WAF est détecté (hard ban), la même requête est relancée via le proxy défini dans <code>SCRAPER_PROXY</code>. Supporte les formats <code>http://user:pass@host:port</code> et <code>socks5://host:port</code>. Désactivé si la variable d'environnement est vide.</span>
+          <span class="en">If a Cloudflare WAF IP block is detected (hard ban), the same request is retried through the proxy defined in <code>SCRAPER_PROXY</code>. Supports <code>http://user:pass@host:port</code> and <code>socks5://host:port</code> formats. Disabled if the environment variable is empty.</span>
+        </p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <span class="pipeline-badge pb-3">TIER 3</span>
+      <div class="pipeline-step-body">
+        <h5>Scrapling AsyncFetcher / StealthyFetcher (Playwright)</h5>
+        <p>
+          <span class="fr">Navigateur Chromium headless piloté via <strong>Patchright</strong> (fork anti-détection de Playwright). Simule les comportements humains : mouvements de souris, délais aléatoires, fingerprint réaliste. Utilisé pour les sites à rendu JavaScript lourd (DoorDash, Tim Hortons) et les protections Cloudflare de niveau 2.</span>
+          <span class="en">Headless Chromium browser driven via <strong>Patchright</strong> (anti-detection fork of Playwright). Simulates human behaviors: mouse movements, random delays, realistic browser fingerprint. Used for heavy JS-rendered sites (DoorDash, Tim Hortons) and tier-2 Cloudflare protections.</span>
+        </p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <span class="pipeline-badge pb-fb">PROXY</span>
+      <div class="pipeline-step-body">
+        <h5><span class="fr">Blocage IP dur (Cloudflare WAF)</span><span class="en">Hard IP Block (Cloudflare WAF)</span></h5>
+        <p>
+          <span class="fr">Certains sites (ex: benny-co.com) appliquent un blocage IP au niveau de l'infrastructure Cloudflare, indépendamment du navigateur ou des headers utilisés. Dans ce cas, seule une rotation d'IP via un proxy résidentiel est efficace. Configurer <code>SCRAPER_PROXY</code> dans le fichier <code>.env</code>.</span>
+          <span class="en">Some sites (e.g., benny-co.com) apply IP-level blocking at the Cloudflare infrastructure level, regardless of browser or headers. In this case, only IP rotation via a residential proxy is effective. Set <code>SCRAPER_PROXY</code> in the <code>.env</code> file.</span>
+        </p>
+      </div>
     </div>
   </div>
 
-  <div class="process-step">
-    <div class="step-icon">3</div>
-    <div class="step-content">
-      <h4><span class="fr">Analyse par Intelligence Artificielle</span><span class="en">AI Analysis</span></h4>
-      <p>
-        <span class="fr">Le code HTML est purgé de tout contenu inutile (scripts, styles) pour ne garder que le texte. Ce texte est envoyé à <strong>GPT-4o-mini</strong> qui extrait les noms de plats, les prix, et les dates sous un format JSON structuré.</span>
-        <span class="en">The HTML code is purged of all useless content (scripts, styles) to keep only the text. This text is sent to <strong>GPT-4o-mini</strong> which extracts dish names, prices, and dates in a structured JSON format.</span>
-      </p>
-    </div>
+  <!-- ── TECH STACK ── -->
+  <div class="section-title">
+    <span class="fr">Stack Technique</span>
+    <span class="en">Tech Stack</span>
+    <span class="mono">BACKEND + INFRA</span>
   </div>
 
-  <!-- TECH STACK -->
-  <div class="section-title"><span class="fr">Stack Technique</span><span class="en">Tech Stack</span></div>
   <div class="card">
-    <div style="margin-bottom: 1.5rem;">
+    <div class="tech-grid">
       <span class="tech-tag">Python 3.12</span>
       <span class="tech-tag">Flask</span>
       <span class="tech-tag">MySQL 8.0</span>
-      <span class="tech-tag">Docker</span>
-      <span class="tech-tag">OpenAI API</span>
-      <span class="tech-tag">Playwright</span>
+      <span class="tech-tag">Docker Compose</span>
+      <span class="tech-tag">Nginx</span>
+      <span class="tech-tag blue">Scrapling</span>
+      <span class="tech-tag blue">curl_cffi</span>
+      <span class="tech-tag blue">Patchright</span>
+      <span class="tech-tag green">GPT-4o-mini</span>
+      <span class="tech-tag green">GPT-4o Vision</span>
+      <span class="tech-tag">APScheduler</span>
+      <span class="tech-tag">Tailscale</span>
     </div>
-    <p class="small">
-      <span class="fr">L'application est conteneurisée pour garantir la stabilité. Le serveur de base de données est isolé et n'accepte aucune connexion externe. Le frontend communique avec Flask via une API asynchrone pour éviter tout blocage pendant les scans longs.</span>
-      <span class="en">The application is containerized to ensure stability. The database server is isolated and accepts no external connections. The frontend communicates with Flask via an async API to avoid blocking during long scans.</span>
+    <p style="font-size:0.85rem; color:var(--muted2); line-height:1.65;">
+      <span class="fr">L'application est entièrement conteneurisée. La base de données MySQL est isolée sur un réseau Docker interne inaccessible depuis l'extérieur. Le frontend communique avec Flask via une API asynchrone (polling toutes les 2 s) pour afficher les logs en temps réel sans bloquer l'interface. Le scraping automatique se déclenche toutes les <code>{{ scrape_interval_hours }}h</code> via APScheduler, suivi d'un nettoyage automatique.</span>
+      <span class="en">The application is fully containerized. The MySQL database is isolated on an internal Docker network inaccessible from outside. The frontend communicates with Flask via an async API (polling every 2 s) to show real-time logs without blocking the UI. Auto-scraping fires every <code>{{ scrape_interval_hours }}h</code> via APScheduler, followed by automatic cleaning.</span>
     </p>
   </div>
 
-  <!-- SECURITY -->
-  <div class="section-title"><span class="fr">Sécurité & Bunker</span><span class="en">Security & Bunker</span></div>
+  <!-- ── SECURITY ── -->
+  <div class="section-title">
+    <span class="fr">Securite & Bunker</span>
+    <span class="en">Security & Bunker</span>
+    <span class="mono">NGINX GATEKEEPER</span>
+  </div>
+
+  <div class="sec-grid">
+    <div class="sec-item">
+      <div class="sec-label">AUTH</div>
+      <h4>HTTP Basic Auth</h4>
+      <p><span class="fr">Toutes les requetes transitent par Nginx qui force l'authentification avant d'atteindre Flask. Mot de passe stocke en hash bcrypt.</span><span class="en">All requests pass through Nginx which enforces authentication before reaching Flask. Password stored as bcrypt hash.</span></p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-label">TUNNEL</div>
+      <h4>Tailscale Funnel</h4>
+      <p><span class="fr">Exposition publique via Tailscale Funnel avec chiffrement de bout en bout. Aucun port direct ouvert sur le pare-feu.</span><span class="en">Public exposure via Tailscale Funnel with end-to-end encryption. No direct ports opened on the firewall.</span></p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-label">ISOLATION</div>
+      <h4><span class="fr">Reseau Docker interne</span><span class="en">Internal Docker Network</span></h4>
+      <p><span class="fr">La base de donnees est invisible depuis l'exterieur. Seul le conteneur Flask peut y acceder via le bridge Docker prive.</span><span class="en">The database is invisible from outside. Only the Flask container can access it via the private Docker bridge.</span></p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-label">PROXY</div>
+      <h4><span class="fr">Contournement IP</span><span class="en">IP Bypass</span></h4>
+      <p><span class="fr">Support proxy optionnel (<code>SCRAPER_PROXY</code>) pour contourner les blocages IP Cloudflare WAF sur les sites proteges.</span><span class="en">Optional proxy support (<code>SCRAPER_PROXY</code>) to bypass Cloudflare WAF IP blocks on protected sites.</span></p>
+    </div>
+  </div>
+
+  <!-- ── MAINTENANCE ── -->
+  <div class="section-title">
+    Maintenance
+    <span class="mono">CLI</span>
+  </div>
+
   <div class="card">
-    <h3>🛡️ Protection Reverse-Proxy</h3>
-    <p class="small">
-      <span class="fr">Votre instance est protégée par un <strong>Bunker Nginx</strong>. Toute tentative d'accès non autorisée est bloquée avant même d'atteindre l'application Python.</span>
-      <span class="en">Your instance is protected by an <strong>Nginx Bunker</strong>. Any unauthorized access attempt is blocked before reaching the Python application.</span>
+    <p style="font-size:0.85rem; color:var(--muted2); margin-bottom:0.75rem;">
+      <span class="fr">Toutes les operations se font via le script <code>manage.sh</code> inclus :</span>
+      <span class="en">All operations are handled via the included <code>manage.sh</code> script:</span>
     </p>
-    <ul class="small" style="color: var(--muted);">
-      <li><span class="fr">Authentification HTTP Basic forcée.</span><span class="en">Forced HTTP Basic Authentication.</span></li>
-      <li><span class="fr">Exposition via Tailscale Funnel (Chiffrement de bout en bout).</span><span class="en">Exposed via Tailscale Funnel (End-to-end encryption).</span></li>
-      <li><span class="fr">Isolation réseau Docker (Database invisible sur le web).</span><span class="en">Docker network isolation (Database invisible on the web).</span></li>
-    </ul>
+    <pre data-label="bash">
+<span class="cm"># Voir les logs en temps reel</span>
+<span class="kw">./manage.sh</span> logs
+
+<span class="cm"># Mettre a jour le code et reconstruire</span>
+<span class="kw">./manage.sh</span> update
+
+<span class="cm"># Changer le mot de passe Bunker</span>
+<span class="kw">./manage.sh</span> setpass
+
+<span class="cm"># Sauvegarder la base de donnees</span>
+<span class="kw">./manage.sh</span> backup</pre>
   </div>
 
-  <!-- MAINTENANCE -->
-  <div class="section-title">Maintenance</div>
-  <div class="card">
-    <span class="fr">Pour gérer votre instance, utilisez le toolkit inclus :</span>
-    <span class="en">To manage your instance, use the included toolkit:</span>
-    <pre><code># Voir les logs en temps réel
-./manage.sh logs
-
-# Mettre à jour le code
-./manage.sh update
-
-# Changer le mot de passe
-./manage.sh setpass
-
-# Sauvegarder la base de données
-./manage.sh backup</code></pre>
+  <!-- ── ENV CONFIG ── -->
+  <div class="section-title">
+    Configuration
+    <span class="mono">.env</span>
   </div>
 
-  <!-- DATA SCHEMA -->
-  <div class="section-title"><span class="fr">Schéma des Données</span><span class="en">Data Schema</span></div>
-  <div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>FIELD</th><th>TYPE</th><th><span class="fr">DESCRIPTION</span><span class="en">DESCRIPTION</span></th></tr>
+        <tr>
+          <th>VARIABLE</th>
+          <th>DEFAULT</th>
+          <th><span class="fr">DESCRIPTION</span><span class="en">DESCRIPTION</span></th>
+        </tr>
       </thead>
       <tbody>
-        <tr><td><code>restaurant</code></td><td>VARCHAR</td><td>Source Name</td></tr>
-        <tr><td><code>price</code></td><td>VARCHAR</td><td>Extracted numeric text</td></tr>
-        <tr><td><code>grade</code></td><td>CHAR(2)</td><td>A+ to D rating</td></tr>
-        <tr><td><code>is_active</code></td><td>TINYINT</td><td>Availability flag</td></tr>
-        <tr><td><code>embedding</code></td><td>BLOB</td><td>AI Vector for dedup</td></tr>
+        <tr>
+          <td><code>OPENAI_API_KEY</code></td>
+          <td><span class="type-badge">—</span></td>
+          <td><span class="fr">Cle API OpenAI (GPT-4o-mini + Vision)</span><span class="en">OpenAI API key (GPT-4o-mini + Vision)</span></td>
+        </tr>
+        <tr>
+          <td><code>SCRAPE_INTERVAL_HOURS</code></td>
+          <td><span class="type-badge">6</span></td>
+          <td><span class="fr">Intervalle en heures entre chaque scrape automatique</span><span class="en">Interval in hours between automatic scrape runs</span></td>
+        </tr>
+        <tr>
+          <td><code>SCRAPER_PROXY</code></td>
+          <td><span class="type-badge">""</span></td>
+          <td><span class="fr">Proxy optionnel pour contourner les blocages IP Cloudflare</span><span class="en">Optional proxy to bypass Cloudflare IP blocks</span></td>
+        </tr>
+        <tr>
+          <td><code>AUTO_CLEAN_AFTER_SCRAPE</code></td>
+          <td><span class="type-badge">1</span></td>
+          <td><span class="fr">Nettoyage automatique apres chaque scrape (0 pour desactiver)</span><span class="en">Auto-clean after each scrape (0 to disable)</span></td>
+        </tr>
+        <tr>
+          <td><code>SKIP_EMBEDDING_INIT</code></td>
+          <td><span class="type-badge">1</span></td>
+          <td><span class="fr">Desactive le chargement du modele de deduplication semantique (~500 MB)</span><span class="en">Disables semantic deduplication model loading (~500 MB)</span></td>
+        </tr>
+        <tr>
+          <td><code>BUNKER_PASSWORD</code></td>
+          <td><span class="type-badge">—</span></td>
+          <td><span class="fr">Mot de passe Nginx Bunker (hash genere par manage.sh setpass)</span><span class="en">Nginx Bunker password (hash generated by manage.sh setpass)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── DATA SCHEMA ── -->
+  <div class="section-title">
+    <span class="fr">Schema des donnees</span>
+    <span class="en">Data Schema</span>
+    <span class="mono">MySQL</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>FIELD</th>
+          <th>TYPE</th>
+          <th><span class="fr">DESCRIPTION</span><span class="en">DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>restaurant</code></td>
+          <td><span class="type-badge">VARCHAR</span></td>
+          <td><span class="fr">Nom de la source scraping</span><span class="en">Scraping source name</span></td>
+        </tr>
+        <tr>
+          <td><code>detail</code></td>
+          <td><span class="type-badge">TEXT</span></td>
+          <td><span class="fr">Description extraite de la promotion</span><span class="en">Extracted promotion description</span></td>
+        </tr>
+        <tr>
+          <td><code>price</code></td>
+          <td><span class="type-badge">VARCHAR</span></td>
+          <td><span class="fr">Prix extrait (texte numerique brut)</span><span class="en">Extracted price (raw numeric text)</span></td>
+        </tr>
+        <tr>
+          <td><code>grade</code></td>
+          <td><span class="type-badge">CHAR(2)</span></td>
+          <td><span class="fr">Note A+ a D selon pertinence et prix</span><span class="en">A+ to D rating by relevance and price</span></td>
+        </tr>
+        <tr>
+          <td><code>is_active</code></td>
+          <td><span class="type-badge">TINYINT</span></td>
+          <td><span class="fr">1 = promotion active, 0 = expiree ou nettoyee</span><span class="en">1 = active promotion, 0 = expired or cleaned</span></td>
+        </tr>
+        <tr>
+          <td><code>image_url</code></td>
+          <td><span class="type-badge">VARCHAR</span></td>
+          <td><span class="fr">URL de la banniere promotionnelle extraite par Vision</span><span class="en">Promotional banner URL extracted by Vision</span></td>
+        </tr>
+        <tr>
+          <td><code>embedding</code></td>
+          <td><span class="type-badge">BLOB</span></td>
+          <td><span class="fr">Vecteur IA pour deduplication semantique (optionnel)</span><span class="en">AI vector for semantic deduplication (optional)</span></td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -176,20 +633,24 @@
 
 <script>
 function toggleTheme() {
-  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('pref-theme', theme);
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  localStorage.setItem('pref-theme', dark ? 'light' : 'dark');
 }
-if (localStorage.getItem('pref-theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); }
 
 function toggleLang() {
   const isEn = document.body.classList.toggle('lang-en');
   document.body.classList.toggle('lang-fr', !isEn);
   localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
 }
-if (localStorage.getItem('pref-lang') === 'en') {
-  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
-}
+
+(function() {
+  const t = localStorage.getItem('pref-theme');
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  const l = localStorage.getItem('pref-lang');
+  if (l === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
+})();
 </script>
 </body>
 </html>

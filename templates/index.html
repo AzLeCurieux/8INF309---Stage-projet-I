@@ -3,152 +3,626 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chiken Wings | Dashboard</title>
+  <title>Chicken Wings — Dashboard</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #fafafa; --fg: #111827; --border: #e5e7eb; --muted: #6b7280; --hover: #f3f4f6; --card-bg: #ffffff;
+      --bg: #07070c;
+      --surface: #0e0e18;
+      --card: #121220;
+      --card-hover: #16162a;
+      --border: #1e1e32;
+      --border-hi: #2e2e48;
+      --text: #e2e2f0;
+      --muted: #5a5a7a;
+      --muted-hi: #8888aa;
+      --accent: #f5a623;
+      --accent-dim: rgba(245,166,35,0.12);
+      --accent-glow: rgba(245,166,35,0.25);
+      --green: #10b981;
+      --green-dim: rgba(16,185,129,0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.12);
+      --blue: #6366f1;
     }
-    [data-theme="dark"] {
-      --bg: #0f172a; --fg: #f8fafc; --border: #334155; --muted: #94a3b8; --hover: #1e293b; --card-bg: #1e293b;
+    [data-theme="light"] {
+      --bg: #f4f4f8;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --card-hover: #f8f8fc;
+      --border: #e0e0ec;
+      --border-hi: #c8c8e0;
+      --text: #0f0f1e;
+      --muted: #8080a0;
+      --muted-hi: #5050708;
+      --accent: #d4850a;
+      --accent-dim: rgba(212,133,10,0.1);
+      --accent-glow: rgba(212,133,10,0.2);
     }
-    body { 
-      background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif;
-      margin: 0; padding: 0; line-height: 1.5; transition: background 0.3s, color 0.3s;
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
     }
+
+    /* ── Scanline texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+      pointer-events: none; z-index: 9997;
+    }
+
+    /* ── Corner glow accent ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px; right: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── NAVBAR ── */
     .navbar {
-      border-bottom: 1px solid var(--border); background: var(--card-bg);
-      padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,12,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; gap: 1.5rem;
     }
-    .nav-brand { font-weight: 600; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
-    .btn-minimal {
-      background: var(--card-bg); border: 1px solid var(--border); color: var(--fg);
-      padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.875rem;
-      cursor: pointer; text-decoration: none; transition: all 0.2s;
+    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
+
+    .logo {
+      display: flex; align-items: center; gap: 0.6rem;
+      text-decoration: none;
     }
-    .btn-minimal:hover { background: var(--hover); }
-    .btn-primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-    .btn-danger { color: #ef4444; border-color: #ef4444; }
-    
-    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
-    
-    .list-wrapper {
-      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; line-height: 1;
     }
-    .list-header {
-      display: flex; padding: 0.75rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border);
-      font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.05em;
+      color: var(--text);
     }
-    .row-name { flex: 2; }
-    .row-stats { flex: 2; display: flex; gap: 2rem; }
-    .row-actions { flex: 1; text-align: right; }
-    
-    .site-row {
-      display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border);
-      transition: background 0.2s;
+    .logo-text span { color: var(--accent); }
+
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted-hi);
+      padding: 0 0.75rem; height: 30px;
+      border-radius: 5px;
+      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 0.4rem;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
     }
-    .site-row:last-child { border-bottom: none; }
-    .site-row:hover { background: var(--hover); }
-    
-    .site-icon { width: 24px; height: 24px; border-radius: 4px; margin-right: 0.75rem; background: #fff; }
-    .site-name-col { flex: 2; display: flex; align-items: center; font-weight: 500; }
-    .site-stats-col { flex: 2; display: flex; gap: 2rem; font-size: 0.875rem; color: var(--muted); align-items: center; }
-    .site-actions-col { flex: 1; display: flex; gap: 0.5rem; justify-content: flex-end; }
-    
-    .add-form {
-      display: flex; gap: 1rem; padding: 1rem; background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 8px; margin-bottom: 2rem;
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .nav-btn-primary {
+      background: var(--accent); color: #000;
+      border-color: var(--accent); font-weight: 600;
     }
-    .input-minimal {
-      flex: 1; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;
-      font-size: 0.875rem; outline: none; transition: border 0.2s; background: var(--bg); color: var(--fg);
+    .nav-btn-primary:hover { background: #fbbf24; color: #000; border-color: #fbbf24; }
+
+    /* ── LAYOUT ── */
+    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; position: relative; z-index: 1; }
+
+    /* ── ADD FORM ── */
+    .add-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 0.75rem;
     }
-    
-    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; }
-    .job-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.875rem; }
-    .job-logs { background: var(--bg); color: var(--muted); font-family: monospace; font-size: 0.7rem; padding: 8px; margin-top: 10px; height: 120px; overflow-y: auto; border: 1px solid var(--border); }
-    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    .add-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .input-field {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0 0.875rem; height: 34px;
+      border-radius: 6px;
+      font-size: 13px; font-family: 'Plus Jakarta Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .input-field::placeholder { color: var(--muted); }
+    .btn-add {
+      background: var(--accent); color: #000; border: none;
+      padding: 0 1.25rem; height: 34px;
+      border-radius: 6px; font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-add:hover { background: #fbbf24; }
+
+    /* ── TABLE HEADER ── */
+    .table-header {
+      display: flex; align-items: center;
+      padding: 0.5rem 1rem 0.5rem 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+    .th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .col-name   { flex: 2.5; }
+    .col-stats  { flex: 2; display: flex; gap: 0; }
+    .col-stat   { width: 90px; }
+    .col-date   { flex: 1; }
+    .col-act    { width: 180px; display: flex; justify-content: flex-end; }
+
+    /* ── RESTAURANT LIST ── */
+    .restaurant-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .restaurant-row {
+      display: flex; align-items: center;
+      padding: 0 1rem 0 1.25rem;
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      position: relative;
+    }
+    .restaurant-row:last-child { border-bottom: none; }
+    .restaurant-row:hover { background: var(--card-hover); }
+    .restaurant-row:hover .row-accent-bar { opacity: 1; }
+
+    .row-accent-bar {
+      position: absolute; left: 0; top: 8px; bottom: 8px;
+      width: 3px; background: var(--accent);
+      border-radius: 0 2px 2px 0;
+      opacity: 0; transition: opacity 0.15s;
+    }
+
+    .row-name {
+      flex: 2.5;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .favicon {
+      width: 22px; height: 22px; border-radius: 4px;
+      background: var(--border); flex-shrink: 0;
+    }
+    .name-link {
+      font-weight: 600; font-size: 13.5px;
+      color: var(--text); text-decoration: none;
+    }
+    .name-link:hover { color: var(--accent); }
+
+    .row-stats { flex: 2; display: flex; }
+    .stat-cell { width: 90px; display: flex; align-items: center; }
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; font-weight: 600;
+    }
+    .stat-num.amber { color: var(--accent); }
+    .stat-num.green { color: var(--green); }
+    .stat-num.muted { color: var(--muted); }
+
+    .row-date {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+    }
+
+    .row-actions {
+      width: 180px;
+      display: flex; align-items: center; gap: 0.375rem; justify-content: flex-end;
+    }
+
+    .btn-row {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted-hi);
+      padding: 0 0.6rem; height: 26px;
+      border-radius: 4px; font-size: 11.5px;
+      cursor: pointer; transition: all 0.15s;
+      text-decoration: none;
+      display: inline-flex; align-items: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-row:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-scan:hover { border-color: var(--blue); color: var(--blue); background: rgba(99,102,241,0.08); }
+    .btn-del { color: var(--muted); }
+    .btn-del:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 4rem 2rem; color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── JOB PANEL ── */
+    #jobPanel {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      width: 400px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+
+    .job-card {
+      background: var(--card);
+      border: 1px solid var(--border-hi);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,166,35,0.05);
+    }
+
+    .job-card-title {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 0.875rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .job-card-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 0.5rem;
+      letter-spacing: 0.03em;
+    }
+    .job-card-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 14px; line-height: 1;
+      padding: 2px; border-radius: 3px;
+      transition: color 0.15s;
+    }
+    .job-card-close:hover { color: var(--text); }
+
+    .job-card-body { padding: 0.75rem 0.875rem; }
+
+    .job-status {
+      font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem;
+    }
+
+    .job-logs {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      padding: 0.5rem 0.625rem;
+      height: 100px; overflow-y: auto;
+      line-height: 1.6;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    /* ── IMAGE CONFIRM ── */
+    .img-confirm {
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 0.875rem;
+      background: rgba(245,166,35,0.04);
+    }
+    .img-confirm-title {
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      margin-bottom: 0.625rem; letter-spacing: 0.02em;
+    }
+    .img-thumbs {
+      display: flex; gap: 6px; margin-bottom: 0.625rem; flex-wrap: wrap;
+    }
+    .img-thumbs img {
+      width: 62px; height: 42px; object-fit: cover;
+      border-radius: 4px; border: 1px solid var(--border);
+    }
+    .img-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      margin-bottom: 0.625rem; line-height: 1.7;
+    }
+    .img-actions { display: flex; gap: 6px; }
+    .btn-vision {
+      flex: 1; background: var(--accent); color: #000;
+      border: none; border-radius: 5px; padding: 0.4rem;
+      font-size: 11.5px; font-weight: 700; cursor: pointer;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: background 0.15s;
+    }
+    .btn-vision:hover { background: #fbbf24; }
+    .btn-vision:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-skip {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 5px; padding: 0.4rem 0.75rem;
+      font-size: 11.5px; cursor: pointer; color: var(--muted);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-skip:hover { border-color: var(--muted-hi); color: var(--text); }
+
+    /* ── SPIN ── */
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── LANG TOGGLE ── */
     body.lang-en .fr { display: none !important; }
     body.lang-fr .en { display: none !important; }
+
+    /* ── ALERT ZONE ── */
+    #alert-zone { margin-bottom: 1rem; }
+    .alert {
+      background: var(--red-dim); border: 1px solid var(--red);
+      border-radius: 6px; padding: 0.75rem 1rem;
+      font-size: 13px; color: var(--red);
+    }
+
+    /* ── SCROLL ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+    /* ── STAT SUMMARY BAR ── */
+    .summary-bar {
+      display: flex; gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .summary-item {
+      flex: 1; background: var(--surface);
+      padding: 0.875rem 1.25rem;
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .summary-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 600;
+    }
+    .summary-label {
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .sv-amber { color: var(--accent); }
+    .sv-green { color: var(--green); }
+    .sv-blue  { color: #60a5fa; }
+
+    /* ── SECTION HEADER ── */
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 13px;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted-hi);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-title::before {
+      content: ''; display: block;
+      width: 8px; height: 8px;
+      background: var(--accent); border-radius: 2px;
+    }
+    .section-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+    }
+
+    /* ── ROW ANIMATION ── */
+    .restaurant-row {
+      animation: rowIn 0.3s ease both;
+    }
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── SORTABLE HEADERS ── */
+    .th.sortable {
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 0.3rem;
+      transition: color 0.15s;
+    }
+    .th.sortable:hover { color: var(--accent); }
+    .th.sortable.sort-asc  { color: var(--accent); }
+    .th.sortable.sort-desc { color: var(--accent); }
+    .sort-arrow {
+      font-size: 9px; opacity: 0.35; transition: opacity 0.15s;
+      font-family: monospace;
+    }
+    .th.sortable:hover .sort-arrow { opacity: 0.7; }
+    .th.sort-asc  .sort-arrow,
+    .th.sort-desc .sort-arrow { opacity: 1; color: var(--accent); }
   </style>
 </head>
 <body class="lang-fr">
 
+<!-- ── NAVBAR ── -->
 <nav class="navbar">
-  <div class="nav-brand"><span>🍗</span> Chiken Wings</div>
-  <div style="display:flex; gap: 0.75rem; align-items: center;">
-    <button class="btn-minimal" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
-    <button class="btn-minimal" onclick="toggleLang()">
-      <span class="fr">FR</span><span class="en">EN</span>
-    </button>
-    <a href="/about" class="btn-minimal">
-      <span class="fr">Infos</span><span class="en">About</span>
-    </a>
-    <button class="btn-minimal" onclick="crawlAll()">
-      <span class="fr">Tout Scraper</span><span class="en">Scan All</span>
-    </button>
-  </div>
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label">
+    <span class="fr">Tableau de bord</span>
+    <span class="en">Dashboard</span>
+  </span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()" title="Toggle theme">◑</button>
+  <button class="nav-btn" onclick="toggleLang()">
+    <span class="fr">FR</span><span class="en">EN</span>
+  </button>
+  <a href="/about" class="nav-btn">
+    <span class="fr">Docs</span><span class="en">Docs</span>
+  </a>
+  <button class="nav-btn" onclick="crawlAll()">
+    <span class="fr">Tout scanner</span><span class="en">Scan all</span>
+  </button>
 </nav>
 
-<div class="container">
+<!-- ── MAIN LAYOUT ── -->
+<div class="layout">
   <div id="alert-zone"></div>
 
-  <form action="/add_restaurant" method="POST" class="add-form">
-    <input type="text" name="name" class="input-minimal" placeholder="Name (ex: KFC)" required>
-    <input type="url" name="url" class="input-minimal" placeholder="URL (https://...)" required>
-    <button type="submit" class="btn-minimal btn-primary">
-      <span class="fr">Ajouter</span><span class="en">Add</span>
+  <!-- Summary bar (computed from restaurants) -->
+  <div class="summary-bar">
+    <div class="summary-item">
+      <span class="summary-value sv-amber">{{ restaurants|length }}</span>
+      <span class="summary-label"><span class="fr">Sources</span><span class="en">Sources</span></span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value sv-green">{{ restaurants|sum(attribute='active_promos') or 0 }}</span>
+      <span class="summary-label"><span class="fr">Promos actives</span><span class="en">Active promos</span></span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value sv-blue">{{ restaurants|sum(attribute='top_promos') or 0 }}</span>
+      <span class="summary-label"><span class="fr">Grade A+/A</span><span class="en">Grade A+/A</span></span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value" style="color:var(--muted-hi)">{{ scrape_interval_hours }}h</span>
+      <span class="summary-label"><span class="fr">Intervalle auto</span><span class="en">Auto interval</span></span>
+    </div>
+  </div>
+
+  <!-- Add restaurant form -->
+  <form action="/add_restaurant" method="POST" class="add-section">
+    <span class="add-label">+ <span class="fr">Ajouter</span><span class="en">Add</span></span>
+    <input type="text" name="name" class="input-field" placeholder="Nom (ex: KFC)" style="max-width:200px" required>
+    <input type="url" name="url" class="input-field" placeholder="URL (https://...)" required>
+    <button type="submit" class="btn-add">
+      <span class="fr">Ajouter source</span><span class="en">Add source</span>
     </button>
   </form>
 
-  <div class="list-wrapper">
-    <div class="list-header">
-      <div class="row-name">Source</div>
-      <div class="row-stats">
-        <span style="width:80px">Active</span>
-        <span style="width:80px">Top (A)</span>
-        <span>Last Scan</span>
-      </div>
-      <div class="row-actions">Actions</div>
-    </div>
+  <!-- Section header -->
+  <div class="section-head">
+    <span class="section-title">
+      <span class="fr">Sources surveillées</span>
+      <span class="en">Monitored sources</span>
+    </span>
+    <span class="section-count">{{ restaurants|length }} <span class="fr">entrées</span><span class="en">entries</span></span>
+  </div>
 
-    {% for r in restaurants %}
-    <div class="site-row">
-      <div class="site-name-col">
-        <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="site-icon" alt="icon">
-        <a href="{{ r.url }}" target="_blank" style="color:var(--fg); text-decoration:none;">{{ r.name }}</a>
+  <!-- Column headers -->
+  <div class="table-header" id="tableHeader">
+    <div class="th col-name sortable" data-col="name" onclick="sortTable('name')">
+      <span class="fr">Source</span><span class="en">Source</span>
+      <span class="sort-arrow" id="arr-name">↕</span>
+    </div>
+    <div class="th col-stats">
+      <div class="col-stat sortable" data-col="active" onclick="sortTable('active')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem; transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color=''">
+        <span class="fr">Actives</span><span class="en">Active</span>
+        <span class="sort-arrow" id="arr-active">↕</span>
       </div>
-      <div class="site-stats-col">
-        <span style="width:80px; font-weight:600; color:var(--fg);">{{ r.active_promos or 0 }}</span>
-        <span style="width:80px; font-weight:600; color:var(--fg);">{{ r.top_promos or 0 }}</span>
-        <span>{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '-' }}</span>
-      </div>
-      <div class="site-actions-col">
-        <a href="/restaurant/{{ r.id }}" class="btn-minimal"><span class="fr">Voir</span><span class="en">View</span></a>
-        <button class="btn-minimal" data-rid="{{ r.id }}" data-rname="{{ r.name }}" onclick="crawlOne(this)">Scan</button>
-        <form action="/delete_restaurant/{{ r.id }}" method="POST" class="m-0" onsubmit="return confirm('Delete {{ r.name }}?')">
-          <button type="submit" class="btn-minimal btn-danger">X</button>
-        </form>
+      <div class="col-stat sortable" data-col="top" onclick="sortTable('top')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem; transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color=''">
+        Top A+/A
+        <span class="sort-arrow" id="arr-top">↕</span>
       </div>
     </div>
-    {% endfor %}
+    <div class="th col-date sortable" data-col="date" onclick="sortTable('date')">
+      <span class="fr">Dernier scan</span><span class="en">Last scan</span>
+      <span class="sort-arrow" id="arr-date">↕</span>
+    </div>
+    <div class="th col-act"><span class="fr">Actions</span><span class="en">Actions</span></div>
+  </div>
+
+  <!-- Restaurant list -->
+  <div class="restaurant-list">
+    {% if restaurants %}
+      {% for r in restaurants %}
+      <div class="restaurant-row"
+           data-name="{{ r.name|lower }}"
+           data-active="{{ r.active_promos or 0 }}"
+           data-top="{{ r.top_promos or 0 }}"
+           data-date="{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '0000-00-00' }}"
+           style="animation-delay: {{ loop.index0 * 0.04 }}s">
+        <div class="row-accent-bar"></div>
+
+        <div class="row-name col-name">
+          <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="favicon" alt="">
+          <a href="/restaurant/{{ r.id }}" class="name-link">{{ r.name }}</a>
+        </div>
+
+        <div class="row-stats col-stats">
+          <div class="stat-cell col-stat">
+            <span class="stat-num {{ 'amber' if r.active_promos else 'muted' }}">{{ r.active_promos or 0 }}</span>
+          </div>
+          <div class="stat-cell col-stat">
+            <span class="stat-num {{ 'green' if r.top_promos else 'muted' }}">{{ r.top_promos or 0 }}</span>
+          </div>
+        </div>
+
+        <div class="row-date col-date">
+          {{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '—' }}
+        </div>
+
+        <div class="row-actions col-act">
+          <a href="/restaurant/{{ r.id }}" class="btn-row">
+            <span class="fr">Voir</span><span class="en">View</span>
+          </a>
+          <button class="btn-row btn-scan" data-rid="{{ r.id }}" data-rname="{{ r.name }}" onclick="crawlOne(this)">
+            Scan
+          </button>
+          <form action="/delete_restaurant/{{ r.id }}" method="POST" style="display:inline" onsubmit="return confirm('Supprimer {{ r.name }} ?')">
+            <button type="submit" class="btn-row btn-del">✕</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">[ — ]</div>
+        <p><span class="fr">Aucune source configurée. Ajoutez votre premier restaurant ci-dessus.</span><span class="en">No sources configured. Add your first restaurant above.</span></p>
+      </div>
+    {% endif %}
   </div>
 </div>
 
+<!-- ── JOB PANEL ── -->
 <div id="jobPanel"></div>
 
 <script>
+/* ── Theme / Lang ── */
 function toggleTheme() {
-  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('pref-theme', theme);
+  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('pref-theme', t || 'dark');
 }
-if (localStorage.getItem('pref-theme') === 'dark') {
-  document.documentElement.setAttribute('data-theme', 'dark');
-}
+if (localStorage.getItem('pref-theme') === 'light')
+  document.documentElement.setAttribute('data-theme', 'light');
 
 function toggleLang() {
   const isEn = document.body.classList.toggle('lang-en');
@@ -159,18 +633,21 @@ if (localStorage.getItem('pref-lang') === 'en') {
   document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
 }
 
-const _activeJobs = {};
+/* ── Job panel ── */
 function _jobCard(jid, name) {
   const card = document.createElement('div');
-  card.className = 'job-card';
-  card.id = 'job-' + jid;
+  card.className = 'job-card'; card.id = 'job-' + jid;
   card.innerHTML = `
-    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
-      <strong style="display:flex; align-items:center; gap:0.5rem"><span class="spin">⟳</span> ${name}</strong>
-      <button style="border:none;background:none;cursor:pointer;color:var(--muted)" onclick="this.closest('.job-card').remove()">✕</button>
+    <div class="job-card-title">
+      <span class="job-card-name"><span class="spin">⟳</span> ${name}</span>
+      <button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button>
     </div>
-    <div id="jd-${jid}" style="color:var(--muted); font-size:0.75rem;">Initializing...</div>
-    <div class="job-logs" id="jl-${jid}"></div>`;
+    <div class="job-card-body">
+      <div class="job-status" id="jd-${jid}">
+        <span class="fr">Initialisation…</span><span class="en">Initializing…</span>
+      </div>
+      <div class="job-logs" id="jl-${jid}"></div>
+    </div>`;
   document.getElementById('jobPanel').prepend(card);
   return card;
 }
@@ -179,60 +656,169 @@ async function _updateLogs(jid) {
   try {
     const r = await fetch('/api/job/' + jid + '/logs');
     const d = await r.json();
-    const logDiv = document.getElementById('jl-' + jid);
-    if (d.logs && d.logs.length > 0) {
-      logDiv.textContent = d.logs.slice(-15).join('\n');
-      logDiv.scrollTop = logDiv.scrollHeight;
+    const el = document.getElementById('jl-' + jid);
+    if (el && d.logs && d.logs.length) {
+      el.textContent = d.logs.slice(-15).join('\n');
+      el.scrollTop = el.scrollHeight;
     }
   } catch(e) {}
 }
 
-function _pollJob(jid, card) {
+/* ── Image confirm ── */
+function _showImageConfirm(jid, rid, images, card) {
+  const toAnalyze = images.slice(0, 5);
+  const inputTok  = toAnalyze.length * (85 + 350);
+  const outputTok = toAnalyze.length * 400;
+  const costUSD   = ((inputTok / 1e6) * 2.5 + (outputTok / 1e6) * 10).toFixed(4);
+  const thumbs = toAnalyze.slice(0, 4).map(img =>
+    `<img src="${img.url}" onerror="this.style.display='none'" alt="">`
+  ).join('');
+
+  const div = document.createElement('div');
+  div.className = 'img-confirm'; div.id = 'imgconfirm-' + jid;
+  div._imgData = images;
+  div.innerHTML = `
+    <div class="img-confirm-title">
+      🖼 ${images.length}
+      <span class="fr"> bannière(s) promo détectée(s)</span>
+      <span class="en"> promo banner(s) detected</span>
+    </div>
+    <div class="img-thumbs">${thumbs}</div>
+    <div class="img-meta">
+      <span class="fr">Analyser ${toAnalyze.length} img avec GPT-4o Vision ?</span>
+      <span class="en">Analyze ${toAnalyze.length} img with GPT-4o Vision?</span><br>
+      ~${inputTok + outputTok} tokens · ~$${costUSD}
+      <span class="fr">(estimé)</span><span class="en">(est.)</span>
+    </div>
+    <div class="img-actions">
+      <button class="btn-vision" onclick="_runImageAnalysis('${jid}', ${rid}, this)">
+        <span class="fr">Analyser images</span><span class="en">Analyze images</span>
+      </button>
+      <button class="btn-skip" onclick="_skipImages('${jid}')">
+        <span class="fr">Ignorer</span><span class="en">Skip</span>
+      </button>
+    </div>`;
+  card.querySelector('.job-card-body').appendChild(div);
+}
+
+function _skipImages(jid) {
+  const div = document.getElementById('imgconfirm-' + jid);
+  if (div) div.remove();
+  setTimeout(() => location.reload(), 1500);
+}
+
+async function _runImageAnalysis(jid, rid, btn) {
+  const div = document.getElementById('imgconfirm-' + jid);
+  const images = div ? div._imgData : [];
+  btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span>';
+  try {
+    const r = await fetch('/api/analyze_images', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({restaurant_id: rid, images: images.slice(0,5)}),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    if (div) div.remove();
+    _launchJob(d.job_id, '🖼 ' + d.name, null);
+  } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
+}
+
+/* ── Job polling ── */
+function _pollJob(jid, card, rid) {
   const detail = document.getElementById('jd-' + jid);
   const ivl = setInterval(async () => {
     try {
       _updateLogs(jid);
       const r = await fetch('/job/' + jid);
       const d = await r.json();
-      const status = d.status;
-      if (status === 'done') {
+      if (d.status === 'done') {
         clearInterval(ivl);
         const res = d.result || {};
-        card.querySelector('.spin').textContent = '✓';
-        card.querySelector('.spin').style.animation = 'none';
-        detail.innerHTML = `Done: +${res.inserted||0} new`;
-        setTimeout(() => location.reload(), 3000);
-      } else if (status === 'error') {
+        const spinEl = card.querySelector('.spin');
+        if (spinEl) { spinEl.textContent = '✓'; spinEl.style.animation = 'none'; spinEl.style.color = '#10b981'; }
+        const imgs = res.candidate_images || [];
+        const effectiveRid = rid || res.restaurant_id || null;
+        if (imgs.length > 0 && effectiveRid) {
+          detail.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles</span><span class="en">new</span> · ${imgs.length} <span class="fr">bannières</span><span class="en">banners</span>`;
+          _showImageConfirm(jid, effectiveRid, imgs, card);
+        } else if (res.images_analyzed !== undefined) {
+          detail.innerHTML = `+${res.inserted||0} · ${res.images_analyzed} <span class="fr">img analysées</span><span class="en">img analyzed</span>`;
+          setTimeout(() => location.reload(), 3000);
+        } else {
+          detail.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles</span><span class="en">new</span>`;
+          setTimeout(() => location.reload(), 3000);
+        }
+      } else if (d.status === 'error') {
         clearInterval(ivl);
-        detail.textContent = 'Error';
+        detail.innerHTML = `<span style="color:var(--red)">${d.error||'Erreur'}</span>`;
+        const spinEl = card.querySelector('.spin');
+        if (spinEl) { spinEl.textContent = '✗'; spinEl.style.animation = 'none'; spinEl.style.color = 'var(--red)'; }
       }
     } catch(e) {}
   }, 2000);
 }
 
-function _launchJob(jid, name) { const card = _jobCard(jid, name); _pollJob(jid, card); }
+function _launchJob(jid, name, rid) {
+  const card = _jobCard(jid, name);
+  _pollJob(jid, card, rid || null);
+}
 
 async function crawlOne(btn) {
   try {
-    const r = await fetch('/crawl/' + btn.dataset.rid, {method:'POST'});
+    const r = await fetch('/crawl/' + btn.dataset.rid, {method: 'POST'});
     const d = await r.json();
-    _launchJob(d.job_id, d.name);
+    _launchJob(d.job_id, d.name, d.restaurant_id);
   } catch(e) {}
 }
 
 async function crawlAll() {
   try {
-    const r = await fetch('/crawl_all', {method:'POST'});
+    const r = await fetch('/crawl_all', {method: 'POST'});
     const d = await r.json();
-    for (const job of (d.jobs || [])) { _launchJob(job.job_id, job.name); }
+    for (const job of (d.jobs || [])) _launchJob(job.job_id, job.name, job.restaurant_id);
   } catch(e) {}
 }
 
 async function classifyAll() {
-  try {
-    await fetch('/classify_all', {method:'POST'});
-    location.reload();
-  } catch(e) {}
+  try { await fetch('/classify_all', {method:'POST'}); location.reload(); } catch(e) {}
+}
+
+/* ── Table sort ── */
+let _sortCol = null, _sortDir = 1;
+function sortTable(col) {
+  const list = document.querySelector('.restaurant-list');
+  const rows = Array.from(list.querySelectorAll('.restaurant-row'));
+  if (!rows.length) return;
+
+  if (_sortCol === col) _sortDir *= -1;
+  else { _sortCol = col; _sortDir = 1; }
+
+  // Reset arrows
+  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '↕');
+  const arrow = document.getElementById('arr-' + col);
+  if (arrow) arrow.textContent = _sortDir === 1 ? '↑' : '↓';
+
+  // Reset header colors
+  document.querySelectorAll('.th.sortable').forEach(el => {
+    el.classList.remove('sort-asc', 'sort-desc');
+  });
+  const headerEl = document.querySelector(`.th[data-col="${col}"]`);
+  if (headerEl) headerEl.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  rows.sort((a, b) => {
+    let va = a.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
+    let vb = b.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
+    if (col === 'active' || col === 'top') {
+      return _sortDir * (parseInt(vb) - parseInt(va)); // desc by default (most first)
+    }
+    if (col === 'date') {
+      return _sortDir * vb.localeCompare(va); // newest first
+    }
+    return _sortDir * va.localeCompare(vb);
+  });
+
+  // Reinsert without re-animating
+  rows.forEach(r => { r.style.animation = 'none'; list.appendChild(r); });
 }
 </script>
 </body>
