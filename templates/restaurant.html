@@ -47,6 +47,9 @@
       transition: background 0.3s, color 0.3s;
     }
 
+    body.lang-en .fr { display: none !important; }
+    body.lang-fr .en { display: none !important; }
+
     .navbar {
       position: sticky; top: 0; z-index: 100;
       background: rgba(7,7,12,0.92);
@@ -128,6 +131,16 @@
     .card-link { font-size: 12px; font-weight: 600; color: var(--muted-hi); text-decoration: none; }
     .card-link:hover { color: var(--accent); }
 
+    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 400px; z-index: 9999; display: flex; flex-direction: column-reverse; gap: 0.75rem; max-height: 80vh; overflow-y: auto; scrollbar-width: none; }
+    .job-card { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); flex-shrink: 0; }
+    .job-card-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+    .job-card-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
+    .job-card-body { padding: 0.75rem 0.875rem; }
+    .job-logs { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); padding: 0.5rem; height: 80px; overflow-y: auto; }
+
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 768px) {
       .navbar { padding: 0 0.75rem; }
       .breadcrumb, .nav-divider { display: none; }
@@ -152,7 +165,13 @@
   </div>
   <div class="nav-spacer"></div>
   <button class="nav-btn" onclick="toggleTheme()">◑</button>
-  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <button class="nav-btn" onclick="toggleLang()">
+    <span class="fr">FR</span><span class="en">EN</span>
+  </button>
+  <a href="/about" class="nav-btn">
+    <span class="fr">Docs</span><span class="en">Docs</span>
+  </a>
+  <button class="nav-btn" onclick="crawlOne()">Scan</button>
 </nav>
 
 <header class="hero">
@@ -231,6 +250,61 @@ if (localStorage.getItem('pref-theme') === 'light') document.documentElement.set
 function toggleLang() {
   const isEn = document.body.classList.toggle('lang-en');
   document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') {
+  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
+}
+
+function _jobCard(jid, name) {
+  const card = document.createElement('div');
+  card.className = 'job-card'; card.id = 'job-' + jid;
+  card.innerHTML = `
+    <div class="job-card-title">
+      <span style="font-size:11px; font-weight:600; color:var(--accent)">⟳ ${name}</span>
+      <button onclick="this.closest('.job-card').remove()" style="background:none; border:none; color:var(--muted); cursor:pointer">✕</button>
+    </div>
+    <div class="job-card-body">
+      <div id="jd-${jid}" style="font-size:12px; margin-bottom:0.5rem">Initialisation...</div>
+      <div class="job-logs" id="jl-${jid}"></div>
+    </div>`;
+  document.getElementById('jobPanel').prepend(card);
+  return card;
+}
+
+async function _updateLogs(jid) {
+  try {
+    const r = await fetch('/api/job/' + jid + '/logs');
+    const d = await r.json();
+    const el = document.getElementById('jl-' + jid);
+    if (el && d.logs) { el.textContent = d.logs.slice(-10).join('\n'); el.scrollTop = el.scrollHeight; }
+  } catch(e) {}
+}
+
+function _pollJob(jid, card) {
+  const detail = document.getElementById('jd-' + jid);
+  const ivl = setInterval(async () => {
+    try {
+      _updateLogs(jid);
+      const r = await fetch('/job/' + jid);
+      const d = await r.json();
+      if (d.status === 'done') {
+        clearInterval(ivl);
+        detail.innerHTML = `<span style="color:var(--green)">Terminé</span>`;
+        setTimeout(() => location.reload(), 2000);
+      } else if (d.status === 'error') {
+        clearInterval(ivl);
+        detail.innerHTML = `<span style="color:var(--red)">Erreur</span>`;
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+async function crawlOne() {
+  const r = await fetch('/crawl/{{ restaurant.id }}', {method: 'POST'});
+  const d = await r.json();
+  const card = _jobCard(d.job_id, d.name);
+  _pollJob(d.job_id, card);
 }
 </script>
 </body>
