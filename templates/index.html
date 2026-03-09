@@ -20,11 +20,8 @@
       --muted-hi: #8888aa;
       --accent: #f5a623;
       --accent-dim: rgba(245,166,35,0.12);
-      --accent-glow: rgba(245,166,35,0.25);
       --green: #10b981;
-      --green-dim: rgba(16,185,129,0.12);
       --red: #ef4444;
-      --red-dim: rgba(239,68,68,0.12);
       --blue: #6366f1;
     }
     [data-theme="light"] {
@@ -39,7 +36,6 @@
       --muted-hi: #505070;
       --accent: #d4850a;
       --accent-dim: rgba(212,133,10,0.1);
-      --accent-glow: rgba(212,133,10,0.2);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,22 +50,6 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-      pointer-events: none; z-index: 9997;
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      top: -200px; right: -200px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-    }
-
     .navbar {
       position: sticky; top: 0; z-index: 100;
       background: rgba(7,7,12,0.92);
@@ -81,497 +61,99 @@
     }
     [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
 
-    .logo {
-      display: flex; align-items: center; gap: 0.6rem;
-      text-decoration: none;
-    }
-    .logo-icon {
-      width: 28px; height: 28px;
-      background: var(--accent);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; line-height: 1;
-    }
-    .logo-text {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.05em;
-      color: var(--text);
-    }
+    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: var(--text); letter-spacing: 0.05em; }
     .logo-text span { color: var(--accent); }
 
     .nav-divider { width: 1px; height: 20px; background: var(--border); }
     .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
-
     .nav-spacer { flex: 1; }
 
     .nav-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted-hi);
-      padding: 0 0.75rem; height: 30px;
-      border-radius: 5px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 0.4rem;
-      transition: all 0.15s;
-      text-decoration: none;
-      white-space: nowrap;
+      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
+      padding: 0 0.75rem; height: 30px; border-radius: 5px; font-size: 12px;
+      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+      transition: all 0.15s; text-decoration: none; white-space: nowrap;
     }
     .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .nav-btn-primary {
-      background: var(--accent); color: #000;
-      border-color: var(--accent); font-weight: 600;
-    }
-    .nav-btn-primary:hover { background: #fbbf24; color: #000; border-color: #fbbf24; }
 
-    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; position: relative; z-index: 1; }
-
-    .add-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 2rem;
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-    .add-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 600;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      white-space: nowrap;
-    }
-    .input-field {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0 0.875rem; height: 34px;
-      border-radius: 6px;
-      font-size: 13px; font-family: 'Plus Jakarta Sans', sans-serif;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .input-field:focus { border-color: var(--accent); }
-    .input-field::placeholder { color: var(--muted); }
-    .btn-add {
-      background: var(--accent); color: #000; border: none;
-      padding: 0 1.25rem; height: 34px;
-      border-radius: 6px; font-weight: 600; font-size: 13px;
-      cursor: pointer; transition: background 0.15s;
-      white-space: nowrap;
-    }
-    .btn-add:hover { background: #fbbf24; }
-
-    .table-header {
-      display: flex; align-items: center;
-      padding: 0.5rem 1rem 0.5rem 1.25rem;
-      margin-bottom: 0.25rem;
-    }
-    .th {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--muted);
-    }
-    .col-name   { flex: 2.5; }
-    .col-stats  { flex: 2; display: flex; gap: 0; }
-    .col-stat   { width: 90px; }
-    .col-date   { flex: 1; }
-    .col-act    { width: 180px; display: flex; justify-content: flex-end; }
-
-    .restaurant-list {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .restaurant-row {
-      display: flex; align-items: center;
-      padding: 0 1rem 0 1.25rem;
-      height: 56px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-      position: relative;
-    }
-    .restaurant-row:last-child { border-bottom: none; }
-    .restaurant-row:hover { background: var(--card-hover); }
-    .restaurant-row:hover .row-accent-bar { opacity: 1; }
-
-    .row-accent-bar {
-      position: absolute; left: 0; top: 8px; bottom: 8px;
-      width: 3px; background: var(--accent);
-      border-radius: 0 2px 2px 0;
-      opacity: 0; transition: opacity 0.15s;
-    }
-
-    .row-name {
-      flex: 2.5;
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-    .favicon {
-      width: 22px; height: 22px; border-radius: 4px;
-      background: var(--border); flex-shrink: 0;
-    }
-    .name-link {
-      font-weight: 600; font-size: 13.5px;
-      color: var(--text); text-decoration: none;
-    }
-    .name-link:hover { color: var(--accent); }
-
-    .row-stats { flex: 2; display: flex; }
-    .stat-cell { width: 90px; display: flex; align-items: center; }
-    .stat-num {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px; font-weight: 600;
-    }
-    .stat-num.amber { color: var(--accent); }
-    .stat-num.green { color: var(--green); }
-    .stat-num.muted { color: var(--muted); }
-
-    .row-date {
-      flex: 1;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; color: var(--muted);
-    }
-
-    .row-actions {
-      width: 180px;
-      display: flex; align-items: center; gap: 0.375rem; justify-content: flex-end;
-    }
-
-    .btn-row {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted-hi);
-      padding: 0 0.6rem; height: 26px;
-      border-radius: 4px; font-size: 11.5px;
-      cursor: pointer; transition: all 0.15s;
-      text-decoration: none;
-      display: inline-flex; align-items: center;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    .btn-row:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-scan:hover { border-color: var(--blue); color: var(--blue); background: rgba(99,102,241,0.08); }
-    .btn-del { color: var(--muted); }
-    .btn-del:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
-
-    .empty-state {
-      text-align: center; padding: 4rem 2rem; color: var(--muted);
-    }
-    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
-    .empty-state p { font-size: 13px; }
-
-    #jobPanel {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      width: 400px; z-index: 9999;
-      display: flex; flex-direction: column-reverse; gap: 0.75rem;
-      max-height: 85vh; overflow-y: auto;
-      scrollbar-width: none;
-    }
-    #jobPanel::-webkit-scrollbar { display: none; }
-
-    .job-card {
-      background: var(--card);
-      border: 1px solid var(--border-hi);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,166,35,0.05);
-      flex-shrink: 0;
-    }
-
-    .job-card-title {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0.6rem 0.875rem;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .job-card-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 600;
-      color: var(--accent);
-      display: flex; align-items: center; gap: 0.5rem;
-      letter-spacing: 0.03em;
-    }
-    .job-card-close {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: 14px; line-height: 1;
-      padding: 2px; border-radius: 3px;
-      transition: color 0.15s;
-    }
-    .job-card-close:hover { color: var(--text); }
-
-    .job-card-body { padding: 0.75rem 0.875rem; }
-
-    .job-status {
-      font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem;
-    }
-
-    .job-logs {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      padding: 0.5rem 0.625rem;
-      height: 100px; overflow-y: auto;
-      line-height: 1.6;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .img-confirm {
-      border-top: 1px solid var(--border);
-      padding: 0.75rem 0.875rem;
-      background: rgba(245,166,35,0.04);
-    }
-    .img-confirm-title {
-      font-size: 11px; font-weight: 600; color: var(--accent);
-      margin-bottom: 0.625rem; letter-spacing: 0.02em;
-    }
-    .img-thumbs-scroll {
-      display: flex; gap: 8px; margin-bottom: 0.75rem; overflow-x: auto;
-      padding-bottom: 8px; -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    .img-thumb-item { position: relative; flex-shrink: 0; }
-    .img-thumb-label { cursor: pointer; display: block; position: relative; }
-    .img-thumb-label img {
-      width: 85px; height: 60px; object-fit: cover;
-      border-radius: 6px; border: 2px solid var(--border);
-      transition: all 0.15s;
-    }
-    .img-thumb-label input[type="checkbox"] {
-      position: absolute; top: 4px; left: 4px; z-index: 2;
-      width: 16px; height: 16px; accent-color: var(--accent);
-    }
-    .img-thumb-label input[type="checkbox"]:checked + img {
-      border-color: var(--accent); box-shadow: 0 0 8px rgba(245,166,35,0.3);
-    }
-    .img-score {
-      position: absolute; bottom: 4px; right: 4px;
-      font-size: 8px; font-weight: 800; background: rgba(0,0,0,0.6);
-      color: #fff; padding: 1px 3px; border-radius: 3px;
-    }
-    .img-meta {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      margin-bottom: 0.625rem; line-height: 1.7;
-    }
-    .img-actions { display: flex; gap: 6px; }
-    .btn-vision {
-      flex: 1; background: var(--accent); color: #000;
-      border: none; border-radius: 5px; padding: 0.4rem;
-      font-size: 11.5px; font-weight: 700; cursor: pointer;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: background 0.15s;
-    }
-    .btn-vision:hover { background: #fbbf24; }
-    .btn-vision:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-skip {
-      background: transparent; border: 1px solid var(--border);
-      border-radius: 5px; padding: 0.4rem 0.75rem;
-      font-size: 11.5px; cursor: pointer; color: var(--muted);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.15s;
-    }
-    .btn-skip:hover { border-color: var(--muted-hi); color: var(--text); }
-
-    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    body.lang-en .fr { display: none !important; }
-    body.lang-fr .en { display: none !important; }
-
-    #alert-zone { margin-bottom: 1rem; }
-    .alert {
-      background: var(--red-dim); border: 1px solid var(--red);
-      border-radius: 6px; padding: 0.75rem 1rem;
-      font-size: 13px; color: var(--red);
-    }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; }
 
     .summary-bar {
-      display: flex; gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 1rem;
+      display: flex; gap: 1px; background: var(--border); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 1rem;
     }
-    .summary-item {
-      flex: 1; background: var(--surface);
-      padding: 0.875rem 1.25rem;
-      display: flex; flex-direction: column; gap: 0.25rem;
-    }
-    .summary-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 22px; font-weight: 600;
-    }
-    .summary-label {
-      font-size: 10px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.08em;
-    }
-    .sv-amber { color: var(--accent); }
-    .sv-green { color: var(--green); }
-    .sv-blue  { color: #60a5fa; }
+    .summary-item { flex: 1; background: var(--surface); padding: 0.875rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .summary-value { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; }
+    .summary-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-    .section-head {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 0.75rem;
+    .add-section {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;
     }
-    .section-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700; font-size: 13px;
-      text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--muted-hi);
-      display: flex; align-items: center; gap: 0.5rem;
+    .input-field {
+      flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 0 0.875rem; height: 34px; border-radius: 6px; font-size: 13px; outline: none;
     }
-    .section-title::before {
-      content: ''; display: block;
-      width: 8px; height: 8px;
-      background: var(--accent); border-radius: 2px;
-    }
-    .section-count {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; color: var(--muted);
-    }
+    .btn-add { background: var(--accent); color: #000; border: none; padding: 0 1.25rem; height: 34px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
-    .restaurant-row {
-      animation: rowIn 0.3s ease both;
-    }
-    @keyframes rowIn {
-      from { opacity: 0; transform: translateX(-8px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--muted-hi); display: flex; align-items: center; gap: 0.5rem; }
+    .section-title::before { content: ''; display: block; width: 8px; height: 8px; background: var(--accent); border-radius: 2px; }
 
-    .th.sortable {
-      cursor: pointer; user-select: none;
-      display: flex; align-items: center; gap: 0.3rem;
-      transition: color 0.15s;
-    }
-    .th.sortable:hover { color: var(--accent); }
-    .th.sortable.sort-asc  { color: var(--accent); }
-    .th.sortable.sort-desc { color: var(--accent); }
-    .sort-arrow {
-      font-size: 9px; opacity: 0.35; transition: opacity 0.15s;
-      font-family: monospace;
-    }
-    .th.sortable:hover .sort-arrow { opacity: 0.7; }
-    .th.sort-asc  .sort-arrow,
-    .th.sort-desc .sort-arrow { opacity: 1; color: var(--accent); }
+    .restaurant-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .restaurant-row { display: flex; align-items: center; padding: 0 1rem 0 1.25rem; height: 56px; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    .restaurant-row:hover { background: var(--card-hover); }
+    .row-name { flex: 2.5; display: flex; align-items: center; gap: 0.75rem; }
+    .favicon { width: 22px; height: 22px; border-radius: 4px; background: var(--border); }
+    .name-link { font-weight: 600; font-size: 13.5px; color: var(--text); text-decoration: none; }
+    .row-stats { flex: 2; display: flex; }
+    .stat-cell { width: 90px; display: flex; align-items: center; }
+    .stat-num { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+    .stat-num.amber { color: var(--accent); }
+    .stat-num.green { color: var(--green); }
+    .row-date { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .row-actions { width: 180px; display: flex; align-items: center; gap: 0.375rem; justify-content: flex-end; }
+    .btn-row { background: transparent; border: 1px solid var(--border); color: var(--muted-hi); padding: 0 0.6rem; height: 26px; border-radius: 4px; font-size: 11.5px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+    .btn-row:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── MOBILE RESPONSIVENESS ── */
-    @media (max-width: 768px) {
-      .navbar { padding: 0 0.5rem; gap: 0.35rem; height: 50px; justify-content: space-between; overflow: hidden; }
-      .nav-label, .nav-divider, .nav-spacer { display: none; }
-      .logo { gap: 0.4rem; min-width: 0; flex-shrink: 1; }
-      .logo-text { font-size: 11px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .logo-icon { width: 22px; height: 22px; font-size: 12px; flex-shrink: 0; }
-      .nav-btn { padding: 0 0.35rem; font-size: 9.5px; height: 26px; border-radius: 4px; flex-shrink: 0; }
-
-      .layout { padding: 0.75rem 0.5rem; width: 100%; overflow-x: hidden; }
-      .summary-bar { margin-bottom: 0.75rem; border-radius: 8px; }
-      .summary-item { padding: 0.5rem; }
-      .summary-value { font-size: 15px; }
-
-      .add-section { padding: 0.875rem; margin-bottom: 1.25rem; flex-direction: column; align-items: stretch; gap: 0.75rem; width: 100%; }
-      .add-label { font-size: 10px; width: 100%; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-      .input-field { width: 100% !important; max-width: none !important; height: 38px; }
-      .btn-add { width: 100%; height: 38px; font-size: 14px; }
-
-      .section-head { margin-bottom: 0.5rem; padding: 0 0.25rem; }
-      .section-title { font-size: 11px; }
-
-      .table-header { display: none; }
-      .restaurant-list { background: transparent; border: none; overflow: visible; display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
-      .restaurant-row {
-        background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-        flex-direction: column; height: auto; padding: 0.875rem; gap: 0.75rem; align-items: stretch;
-        width: 100%;
-      }
-      .col-name, .col-stats, .col-date, .col-act { width: 100%; flex: none; display: flex; justify-content: space-between; align-items: center; }
-      .row-name { border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; margin-bottom: 0.15rem; }
-      .name-link { font-size: 13px; }
-      .row-stats { background: var(--bg); padding: 0.5rem; border-radius: 6px; gap: 0.5rem; }
-      .stat-cell { width: auto; flex: 1; justify-content: center; flex-direction: column; gap: 1px; }
-      .stat-num { font-size: 14px; }
-      .stat-cell::after { content: attr(data-label); font-size: 8px; color: var(--muted); text-transform: uppercase; }
-      .row-date { font-size: 10px; justify-content: flex-end; opacity: 0.8; }
-      .row-date::before { content: 'Dernier scan :'; margin-right: auto; color: var(--muted); font-size: 9px; }
-      .row-actions { padding-top: 0.25rem; gap: 0.4rem; }
-      .btn-row { flex: 1; justify-content: center; height: 36px; font-size: 12px; }
-
-      #jobPanel { width: calc(100% - 1.25rem); right: 0.625rem; bottom: 0.625rem; left: 0.625rem; }
-    }
-
-    /* ── SELECTION OF THE DAY STYLES ── */
-    .selection-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.25rem; margin-top: 1rem;
-    }
-    .selection-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s;
-      position: relative; animation: cardIn 0.4s ease both;
-    }
-    .selection-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    
-    .card-img-wrap {
-      height: 150px; background: var(--surface); border-bottom: 1px solid var(--border);
-      position: relative; overflow: hidden;
-    }
-    .card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-    .selection-card:hover .card-img { transform: scale(1.04); }
-    
-    .card-img-placeholder {
-      height: 100%; display: flex; align-items: center; justify-content: center;
-      font-size: 2.5rem; background: linear-gradient(135deg, #1e1e32 0%, #0e0e18 100%);
-      position: relative; overflow: hidden;
-    }
-    .card-img-placeholder::after {
-      content: "🍗"; opacity: 0.15; transform: scale(1.5);
-    }
-
-    .grade-badge {
-      position: absolute; top: 10px; right: 10px;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
-      padding: 0.25rem 0.5rem; border-radius: 5px; backdrop-filter: blur(8px);
-    }
-    .g-Ap { background: rgba(16,185,129,0.85); color: #fff; }
-    .g-A  { background: rgba(52,211,153,0.85); color: #000; }
-
-    .source-tag {
-      position: absolute; top: 10px; left: 10px;
-      display: flex; align-items: center; gap: 0.4rem;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
-      padding: 0.25rem 0.5rem; border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .source-icon { width: 16px; height: 16px; border-radius: 3px; }
-    .source-name { font-size: 10px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
-
+    /* ── SELECTION CARDS (RESTORED STYLE) ── */
+    .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+    .selection-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s; }
+    .selection-card:hover { border-color: var(--border-hi); transform: translateY(-3px); }
+    .card-img-wrap { height: 150px; background: var(--surface); border-bottom: 1px solid var(--border); position: relative; }
+    .card-img { width: 100%; height: 100%; object-fit: cover; }
+    .card-img-placeholder { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: 0.1; background: var(--surface); }
+    .grade-badge { position: absolute; top: 10px; right: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; background: rgba(0,0,0,0.7); color: var(--accent); }
+    .source-tag { position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 0.4rem; background: rgba(0,0,0,0.7); padding: 0.25rem 0.5rem; border-radius: 4px; }
+    .source-icon { width: 14px; height: 14px; border-radius: 2px; }
+    .source-name { font-size: 9px; font-weight: 700; color: #fff; text-transform: uppercase; }
     .card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-    .card-price-row { display: flex; align-items: baseline; gap: 0.6rem; }
     .card-price { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent); }
-    .card-type { font-size: 9px; font-weight: 700; color: var(--muted-hi); text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--border); padding: 1px 4px; border-radius: 3px; }
-    .card-details { font-size: 12.5px; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    
-    .card-footer { margin-top: auto; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .card-link { font-size: 11px; font-weight: 600; color: var(--muted-hi); text-decoration: none; transition: color 0.15s; }
+    .card-details { font-size: 12.5px; color: var(--text); line-height: 1.4; }
+    .card-footer { margin-top: auto; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+    .card-link { font-size: 11px; font-weight: 600; color: var(--muted-hi); text-decoration: none; }
     .card-link:hover { color: var(--accent); }
 
+    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 400px; z-index: 9999; display: flex; flex-direction: column-reverse; gap: 0.75rem; max-height: 80vh; overflow-y: auto; }
+    .job-card { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .job-card-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; justify-content: space-between; }
+    .job-logs { background: var(--bg); border: 1px solid var(--border); padding: 0.5rem; height: 80px; font-family: 'JetBrains Mono', monospace; font-size: 10px; overflow-y: auto; }
+    .img-thumbs-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0.5rem 0; }
+    .img-thumb-label img { width: 80px; height: 50px; object-fit: cover; border-radius: 4px; border: 2px solid var(--border); }
+    .img-thumb-label input:checked + img { border-color: var(--accent); }
+
     @media (max-width: 768px) {
-      .selection-grid { grid-template-columns: 1fr; }
-      .card-img-wrap { height: 180px; }
+      .navbar { padding: 0 0.75rem; }
+      .nav-label, .nav-divider { display: none; }
+      .layout { padding: 1rem; }
+      .summary-bar { flex-wrap: wrap; }
+      .add-section { flex-direction: column; align-items: stretch; }
+      .table-header { display: none; }
+      .restaurant-row { flex-direction: column; height: auto; padding: 1rem; align-items: stretch; gap: 0.5rem; }
+      .col-stats { justify-content: space-between; }
+      #jobPanel { width: calc(100% - 2rem); right: 1rem; bottom: 1rem; }
     }
   </style>
 </head>
@@ -583,168 +165,84 @@
     <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
   </a>
   <div class="nav-divider"></div>
-  <span class="nav-label">
-    <span class="fr">Tableau de bord</span>
-    <span class="en">Dashboard</span>
-  </span>
+  <span class="nav-label"><span class="fr">Tableau de bord</span><span class="en">Dashboard</span></span>
   <div class="nav-spacer"></div>
-  <button class="nav-btn" onclick="toggleTheme()" title="Toggle theme">◑</button>
-  <button class="nav-btn" onclick="toggleLang()">
-    <span class="fr">FR</span><span class="en">EN</span>
-  </button>
-  <a href="/about" class="nav-btn">
-    <span class="fr">Docs</span><span class="en">Docs</span>
-  </a>
-  <button class="nav-btn" onclick="crawlAll()">
-    <span class="fr">Tout scanner</span><span class="en">Scan all</span>
-  </button>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <button class="nav-btn" onclick="crawlAll()"><span class="fr">Tout scanner</span><span class="en">Scan all</span></button>
 </nav>
 
 <div class="layout">
-  <div id="alert-zone"></div>
-
   <div class="summary-bar">
     <div class="summary-item">
-      <span class="summary-value sv-amber">{{ restaurants|length }}</span>
-      <span class="summary-label"><span class="fr">Sources</span><span class="en">Sources</span></span>
+      <span class="summary-value" style="color:var(--accent)">{{ restaurants|length }}</span>
+      <span class="summary-label">Sources</span>
     </div>
     <div class="summary-item">
-      <span class="summary-value sv-green">{{ restaurants|sum(attribute='active_promos') or 0 }}</span>
-      <span class="summary-label"><span class="fr">Promos actives</span><span class="en">Active promos</span></span>
+      <span class="summary-value" style="color:var(--green)">{{ restaurants|sum(attribute='active_promos') or 0 }}</span>
+      <span class="summary-label">Actives</span>
     </div>
     <div class="summary-item">
-      <span class="summary-value sv-blue">{{ restaurants|sum(attribute='top_promos') or 0 }}</span>
-      <span class="summary-label"><span class="fr">Grade A+/A</span><span class="en">Grade A+/A</span></span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-value" style="color:var(--muted-hi)">{{ scrape_interval_hours }}h</span>
-      <span class="summary-label"><span class="fr">Intervalle auto</span><span class="en">Auto interval</span></span>
+      <span class="summary-value" style="color:var(--blue)">{{ restaurants|sum(attribute='top_promos') or 0 }}</span>
+      <span class="summary-label">Top A+/A</span>
     </div>
   </div>
 
   <form action="/add_restaurant" method="POST" class="add-section">
-    <span class="add-label">+ <span class="fr">Ajouter</span><span class="en">Add</span></span>
-    <input type="text" name="name" class="input-field" placeholder="Nom (ex: KFC)" style="max-width:200px" required>
-    <input type="url" name="url" class="input-field" placeholder="URL (https://...)" required>
-    <button type="submit" class="btn-add">
-      <span class="fr">Ajouter source</span><span class="en">Add source</span>
-    </button>
+    <input type="text" name="name" class="input-field" placeholder="Nom du restaurant" required>
+    <input type="url" name="url" class="input-field" placeholder="URL des promotions" required>
+    <button type="submit" class="btn-add">Ajouter</button>
   </form>
 
   <div class="section-head">
-    <span class="section-title">
-      <span class="fr">Sources surveillées</span>
-      <span class="en">Monitored sources</span>
-    </span>
-    <span class="section-count">{{ restaurants|length }} <span class="fr">entrées</span><span class="en">entries</span></span>
-  </div>
-
-  <div class="table-header" id="tableHeader">
-    <div class="th col-name sortable" data-col="name" onclick="sortTable('name')">
-      <span class="fr">Source</span><span class="en">Source</span>
-      <span class="sort-arrow" id="arr-name">↕</span>
-    </div>
-    <div class="th col-stats">
-      <div class="col-stat sortable" data-col="active" onclick="sortTable('active')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
-        <span class="fr">Actives</span><span class="en">Active</span>
-        <span class="sort-arrow" id="arr-active">↕</span>
-      </div>
-      <div class="col-stat sortable" data-col="top" onclick="sortTable('top')" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
-        Top A+/A
-        <span class="sort-arrow" id="arr-top">↕</span>
-      </div>
-    </div>
-    <div class="th col-date sortable" data-col="date" onclick="sortTable('date')">
-      <span class="fr">Dernier scan</span><span class="en">Last scan</span>
-      <span class="sort-arrow" id="arr-date">↕</span>
-    </div>
-    <div class="th col-act"><span class="fr">Actions</span><span class="en">Actions</span></div>
+    <span class="section-title">Sources surveillées</span>
   </div>
 
   <div class="restaurant-list">
-    {% if restaurants %}
-      {% for r in restaurants %}
-      <div class="restaurant-row"
-           data-name="{{ r.name|lower }}"
-           data-active="{{ r.active_promos or 0 }}"
-           data-top="{{ r.top_promos or 0 }}"
-           data-date="{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '0000-00-00' }}"
-           style="animation-delay: {{ loop.index0 * 0.04 }}s">
-        <div class="row-accent-bar"></div>
-        <div class="row-name col-name">
-          <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="favicon" alt="">
-          <a href="/restaurant/{{ r.id }}" class="name-link">{{ r.name }}</a>
-        </div>
-        <div class="row-stats col-stats">
-          <div class="stat-cell col-stat" data-label="Actives">
-            <span class="stat-num {{ 'amber' if r.active_promos else 'muted' }}">{{ r.active_promos or 0 }}</span>
-          </div>
-          <div class="stat-cell col-stat" data-label="Top A+/A">
-            <span class="stat-num {{ 'green' if r.top_promos else 'muted' }}">{{ r.top_promos or 0 }}</span>
-          </div>
-        </div>
-        <div class="row-date col-date">
-          {{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '—' }}
-        </div>
-        <div class="row-actions col-act">
-          <a href="/restaurant/{{ r.id }}" class="btn-row">
-            <span class="fr">Voir</span><span class="en">View</span>
-          </a>
-          <button class="btn-row btn-scan" data-rid="{{ r.id }}" data-rname="{{ r.name }}" onclick="crawlOne(this)">
-            Scan
-          </button>
-          <form action="/delete_restaurant/{{ r.id }}" method="POST" style="display:inline" onsubmit="return confirm('Supprimer {{ r.name }} ?')">
-            <button type="submit" class="btn-row btn-del">✕</button>
-          </form>
-        </div>
+    {% for r in restaurants %}
+    <div class="restaurant-row">
+      <div class="row-name">
+        <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="favicon" alt="">
+        <a href="/restaurant/{{ r.id }}" class="name-link">{{ r.name }}</a>
       </div>
-      {% endfor %}
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">[ — ]</div>
-        <p><span class="fr">Aucune source configurée.</span><span class="en">No sources configured.</span></p>
+      <div class="row-stats">
+        <div class="stat-cell"><span class="stat-num amber">{{ r.active_promos or 0 }}</span></div>
+        <div class="stat-cell"><span class="stat-num green">{{ r.top_promos or 0 }}</span></div>
       </div>
-    {% endif %}
+      <div class="row-date">{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '—' }}</div>
+      <div class="row-actions">
+        <a href="/restaurant/{{ r.id }}" class="btn-row">Voir</a>
+        <button class="btn-row" onclick="crawlOne({{ r.id }}, '{{ r.name }}')">Scan</button>
+      </div>
+    </div>
+    {% endfor %}
   </div>
 
   {% if selection %}
   <div class="section-head" style="margin-top: 3rem;">
-    <span class="section-title">
-      <span class="fr">Sélection du jour</span>
-      <span class="en">Selection of the day</span>
-    </span>
-    <span class="section-count">{{ selection|length }} <span class="fr">pépites</span><span class="en">gems</span></span>
+    <span class="section-title">Sélection du jour</span>
   </div>
   <div class="selection-grid">
     {% for p in selection %}
-    <div class="selection-card" style="animation-delay: {{ 0.2 + loop.index0 * 0.05 }}s">
+    <div class="selection-card">
       <div class="card-img-wrap">
         {% if p.image_url and p.image_url != 'Not Provided' %}
         <img src="{{ p.image_url }}" class="card-img" alt="" loading="lazy">
         {% else %}
-        <div class="card-img-placeholder"></div>
+        <div class="card-img-placeholder">🍗</div>
         {% endif %}
         <div class="source-tag">
           <img src="https://www.google.com/s2/favicons?domain={{ p.restaurant_url }}&sz=32" class="source-icon" alt="">
           <span class="source-name">{{ p.restaurant }}</span>
         </div>
-        <span class="grade-badge {{ 'g-Ap' if p.grade == 'A+' else 'g-A' }}">{{ p.grade }}</span>
+        <span class="grade-badge">{{ p.grade }}</span>
       </div>
       <div class="card-body">
-        <div class="card-price-row">
-          {% if p.price and p.price != 'Not Provided' %}
-          <span class="card-price">${{ p.price }}</span>
-          {% else %}
-          <span class="card-price" style="font-size:12px; opacity:0.5;">—</span>
-          {% endif %}
-          <span class="card-type">{{ p.promo_type or 'Combo' }}</span>
-        </div>
+        <span class="card-price">{{ '$' ~ p.price if p.price and p.price != 'Not Provided' else '—' }}</span>
         <div class="card-details">{{ p.promo_details }}</div>
         <div class="card-footer">
-          <span class="card-type" style="border:none; background:var(--bg); color:var(--muted);">{{ p.category or 'Autre' }}</span>
-          <a href="{{ p.link }}" target="_blank" class="card-link">
-            <span class="fr">Voir l'offre ↗</span><span class="en">View deal ↗</span>
-          </a>
+          <span style="font-size:10px; color:var(--muted)">{{ p.promo_type }}</span>
+          <a href="{{ p.link }}" target="_blank" rel="noopener noreferrer" class="card-link">Voir l'offre ↗</a>
         </div>
       </div>
     </div>
@@ -758,8 +256,7 @@
 <script>
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', t || 'dark');
   localStorage.setItem('pref-theme', t || 'dark');
 }
 if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -767,10 +264,6 @@ if (localStorage.getItem('pref-theme') === 'light') document.documentElement.set
 function toggleLang() {
   const isEn = document.body.classList.toggle('lang-en');
   document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') {
-  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
 }
 
 function _jobCard(jid, name) {
@@ -778,11 +271,11 @@ function _jobCard(jid, name) {
   card.className = 'job-card'; card.id = 'job-' + jid;
   card.innerHTML = `
     <div class="job-card-title">
-      <span class="job-card-name"><span class="spin">⟳</span> ${name}</span>
-      <button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button>
+      <span style="font-size:11px; font-weight:600; color:var(--accent)">⟳ ${name}</span>
+      <button onclick="this.closest('.job-card').remove()" style="background:none; border:none; color:var(--muted); cursor:pointer">✕</button>
     </div>
-    <div class="job-card-body">
-      <div class="job-status" id="jd-${jid}"><span class="fr">Initialisation…</span><span class="en">Initializing…</span></div>
+    <div class="job-card-body" style="padding:0.75rem">
+      <div id="jd-${jid}" style="font-size:12px; margin-bottom:0.5rem">Initialisation...</div>
       <div class="job-logs" id="jl-${jid}"></div>
     </div>`;
   document.getElementById('jobPanel').prepend(card);
@@ -794,90 +287,60 @@ async function _updateLogs(jid) {
     const r = await fetch('/api/job/' + jid + '/logs');
     const d = await r.json();
     const el = document.getElementById('jl-' + jid);
-    if (el && d.logs && d.logs.length) {
-      el.textContent = d.logs.slice(-15).join('\n');
-      el.scrollTop = el.scrollHeight;
-    }
+    if (el && d.logs) { el.textContent = d.logs.slice(-10).join('\n'); el.scrollTop = el.scrollHeight; }
   } catch(e) {}
 }
 
 function _showImageConfirm(jid, rid, images, card) {
-  if (!images || images.length === 0) return;
   const toAnalyze = images.slice(0, 35);
-  const inputTok  = toAnalyze.length * (85 + 350);
-  const outputTok = toAnalyze.length * 400;
-  const costUSD   = ((inputTok / 1e6) * 2.5 + (outputTok / 1e6) * 10).toFixed(4);
-  
-  const thumbs = toAnalyze.map((img, i) => `
-    <div class="img-thumb-item">
+  const thumbs = toAnalyze.map(img => `
+    <div style="flex-shrink:0; position:relative">
       <label class="img-thumb-label">
-        <input type="checkbox" checked data-url="${img.url}" data-score="${img.score}" data-ctx="${(img.context||'').replace(/"/g, '&quot;')}">
-        <img src="${img.url}" onerror="this.parentElement.parentElement.style.display='none'" alt="">
-        <span class="img-score">${img.score}</span>
+        <input type="checkbox" checked data-url="${img.url}" data-score="${img.score}" data-ctx="${(img.context||'').replace(/"/g, '&quot;')}" style="position:absolute; top:2px; left:2px">
+        <img src="${img.url}" alt="">
       </label>
-    </div>
-  `).join('');
+    </div>`).join('');
 
   const div = document.createElement('div');
-  div.className = 'img-confirm'; div.id = 'imgconfirm-' + jid;
+  div.id = 'imgconfirm-' + jid;
+  div.style.borderTop = '1px solid var(--border)';
+  div.style.padding = '0.75rem';
   div.innerHTML = `
-    <div class="img-confirm-title">
-      🖼 ${images.length}
-      <span class="fr"> bannières détectées (max 35)</span>
-      <span class="en"> banners detected (max 35)</span>
-    </div>
+    <div style="font-size:11px; font-weight:600; margin-bottom:0.5rem">🖼 ${images.length} bannières détectées</div>
     <div class="img-thumbs-scroll">${thumbs}</div>
-    <div class="img-meta">
-      <span class="fr">Analyser la sélection avec GPT-4o Vision ?</span>
-      <span class="en">Analyze selection with GPT-4o Vision?</span><br>
-      <span style="opacity:0.7">~${inputTok + outputTok} tokens · ~$${costUSD} (est.)</span>
-    </div>
-    <div class="img-actions">
-      <button class="btn-vision" onclick="_runImageAnalysis('${jid}', ${rid}, this)">
-        <span class="fr">Analyser la sélection</span><span class="en">Analyze selection</span>
-      </button>
-      <button class="btn-skip" onclick="_skipImages('${jid}')">
-        <span class="fr">Ignorer</span><span class="en">Skip</span>
-      </button>
+    <div style="display:flex; gap:5px; margin-top:0.5rem">
+      <button class="btn-row" style="flex:1; background:var(--accent); color:#000" onclick="_runImageAnalysis('${jid}', ${rid}, this)">Analyser</button>
+      <button class="btn-row" onclick="_skipImages('${jid}')">Ignorer</button>
     </div>`;
   card.querySelector('.job-card-body').appendChild(div);
 }
 
 function _skipImages(jid) {
-  const div = document.getElementById('imgconfirm-' + jid);
-  if (div) div.remove();
-  if (!document.querySelectorAll('.img-confirm').length) {
-     setTimeout(() => location.reload(), 1000);
-  }
+  document.getElementById('imgconfirm-' + jid).remove();
+  if (!document.querySelectorAll('[id^="imgconfirm-"]').length) location.reload();
 }
 
 async function _runImageAnalysis(jid, rid, btn) {
   const div = document.getElementById('imgconfirm-' + jid);
-  if (!div) return;
   const selected = [];
-  div.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-    selected.push({
-      url: cb.dataset.url,
-      score: parseInt(cb.dataset.score),
-      context: cb.dataset.ctx
-    });
+  div.querySelectorAll('input:checked').forEach(cb => {
+    selected.push({ url: cb.dataset.url, score: parseInt(cb.dataset.score), context: cb.dataset.ctx });
   });
-  if (selected.length === 0) { alert("Selection vide"); return; }
-
-  btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span>';
+  if (!selected.length) return;
+  btn.disabled = true;
   try {
     const r = await fetch('/api/analyze_images', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({restaurant_id: rid, images: selected}),
     });
     const d = await r.json();
-    if (d.error) throw new Error(d.error);
     div.remove();
-    _launchJob(d.job_id, '🖼 ' + d.name, null);
-  } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
+    _jobCard(d.job_id, '🖼 ' + d.name);
+    _pollJob(d.job_id, document.getElementById('job-' + d.job_id));
+  } catch(e) { btn.disabled = false; }
 }
 
-function _pollJob(jid, card, rid) {
+function _pollJob(jid, card) {
   const detail = document.getElementById('jd-' + jid);
   const ivl = setInterval(async () => {
     try {
@@ -886,77 +349,24 @@ function _pollJob(jid, card, rid) {
       const d = await r.json();
       if (d.status === 'done') {
         clearInterval(ivl);
-        const res = d.result || {};
-        const spinEl = card.querySelector('.spin');
-        if (spinEl) { spinEl.textContent = '✓'; spinEl.style.animation = 'none'; spinEl.style.color = '#10b981'; }
-        const imgs = res.candidate_images || [];
-        const effectiveRid = rid || res.restaurant_id || null;
-        if (imgs.length > 0 && effectiveRid) {
-          detail.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles</span><span class="en">new</span> · ${imgs.length} <span class="fr">bannières</span><span class="en">banners</span>`;
-          _showImageConfirm(jid, effectiveRid, imgs, card);
-        } else if (res.images_analyzed !== undefined) {
-          detail.innerHTML = `+${res.inserted||0} · ${res.images_analyzed} <span class="fr">img analysées</span><span class="en">img analyzed</span>`;
-          if (!document.querySelectorAll('.img-confirm').length) setTimeout(() => location.reload(), 3000);
-        } else {
-          detail.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles</span><span class="en">new</span>`;
-          if (!document.querySelectorAll('.img-confirm').length) setTimeout(() => location.reload(), 3000);
-        }
-      } else if (d.status === 'error') {
-        clearInterval(ivl);
-        detail.innerHTML = `<span style="color:var(--red)">${d.error||'Erreur'}</span>`;
-        const spinEl = card.querySelector('.spin');
-        if (spinEl) { spinEl.textContent = '✗'; spinEl.style.animation = 'none'; spinEl.style.color = 'var(--red)'; }
+        const imgs = d.result.candidate_images || [];
+        if (imgs.length > 0) _showImageConfirm(jid, d.result.restaurant_id, imgs, card);
+        else if (!document.querySelectorAll('[id^="imgconfirm-"]').length) setTimeout(() => location.reload(), 2000);
       }
     } catch(e) {}
   }, 2000);
 }
 
-function _launchJob(jid, name, rid) {
-  const card = _jobCard(jid, name);
-  _pollJob(jid, card, rid || null);
-}
-
-async function crawlOne(btn) {
-  try {
-    const r = await fetch('/crawl/' + btn.dataset.rid, {method: 'POST'});
-    const d = await r.json();
-    _launchJob(d.job_id, d.name, d.restaurant_id);
-  } catch(e) {}
+async function crawlOne(rid, name) {
+  const r = await fetch('/crawl/' + rid, {method: 'POST'});
+  const d = await r.json();
+  _pollJob(d.job_id, _jobCard(d.job_id, name));
 }
 
 async function crawlAll() {
-  try {
-    const r = await fetch('/crawl_all', {method: 'POST'});
-    const d = await r.json();
-    for (const job of (d.jobs || [])) _launchJob(job.job_id, job.name, job.restaurant_id);
-  } catch(e) {}
-}
-
-async function classifyAll() {
-  try { await fetch('/classify_all', {method:'POST'}); location.reload(); } catch(e) {}
-}
-
-let _sortCol = null, _sortDir = 1;
-function sortTable(col) {
-  const list = document.querySelector('.restaurant-list');
-  const rows = Array.from(list.querySelectorAll('.restaurant-row'));
-  if (!rows.length) return;
-  if (_sortCol === col) _sortDir *= -1;
-  else { _sortCol = col; _sortDir = 1; }
-  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '↕');
-  const arrow = document.getElementById('arr-' + col);
-  if (arrow) arrow.textContent = _sortDir === 1 ? '↑' : '↓';
-  document.querySelectorAll('.th.sortable').forEach(el => el.classList.remove('sort-asc', 'sort-desc'));
-  const headerEl = document.querySelector(`.th[data-col="${col}"]`);
-  if (headerEl) headerEl.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
-  rows.sort((a, b) => {
-    let va = a.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
-    let vb = b.dataset[col === 'active' ? 'active' : col === 'top' ? 'top' : col] || '';
-    if (col === 'active' || col === 'top') return _sortDir * (parseInt(vb) - parseInt(va));
-    if (col === 'date') return _sortDir * vb.localeCompare(va);
-    return _sortDir * va.localeCompare(vb);
-  });
-  rows.forEach(r => { r.style.animation = 'none'; list.appendChild(r); });
+  const r = await fetch('/crawl_all', {method: 'POST'});
+  const d = await r.json();
+  d.jobs.forEach(j => _pollJob(job.job_id, _jobCard(j.job_id, j.name)));
 }
 </script>
 </body>
