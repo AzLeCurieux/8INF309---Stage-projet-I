@@ -575,14 +575,16 @@ For each item return a JSON object with:
   - "price"         : price like "12.99" or "Not Provided"
   - "promo_date"    : validity or "Not Provided"
   - "link"          : direct URL or "{page_url}"
-  - "image_url"     : Select the BEST [IMG_N:url] for this promo. 
-                      Look for an image whose ALT text matches the promo or which is 
-                      placed immediately above/below the promo text.
-                      Return only the URL. "Not Provided" if none.
+  - "image_url"     : Select the ABSOLUTE BEST [IMG_N:url] for this promo. 
+                      CRITICAL: 
+                      1. Check the ALT text of [IMG_N] for keywords matching the promo name.
+                      2. If no match, check the [IMG_N] immediately PRECEDING the promo text block.
+                      3. If the page is a grid, the image is usually RIGHT ABOVE the price/title.
+                      4. Return only the URL. "Not Provided" if none.
 
 Rules:
 - Include ALL items even if they look like regular menu items on this page.
-- For image_url: Be precise. If the ALT text of an [IMG_N] contains part of the promo name, use it.
+- For image_url: Be extremely precise. Prefer high-index images for items at the bottom of the page.
 - Return ONLY a valid JSON array.
 
 Page content:
