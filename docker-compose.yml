@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
 
-  # ── Flask app ───────────────────────────────────────────────────────────────
   app:
     build: .
     env_file:
@@ -19,7 +18,6 @@ services:
     restart: unless-stopped
     shm_size: '256mb'
 
-  # ── LE BUNKER (Proxy Auth avec Nginx Officiel) ──────────────────────────────
   gatekeeper:
     image: nginx:alpine
     ports:
@@ -32,7 +30,6 @@ services:
     depends_on:
       - app
 
-  # ── MySQL database ───────────────────────────────────────────────────────────
   db:
     image: mysql:8.0
     environment:

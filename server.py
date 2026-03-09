@@ -1,6 +1,5 @@
 """
 Promo Dashboard – Flask backend
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Scraper  : Scrapling (AsyncFetcher → DynamicFetcher/Playwright fallback)
 Discovery: keyword-scored link following – finds promo sub-pages automatically
 LLM      : GPT-4o-mini (primary, cheap) → GPT-4o (retry 3, higher quality)
@@ -34,11 +33,9 @@ except Exception:
     SentenceTransformer = None
     cosine_similarity = None
 
-# ── Load .env ─────────────────────────────────────────────────────────────────
 _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 load_dotenv(_env_path, override=True)
 
-# ── Configuration ─────────────────────────────────────────────────────────────
 DATABASE_HOST     = os.environ.get("DB_HOST", "127.0.0.1")
 DATABASE_PORT     = int(os.environ.get("DB_PORT", "3306"))
 DATABASE_USER     = os.environ.get("DB_USER", "root")
@@ -61,14 +58,12 @@ MAX_DISCOVERY_PAGES   = 3   # extra pages to follow per restaurant (reduced for 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(message)s")
 
-# ── Playwright concurrency lock (max 1 Chromium at a time) ────────────────────
 # Prevents multiple simultaneous browser instances that would crash the machine.
 _playwright_lock = threading.Lock()
 
 # Contexte local pour capturer les logs par thread/job
 _thread_context = threading.local()
 
-# ── In-memory job store ───────────────────────────────────────────────────────
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 
@@ -102,7 +97,6 @@ def _set_job(jid: str, status: str, result=None, error=None, pages=None):
                 _jobs[jid]["pages_crawled"] = pages
 
 
-# ── DB helper ─────────────────────────────────────────────────────────────────
 def get_db():
     return mysql.connector.connect(
         host=DATABASE_HOST, port=DATABASE_PORT,
@@ -111,7 +105,6 @@ def get_db():
     )
 
 
-# ── Embedding model ───────────────────────────────────────────────────────────
 if os.environ.get("SKIP_EMBEDDING_INIT") == "1" or SentenceTransformer is None:
     embedding_model = None
     logging.info("Embedding model skipped (SKIP_EMBEDDING_INIT=1)")
@@ -133,7 +126,6 @@ def get_embedding(text: str):
         return None
 
 
-# ── Classification ─────────────────────────────────────────────────────────────
 GRADE_BASELINE = 20.0
 CATEGORY_KEYWORDS = [
     ("Duo",            ["duo", "couple", "2 person", "2 personnes", "pour deux"]),
@@ -175,8 +167,6 @@ def classify_promotion(price_str, promo_type="", promo_details=""):
     return grade, round(savings, 2), category
 
 
-# ── HTML → text ───────────────────────────────────────────────────────────────
-# ── Candidate promo-image detector ────────────────────────────────────────────
 _IMG_URL_PROMO_KW = [
     "banner", "promo", "promotion", "offre", "deal", "special", "feature",
     "vedette", "hero", "slide", "carousel", "offer", "highlight", "featured",
@@ -291,7 +281,6 @@ def _html_to_text(html: str, base_url: str = "") -> str:
     return "\n".join(l for l in lines if l)
 
 
-# ── Smart link discovery ───────────────────────────────────────────────────────
 # Keywords that suggest a link leads to promotions / offers
 _PROMO_LINK_KW = [
     # French – promos / offres
@@ -382,7 +371,6 @@ def _discover_promo_links(html: str, base_url: str) -> list[str]:
     return result
 
 
-# ── Cloudflare / antibot detection ───────────────────────────────────────────
 def _is_cloudflare_block(html: str) -> bool:
     lh = html.lower()
     return (
@@ -513,7 +501,6 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
     return text, html
 
 
-# ── Smart multi-page crawl ────────────────────────────────────────────────────
 async def _smart_crawl(url: str) -> tuple[str, list[str]]:
     """
     1. Fetch the given URL
@@ -558,7 +545,6 @@ async def _smart_crawl(url: str) -> tuple[str, list[str]]:
     return "\n".join(all_parts), crawled
 
 
-# ── LLM extraction (GPT-4o-mini primary → GPT-4o fallback) ───────────────────
 def _extract_promos_sync(text: str, restaurant_name: str, page_url: str) -> list[dict]:
     """
     Send combined page text to GPT-4o-mini (attempts 1–2) then GPT-4o (attempt 3).
@@ -627,7 +613,6 @@ Page content:
     return []
 
 
-# ── Vision-based image extraction (GPT-4o low-detail = ~85 tokens/image) ──────
 _MAX_IMAGES_PER_BATCH = 5   # hard cap to keep costs low
 
 def _analyze_images_with_vision(images: list[dict], restaurant_name: str, page_url: str) -> list[dict]:
@@ -701,7 +686,6 @@ def _analyze_images_with_vision(images: list[dict], restaurant_name: str, page_u
     return all_promos
 
 
-# ── Sync wrapper: Phase 1 async fetch → Phase 2 sync LLM ─────────────────────
 def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[dict], list[str]]:
     """
     Two-phase pipeline (safe for background threads):
@@ -737,11 +721,9 @@ def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[
     return promos, crawled, candidate_images
 
 
-# ── DB: dedup + save ──────────────────────────────────────────────────────────
 # ... (rest of methods)
 
 
-# ── DB: dedup + save ──────────────────────────────────────────────────────────
 def _price_sim(p1, p2) -> float:
     if p1 is None or p2 is None:
         return 0.5
@@ -852,7 +834,6 @@ def mark_inactive_promos(restaurant_name: str) -> int:
         logging.error(f"mark_inactive_promos error: {err}"); return 0
 
 
-# ── Promotion Cleaner ─────────────────────────────────────────────────────────
 # Seuils de similarité pour la déduplication fuzzy
 _DEDUP_TEXT_THRESHOLD  = 0.82   # textes similaires → duplicate
 _DEDUP_PRICE_THRESHOLD = 0.68   # seuil plus bas si le prix est aussi identique
@@ -967,7 +948,6 @@ def clean_promos_sync(restaurant_name: str) -> dict:
 
         logging.info(f"[Clean] {restaurant_name}: {len(promos)} promos actives à analyser")
 
-        # ── Phase 1 : non-promos ──────────────────────────────────────────────
         non_promo_ids = [
             p["id"] for p in promos
             if _is_not_promo(p.get("promo_details"), p.get("price"))
@@ -981,7 +961,6 @@ def clean_promos_sync(restaurant_name: str) -> dict:
             db.commit()
             logging.info(f"[Clean] {restaurant_name}: {len(non_promo_ids)} non-promos supprimées")
 
-        # ── Phase 2 : déduplication fuzzy ─────────────────────────────────────
         remaining = [p for p in promos if p["id"] not in set(non_promo_ids)]
         dup_ids   = _find_duplicate_ids(remaining)
         if dup_ids:
@@ -1018,7 +997,6 @@ def _background_clean(jid: str, restaurant_name: str):
         _set_job(jid, "error", error=str(exc))
 
 
-# ── Background scrape thread ──────────────────────────────────────────────────
 AUTO_CLEAN_AFTER_SCRAPE = os.environ.get("AUTO_CLEAN_AFTER_SCRAPE", "1") == "1"
 
 def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dict:
@@ -1051,11 +1029,9 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
         _set_job(jid, "error", error=str(exc))
 
 
-# ── Flask app ─────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 
 
-# ── Scheduler ─────────────────────────────────────────────────────────────────
 def _auto_scrape_job():
     logging.info("[Scheduler] Auto-scrape starting…")
     try:
@@ -1085,7 +1061,6 @@ def _start_scheduler():
         logging.warning(f"[Scheduler] Could not start: {exc}"); return None
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def dashboard():
     try:
@@ -1187,7 +1162,6 @@ def delete_restaurant(rid):
     return redirect(url_for("dashboard"))
 
 
-# ── Fire-and-forget crawl ─────────────────────────────────────────────────────
 @app.route("/crawl/<int:rid>", methods=["POST"])
 def crawl_one(rid):
     try:
@@ -1331,7 +1305,6 @@ def reactivate_promo(pid):
     except Exception as exc: return jsonify({"error": str(exc)}), 500
 
 
-# ── JSON API ──────────────────────────────────────────────────────────────────
 @app.route("/api/promotions")
 def api_promotions():
     restaurant = request.args.get("restaurant", "")
@@ -1384,7 +1357,6 @@ def handle_error(err):
     return jsonify({"error": "internal-server-error", "detail": str(err)}), 500
 
 
-# ── DB initialisation (tables + default restaurants) ─────────────────────────
 _DEFAULT_RESTAURANTS = [
     ("Benny and Co", "https://bennyandco.ca/en/promotions"),
     ("Boston Pizza",  "https://www.bostonpizza.com/en/specials"),
@@ -1446,7 +1418,6 @@ def _init_db():
     logging.error("Could not initialize DB after 30 attempts – check DB_HOST/DB_USER/DB_PASSWORD.")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import hypercorn.asyncio
     import hypercorn.config

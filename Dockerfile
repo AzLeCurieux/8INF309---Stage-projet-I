@@ -1,4 +1,3 @@
-# ── Promo Dashboard ───────────────────────────────────────────────────────────
 # Flask + Scrapling (Playwright/patchright) + GPT-4o-mini
 # Usage: docker compose up  (see docker-compose.yml)
 FROM python:3.12-slim

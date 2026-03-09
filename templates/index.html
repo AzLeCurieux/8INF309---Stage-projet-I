@@ -54,7 +54,6 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    /* ── Scanline texture overlay ── */
     body::before {
       content: '';
       position: fixed; inset: 0;
@@ -62,7 +61,6 @@
       pointer-events: none; z-index: 9997;
     }
 
-    /* ── Corner glow accent ── */
     body::after {
       content: '';
       position: fixed;
@@ -72,7 +70,6 @@
       pointer-events: none; z-index: 0;
     }
 
-    /* ── NAVBAR ── */
     .navbar {
       position: sticky; top: 0; z-index: 100;
       background: rgba(7,7,12,0.92);
@@ -129,10 +126,8 @@
     }
     .nav-btn-primary:hover { background: #fbbf24; color: #000; border-color: #fbbf24; }
 
-    /* ── LAYOUT ── */
     .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; position: relative; z-index: 1; }
 
-    /* ── ADD FORM ── */
     .add-section {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -171,7 +166,6 @@
     }
     .btn-add:hover { background: #fbbf24; }
 
-    /* ── TABLE HEADER ── */
     .table-header {
       display: flex; align-items: center;
       padding: 0.5rem 1rem 0.5rem 1.25rem;
@@ -189,7 +183,6 @@
     .col-date   { flex: 1; }
     .col-act    { width: 180px; display: flex; justify-content: flex-end; }
 
-    /* ── RESTAURANT LIST ── */
     .restaurant-list {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -267,14 +260,12 @@
     .btn-del { color: var(--muted); }
     .btn-del:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
 
-    /* ── EMPTY STATE ── */
     .empty-state {
       text-align: center; padding: 4rem 2rem; color: var(--muted);
     }
     .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 13px; }
 
-    /* ── JOB PANEL ── */
     #jobPanel {
       position: fixed; bottom: 1.5rem; right: 1.5rem;
       width: 400px; z-index: 9999;
@@ -329,7 +320,6 @@
       scrollbar-color: var(--border) transparent;
     }
 
-    /* ── IMAGE CONFIRM ── */
     .img-confirm {
       border-top: 1px solid var(--border);
       padding: 0.75rem 0.875rem;
@@ -370,15 +360,12 @@
     }
     .btn-skip:hover { border-color: var(--muted-hi); color: var(--text); }
 
-    /* ── SPIN ── */
     .spin { display: inline-block; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── LANG TOGGLE ── */
     body.lang-en .fr { display: none !important; }
     body.lang-fr .en { display: none !important; }
 
-    /* ── ALERT ZONE ── */
     #alert-zone { margin-bottom: 1rem; }
     .alert {
       background: var(--red-dim); border: 1px solid var(--red);
@@ -386,12 +373,10 @@
       font-size: 13px; color: var(--red);
     }
 
-    /* ── SCROLL ── */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 
-    /* ── STAT SUMMARY BAR ── */
     .summary-bar {
       display: flex; gap: 1px;
       background: var(--border);
@@ -417,7 +402,6 @@
     .sv-green { color: var(--green); }
     .sv-blue  { color: #60a5fa; }
 
-    /* ── SECTION HEADER ── */
     .section-head {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 0.75rem;
@@ -439,7 +423,6 @@
       font-size: 11px; color: var(--muted);
     }
 
-    /* ── ROW ANIMATION ── */
     .restaurant-row {
       animation: rowIn 0.3s ease both;
     }
@@ -448,7 +431,6 @@
       to   { opacity: 1; transform: translateX(0); }
     }
 
-    /* ── SORTABLE HEADERS ── */
     .th.sortable {
       cursor: pointer; user-select: none;
       display: flex; align-items: center; gap: 0.3rem;
@@ -468,7 +450,6 @@
 </head>
 <body class="lang-fr">
 
-<!-- ── NAVBAR ── -->
 <nav class="navbar">
   <a href="/" class="logo">
     <div class="logo-icon">🍗</div>
@@ -492,7 +473,6 @@
   </button>
 </nav>
 
-<!-- ── MAIN LAYOUT ── -->
 <div class="layout">
   <div id="alert-zone"></div>
 
@@ -610,11 +590,9 @@
   </div>
 </div>
 
-<!-- ── JOB PANEL ── -->
 <div id="jobPanel"></div>
 
 <script>
-/* ── Theme / Lang ── */
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
   if (t) document.documentElement.setAttribute('data-theme', t);
@@ -633,7 +611,6 @@ if (localStorage.getItem('pref-lang') === 'en') {
   document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
 }
 
-/* ── Job panel ── */
 function _jobCard(jid, name) {
   const card = document.createElement('div');
   card.className = 'job-card'; card.id = 'job-' + jid;
@@ -664,7 +641,6 @@ async function _updateLogs(jid) {
   } catch(e) {}
 }
 
-/* ── Image confirm ── */
 function _showImageConfirm(jid, rid, images, card) {
   const toAnalyze = images.slice(0, 5);
   const inputTok  = toAnalyze.length * (85 + 350);
@@ -723,7 +699,6 @@ async function _runImageAnalysis(jid, rid, btn) {
   } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
 }
 
-/* ── Job polling ── */
 function _pollJob(jid, card, rid) {
   const detail = document.getElementById('jd-' + jid);
   const ivl = setInterval(async () => {
@@ -783,7 +758,6 @@ async function classifyAll() {
   try { await fetch('/classify_all', {method:'POST'}); location.reload(); } catch(e) {}
 }
 
-/* ── Table sort ── */
 let _sortCol = null, _sortDir = 1;
 function sortTable(col) {
   const list = document.querySelector('.restaurant-list');

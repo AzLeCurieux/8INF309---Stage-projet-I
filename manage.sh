@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# ── Promo Dashboard Toolkit ───────────────────────────────────────────────────
 # Gestionnaire simplifié pour l'infrastructure Bunker + Tailscale
 # Usage: ./manage.sh [command]
 

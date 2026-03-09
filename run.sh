@@ -1,5 +1,4 @@
 #!/bin/bash
-# ── Promo Dashboard – lancement local ────────────────────────────────────────
 # Usage: bash run.sh
 # Prérequis: MySQL local sur 127.0.0.1:3306 avec DB promotions_db
 #            (les colonnes grade/savings_estimate/category doivent exister)

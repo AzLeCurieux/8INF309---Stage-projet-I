@@ -57,7 +57,6 @@
       );
     }
 
-    /* ── NAVBAR ── */
     .navbar {
       position: sticky; top: 0; z-index: 100;
       background: rgba(7,7,12,0.92);
@@ -86,7 +85,6 @@
     }
     .nav-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
 
-    /* ── HERO ── */
     .hero {
       position: relative; z-index: 1;
       padding: 4.5rem 2rem 3.5rem;
@@ -116,13 +114,11 @@
     .hero h1 em { color: var(--amber); font-style: normal; }
     .hero-sub { color: var(--muted2); font-size: 0.95rem; font-weight: 300; max-width: 480px; margin: 0 auto; }
 
-    /* ── LAYOUT ── */
     .page-wrap {
       position: relative; z-index: 1;
       max-width: 860px; margin: 0 auto; padding: 2.5rem 2rem 5rem;
     }
 
-    /* ── SECTION TITLE ── */
     .section-title {
       display: flex; align-items: center; gap: 0.75rem;
       font-family: 'Syne', sans-serif; font-weight: 700;
@@ -139,7 +135,6 @@
       letter-spacing: 0.15em; color: var(--muted); font-weight: 400; margin-left: auto;
     }
 
-    /* ── STEPS ── */
     .steps { display: flex; flex-direction: column; gap: 0.875rem; }
     .step {
       background: var(--surface); border: 1px solid var(--border);
@@ -167,7 +162,6 @@
     }
     .step-body p { font-size: 0.85rem; color: var(--muted2); line-height: 1.65; }
 
-    /* ── CARDS ── */
     .card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 1.5rem;
@@ -181,7 +175,6 @@
     .card ul { padding-left: 1.125rem; margin-top: 0.4rem; }
     .card li { margin-bottom: 0.3rem; }
 
-    /* ── TECH TAGS ── */
     .tech-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
     .tech-tag {
       font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600;
@@ -192,7 +185,6 @@
     .tech-tag.blue { background: var(--blue-dim); color: var(--blue); border-color: rgba(96,165,250,0.25); }
     .tech-tag.green { background: var(--green-dim); color: var(--green); border-color: rgba(16,185,129,0.25); }
 
-    /* ── SCRAPER PIPELINE ── */
     .pipeline {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); overflow: hidden; margin-bottom: 0.875rem;
@@ -223,7 +215,6 @@
     }
     .pipeline-step-body p { font-size: 0.8rem; color: var(--muted2); }
 
-    /* ── SECURITY GRID ── */
     .sec-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;
     }
@@ -240,7 +231,6 @@
     .sec-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--fg); margin-bottom: 0.25rem; }
     .sec-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
 
-    /* ── CODE BLOCK ── */
     pre {
       background: #050508; border: 1px solid var(--border);
       border-radius: var(--radius); padding: 1.375rem 1.5rem;
@@ -266,7 +256,6 @@
       border: 1px solid var(--border);
     }
 
-    /* ── TABLE ── */
     .table-wrap {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); overflow: hidden;
@@ -289,7 +278,6 @@
       color: var(--blue); padding: 0.12rem 0.45rem; border-radius: 3px;
     }
 
-    /* ── LANG ── */
     body.lang-en .fr { display: none !important; }
     body.lang-fr .en { display: none !important; }
 
@@ -333,7 +321,6 @@
 
 <div class="page-wrap">
 
-  <!-- ── EXTRACTION PROCESS ── -->
   <div class="section-title">
     <span class="fr">Pipeline d'Extraction</span>
     <span class="en">Extraction Pipeline</span>
@@ -386,7 +373,6 @@
     </div>
   </div>
 
-  <!-- ── SCRAPLING PIPELINE ── -->
   <div class="section-title">
     <span class="fr">Pipeline Scrapling — Niveaux de Fetch</span>
     <span class="en">Scrapling Pipeline — Fetch Tiers</span>
@@ -440,7 +426,6 @@
     </div>
   </div>
 
-  <!-- ── TECH STACK ── -->
   <div class="section-title">
     <span class="fr">Stack Technique</span>
     <span class="en">Tech Stack</span>
@@ -468,7 +453,6 @@
     </p>
   </div>
 
-  <!-- ── SECURITY ── -->
   <div class="section-title">
     <span class="fr">Securite & Bunker</span>
     <span class="en">Security & Bunker</span>
@@ -498,7 +482,6 @@
     </div>
   </div>
 
-  <!-- ── MAINTENANCE ── -->
   <div class="section-title">
     Maintenance
     <span class="mono">CLI</span>
@@ -523,7 +506,6 @@
 <span class="kw">./manage.sh</span> backup</pre>
   </div>
 
-  <!-- ── ENV CONFIG ── -->
   <div class="section-title">
     Configuration
     <span class="mono">.env</span>
@@ -573,7 +555,6 @@
     </table>
   </div>
 
-  <!-- ── DATA SCHEMA ── -->
   <div class="section-title">
     <span class="fr">Schema des donnees</span>
     <span class="en">Data Schema</span>
