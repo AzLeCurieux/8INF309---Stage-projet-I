@@ -558,8 +558,22 @@
     .card-link:hover { color: var(--accent); }
 
     @media (max-width: 768px) {
-      .selection-grid { grid-template-columns: 1fr; }
-      .card-img-wrap { height: 180px; }
+      .selection-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .card-img-wrap { height: 220px; } /* Larger image/logo area */
+      .source-tag { 
+        padding: 0.4rem 0.75rem; 
+        gap: 0.6rem; 
+        top: 15px; left: 15px; 
+        background: rgba(0,0,0,0.8);
+      }
+      .source-icon { width: 24px; height: 24px; } /* Larger logo icon */
+      .source-name { font-size: 12px; } /* Larger source name */
+      
+      .card-body { padding: 0.75rem; gap: 0.35rem; } /* Compact body */
+      .card-price { font-size: 16px; }
+      .card-details { font-size: 11.5px; -webkit-line-clamp: 2; }
+      .card-footer { padding-top: 0.5rem; }
+      .card-link { font-size: 10.5px; }
     }
   </style>
 </head>
