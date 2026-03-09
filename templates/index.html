@@ -449,31 +449,40 @@
 
     /* ── MOBILE RESPONSIVENESS ── */
     @media (max-width: 768px) {
-      .navbar { padding: 0 1rem; gap: 0.75rem; }
-      .nav-label, .nav-divider { display: none; }
-      .logo-text { font-size: 13px; }
-      .nav-btn { padding: 0 0.5rem; font-size: 11px; }
+      .navbar { padding: 0 0.75rem; gap: 0.5rem; justify-content: space-between; }
+      .nav-label, .nav-divider, .nav-spacer { display: none; }
+      .logo-text { font-size: 12px; letter-spacing: 0.02em; }
+      .logo-icon { width: 24px; height: 24px; font-size: 13px; }
+      .nav-btn { padding: 0 0.4rem; font-size: 10px; height: 28px; border-radius: 4px; }
 
-      .layout { padding: 1.5rem 1rem; }
-      .summary-bar { flex-wrap: wrap; }
-      .summary-item { flex: 1 1 40%; padding: 0.75rem; }
-      .summary-value { font-size: 18px; }
+      .layout { padding: 1rem 0.75rem; }
+      .summary-bar { margin-bottom: 0.75rem; }
+      .summary-item { padding: 0.6rem 0.75rem; }
+      .summary-value { font-size: 16px; }
 
-      .add-section { flex-direction: column; align-items: stretch; gap: 0.5rem; }
-      .input-field { max-width: none !important; }
-      .btn-add { width: 100%; }
+      .add-section { padding: 1rem; margin-bottom: 1.5rem; }
+      .add-label { font-size: 10px; }
+
+      .section-head { margin-bottom: 0.5rem; }
+      .section-title { font-size: 11px; }
 
       .table-header { display: none; }
+      .restaurant-list { background: transparent; border: none; overflow: visible; display: flex; flex-direction: column; gap: 0.75rem; }
       .restaurant-row {
-        flex-direction: column; height: auto; padding: 1rem; gap: 0.75rem; align-items: flex-start;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+        flex-direction: column; height: auto; padding: 1rem; gap: 0.875rem; align-items: stretch;
       }
-      .col-name, .col-stats, .col-date, .col-act { width: 100%; flex: none; justify-content: flex-start; }
-      .row-name { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-      .row-stats { display: flex; gap: 1rem; }
-      .row-actions { justify-content: flex-start; gap: 0.5rem; padding-top: 0.25rem; }
-      .btn-row { flex: 1; justify-content: center; height: 32px; }
+      .col-name, .col-stats, .col-date, .col-act { width: 100%; flex: none; display: flex; justify-content: space-between; align-items: center; }
+      .row-name { border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 0.25rem; }
+      .row-stats { background: var(--bg); padding: 0.5rem 0.75rem; border-radius: 6px; }
+      .stat-cell { width: auto; flex: 1; justify-content: center; flex-direction: column; gap: 2px; }
+      .stat-cell::after { content: attr(data-label); font-size: 9px; color: var(--muted); text-transform: uppercase; }
+      .row-date { font-size: 10px; justify-content: flex-end; }
+      .row-date::before { content: 'Dernier scan :'; margin-right: auto; }
+      .row-actions { padding-top: 0.5rem; gap: 0.5rem; }
+      .btn-row { flex: 1; justify-content: center; height: 34px; font-size: 12px; }
 
-      #jobPanel { width: calc(100% - 2rem); left: 1rem; bottom: 1rem; }
+      #jobPanel { width: calc(100% - 1.5rem); left: 0.75rem; bottom: 0.75rem; }
     }
   </style>
 </head>
@@ -585,10 +594,10 @@
         </div>
 
         <div class="row-stats col-stats">
-          <div class="stat-cell col-stat">
+          <div class="stat-cell col-stat" data-label="Actives">
             <span class="stat-num {{ 'amber' if r.active_promos else 'muted' }}">{{ r.active_promos or 0 }}</span>
           </div>
-          <div class="stat-cell col-stat">
+          <div class="stat-cell col-stat" data-label="Top A+/A">
             <span class="stat-num {{ 'green' if r.top_promos else 'muted' }}">{{ r.top_promos or 0 }}</span>
           </div>
         </div>
