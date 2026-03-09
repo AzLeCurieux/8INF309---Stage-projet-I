@@ -404,10 +404,10 @@
   <div class="filter-inner">
     <span class="filter-label"><span class="fr">Grade</span><span class="en">Grade</span></span>
     <div class="filter-group">
-      <a href="?category={{ category_filter }}&show_all={{ 1 if show_all else 0 }}"
+      <a href="?category={{ category_filter|urlencode }}&show_all={{ 1 if show_all else 0 }}"
          class="filter-btn filter-btn-grade {{ 'active' if not grade_filter }}">ALL</a>
       {% for g in ['A+','A','B','C','D'] %}
-      <a href="?grade={{ g }}&category={{ category_filter }}&show_all={{ 1 if show_all else 0 }}"
+      <a href="?grade={{ g|urlencode }}&category={{ category_filter|urlencode }}&show_all={{ 1 if show_all else 0 }}"
          class="filter-btn filter-btn-grade grade-{{ g|replace('+','plus') }} {{ 'active' if grade_filter == g else '' }}">{{ g }}</a>
       {% endfor %}
     </div>
@@ -416,19 +416,19 @@
     <div class="filter-sep"></div>
     <span class="filter-label"><span class="fr">Cat.</span><span class="en">Cat.</span></span>
     <div class="filter-group">
-      <a href="?grade={{ grade_filter }}&show_all={{ 1 if show_all else 0 }}"
+      <a href="?grade={{ grade_filter|urlencode }}&show_all={{ 1 if show_all else 0 }}"
          class="filter-btn {{ 'active' if not category_filter }}">
         <span class="fr">Tout</span><span class="en">All</span>
       </a>
       {% for cat in categories %}
-      <a href="?category={{ cat }}&grade={{ grade_filter }}&show_all={{ 1 if show_all else 0 }}"
+      <a href="?category={{ cat|urlencode }}&grade={{ grade_filter|urlencode }}&show_all={{ 1 if show_all else 0 }}"
          class="filter-btn {{ 'active' if category_filter == cat else '' }}">{{ cat }}</a>
       {% endfor %}
     </div>
     {% endif %}
 
     <div class="filter-sep"></div>
-    <a href="?category={{ category_filter }}&grade={{ grade_filter }}&show_all={{ '0' if show_all else '1' }}"
+    <a href="?category={{ category_filter|urlencode }}&grade={{ grade_filter|urlencode }}&show_all={{ '0' if show_all else '1' }}"
        class="filter-btn {{ 'active' if show_all else '' }}">
       <span class="fr">Inactives ({{ inactive_count }})</span>
       <span class="en">Inactive ({{ inactive_count }})</span>

@@ -1094,12 +1094,13 @@ def dashboard():
             SELECT r.id, r.name, r.url, r.scraper_type,
                    COUNT(p.id)                                       AS total_promos,
                    SUM(CASE WHEN p.is_active=1 THEN 1 ELSE 0 END)   AS active_promos,
+                   SUM(CASE WHEN p.grade = 'A+' AND p.is_active=1 THEN 1 ELSE 0 END) AS a_plus_count,
                    SUM(CASE WHEN p.grade IN ('A+','A') AND p.is_active=1 THEN 1 ELSE 0 END) AS top_promos,
                    MAX(p.last_seen)                                  AS last_scraped
             FROM restaurants r
             LEFT JOIN promotions_table p ON p.restaurant = r.name
             GROUP BY r.id, r.name, r.url, r.scraper_type
-            ORDER BY r.name
+            ORDER BY a_plus_count DESC, top_promos DESC, r.name ASC
         """)
         restaurants = cur.fetchall()
         cur.close(); db.close()
@@ -1113,6 +1114,11 @@ def dashboard():
 def restaurant_detail(rid):
     cat_filter   = request.args.get("category", "")
     grade_filter = request.args.get("grade", "")
+    
+    # If it's "A ", it's almost certainly "A+" that was incorrectly decoded
+    if grade_filter == "A ":
+        grade_filter = "A+"
+    
     show_all     = request.args.get("show_all", "0") == "1"
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -1125,7 +1131,10 @@ def restaurant_detail(rid):
         if not show_all: query += " AND is_active = 1"
         if cat_filter:   query += " AND category = %s"; params.append(cat_filter)
         if grade_filter: query += " AND grade = %s";    params.append(grade_filter)
-        query += " ORDER BY is_active DESC, FIELD(grade,'A+','A','B','C','D'), last_seen DESC"
+        
+        # Sort by: Active first, then Grade (A+ -> D -> N/A), then most recent
+        query += " ORDER BY is_active DESC, FIELD(grade, 'A+', 'A', 'B', 'C', 'D', 'N/A') ASC, last_seen DESC"
+        
         cur.execute(query, params); promos = cur.fetchall()
 
         cur.execute("SELECT DISTINCT category FROM promotions_table "
