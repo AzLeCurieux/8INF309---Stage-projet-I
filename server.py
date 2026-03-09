@@ -251,30 +251,27 @@ def _find_candidate_promo_images(text: str, max_candidates: int = 10) -> list[di
 def _html_to_text(html: str, base_url: str = "") -> str:
     """
     Convert HTML to clean text for LLM processing.
-    Image URLs are embedded as [IMAGE:url] markers so the LLM can associate
-    them with nearby promotions.
+    Image URLs are embedded as [IMG_N:url ALT:text] markers.
     """
-    html = html[:600_000]  # Hard cap
+    html = html[:800_000]  # Slightly higher cap
     soup = BeautifulSoup(html, "html.parser")
-    # Aggreresively remove junk tags that bloat the text
     for tag in soup(["script", "style", "nav", "footer", "header", "aside",
                      "noscript", "form", "svg", "iframe", "button", "input"]):
         tag.decompose()
 
-    # Embed image URLs as text markers before stripping HTML
-    # We look for src, data-src and also meta og:image for robustness
+    # Embed meta og:image as a high-priority image
     og_img = soup.find("meta", property="og:image")
     if og_img and og_img.get("content"):
         content = og_img.get("content").strip()
         if content.startswith("http"):
-            soup.insert(0, soup.new_tag("img", src=content, alt="og:image"))
+            soup.insert(0, soup.new_tag("img", src=content, alt="featured_og"))
 
+    img_count = 0
     for img in soup.find_all("img"):
         src = (img.get("src") or img.get("data-src") or
                img.get("data-lazy-src") or img.get("data-original") or
                img.get("data-srcset", "").split()[0] or "").strip()
         
-        # Check background-image in style attribute
         style = img.get("style", "")
         if not src and "background-image" in style:
             import re
@@ -282,13 +279,15 @@ def _html_to_text(html: str, base_url: str = "") -> str:
             if m: src = m.group(1).strip()
 
         if src and not src.startswith("data:") and len(src) > 5:
-            # Convert relative URLs to absolute
             if base_url and src.startswith("/"):
                 parsed = urlparse(base_url)
                 src = f"{parsed.scheme}://{parsed.netloc}{src}"
             elif base_url and not src.startswith("http"):
                 src = urljoin(base_url, src)
-            img.replace_with(f" [IMAGE:{src}] ")
+            
+            img_count += 1
+            alt = (img.get("alt") or img.get("title") or "").strip()
+            img.replace_with(f" [IMG_{img_count}:{src} ALT:{alt}] ")
         else:
             img.decompose()
 
@@ -566,33 +565,30 @@ def _extract_promos_sync(text: str, restaurant_name: str, page_url: str) -> list
     Retries if empty result (model is occasionally non-deterministic).
     Called SYNCHRONOUSLY with NO asyncio event loop active in the thread.
     """
-    content = text[:15_000]  # Increased limit to 15k chars
+    content = text[:45_000]  # Increased from 15k to 45k to capture more data
     prompt = f"""You are a promotion extractor for a restaurant analytics system.
 
 Restaurant: {restaurant_name}
 Source URL: {page_url}
 
-TASK: Extract every promotional item, special offer, featured dish, limited-time deal,
-combo, or highlighted menu item from the text below. This page IS a promotions page,
-so treat any priced item or featured item as a promotion.
+TASK: Extract every promotional item, special offer, combo, or featured dish from the text.
+The text contains markers like [IMG_1:url ALT:description]. 
 
-For each item return a JSON object with exactly these keys:
-  - "promo_type"    : category — "Duo", "Famille", "Solo", "Happy Hour",
-                      "Spécial du Jour", "Limited Time", "Featured", "Combo", "Other"
-  - "promo_details" : full description (name, ingredients, quantities, everything)
-  - "price"         : price string like "12.99" or "Not Provided" if absent
+For each item return a JSON object with:
+  - "promo_type"    : "Duo", "Famille", "Solo", "Happy Hour", "Spécial du Jour", "Combo", "Other"
+  - "promo_details" : full description
+  - "price"         : price like "12.99" or "Not Provided"
   - "promo_date"    : validity or "Not Provided"
   - "link"          : direct URL or "{page_url}"
-  - "image_url"     : the closest [IMAGE:url] marker found BEFORE or AFTER this item
-                      in the text; use the full URL. "Not Provided" only if no [IMAGE:…] nearby.
+  - "image_url"     : Select the BEST [IMG_N:url] for this promo. 
+                      Look for an image whose ALT text matches the promo or which is 
+                      placed immediately above/below the promo text.
+                      Return only the URL. "Not Provided" if none.
 
 Rules:
-- Include ALL priced items visible on this promotions page, even regular menu items
-- Convert prices like "13,00$" → "13.00", "13 $" → "13.00"
-- Do NOT skip items just because they look like menu items — on a promo page they ARE promos
-- For image_url: scan the surrounding lines for [IMAGE:https://…] and copy the full URL
-- Return ONLY a valid JSON array, no markdown fences, no extra text
-- If the page truly has zero food/drink items at all, return []
+- Include ALL items even if they look like regular menu items on this page.
+- For image_url: Be precise. If the ALT text of an [IMG_N] contains part of the promo name, use it.
+- Return ONLY a valid JSON array.
 
 Page content:
 {content}"""
