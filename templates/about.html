@@ -3,347 +3,193 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>À propos – Promo Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Documentation | Chiken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background:#f0f2f5; }
-    .stack-card { border-left:4px solid; border-radius:8px; }
-    .stack-card.scrape  { border-color:#0d6efd; }
-    .stack-card.ai      { border-color:#6610f2; }
-    .stack-card.db      { border-color:#198754; }
-    .stack-card.web     { border-color:#fd7e14; }
-    .stack-card.discover{ border-color:#0dcaf0; }
-    .flow-step { background:#fff; border-radius:10px; padding:1rem; text-align:center;
-                 box-shadow:0 2px 8px rgba(0,0,0,.08); position:relative; }
-    .flow-arrow { font-size:1.8rem; color:#0d6efd; line-height:1; }
-    code { background:#e9ecef; padding:.15em .4em; border-radius:4px; font-size:.9em; }
-    .grade-demo { display:inline-block; width:36px; height:36px; border-radius:50%;
-                  line-height:36px; text-align:center; font-weight:800; color:#fff; }
-    .badge-mini { background:#6f42c1; color:#fff; font-size:.75rem; padding:.2em .5em;
-                  border-radius:4px; font-family:monospace; }
-    .badge-full { background:#0d6efd; color:#fff; font-size:.75rem; padding:.2em .5em;
-                  border-radius:4px; font-family:monospace; }
+    :root {
+      --bg: #fafafa; --fg: #111827; --border: #e5e7eb; --muted: #6b7280; --hover: #f3f4f6; --card-bg: #ffffff; --accent: #2563eb;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --fg: #f8fafc; --border: #334155; --muted: #94a3b8; --hover: #1e293b; --card-bg: #1e293b; --accent: #38bdf8;
+    }
+    body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; padding: 0; line-height: 1.6; transition: background 0.3s, color 0.3s; }
+    .navbar { border-bottom: 1px solid var(--border); background: var(--card-bg); padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; position: sticky; top: 0; z-index: 100; }
+    .btn-minimal { background: var(--card-bg); border: 1px solid var(--border); color: var(--fg); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.875rem; cursor: pointer; text-decoration: none; transition: background 0.2s; }
+    .btn-minimal:hover { background: var(--hover); }
+    
+    .container { max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; }
+    .hero { text-align: center; margin-bottom: 4rem; border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
+    .hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
+    
+    .section-title { font-size: 1.5rem; font-weight: 700; margin-top: 4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--accent); }
+    .section-title::before { content: ""; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
+    
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h3 { font-size: 1.1rem; font-weight: 600; margin-top: 0; margin-bottom: 1rem; color: var(--fg); }
+    
+    .process-step { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
+    .step-icon { width: 40px; height: 40px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .step-content { flex: 1; }
+    .step-content h4 { margin: 0 0 0.5rem 0; font-weight: 600; }
+    .step-content p { margin: 0; font-size: 0.925rem; color: var(--muted); }
+
+    .tech-tag { display: inline-block; background: var(--hover); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; border: 1px solid var(--border); }
+    
+    code { font-family: 'JetBrains Mono', monospace; background: var(--hover); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.875rem; color: var(--accent); }
+    pre { background: #111827; color: #f9fafb; padding: 1.5rem; border-radius: 10px; overflow-x: auto; font-size: 0.875rem; border: 1px solid var(--border); margin: 1.5rem 0; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.75rem; background: var(--hover); border-bottom: 2px solid var(--border); }
+    td { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+
+    body.lang-en .fr { display: none !important; }
+    body.lang-fr .en { display: none !important; }
   </style>
 </head>
-<body>
-<nav class="navbar navbar-dark bg-dark mb-4 px-3">
-  <a class="navbar-brand fw-bold" href="/">← Promo Dashboard</a>
-  <span class="navbar-text text-white">Documentation technique</span>
+<body class="lang-fr">
+
+<nav class="navbar">
+  <a href="/" class="btn-minimal">← <span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+  <div style="font-weight: 600;">🍗 Chiken Wings <span class="fr">Documentation</span><span class="en">Docs</span></div>
+  <div style="flex:1"></div>
+  <button class="btn-minimal" onclick="toggleTheme()">🌓</button>
+  <button class="btn-minimal" onclick="toggleLang()">
+      <span class="fr">FR</span><span class="en">EN</span>
+  </button>
 </nav>
 
-<div class="container pb-5">
-
-  <!-- Hero -->
-  <div class="text-center mb-5">
-    <h1 class="display-5 fw-bold">🍔 Promo Dashboard</h1>
-    <p class="lead text-muted">
-      Système automatisé de surveillance, extraction et classification des promotions de restaurants.
+<div class="container">
+  
+  <div class="hero">
+    <h1><span class="fr">Comment ça marche ?</span><span class="en">How it works?</span></h1>
+    <p style="color: var(--muted); font-size: 1.1rem;">
+      <span class="fr">Découvrez les coulisses de l'ingénierie derrière Chiken Wings v2.0.</span>
+      <span class="en">Discover the engineering behind Chiken Wings v2.0.</span>
     </p>
   </div>
 
-  <!-- Flow diagram -->
-  <h2 class="fw-bold mb-3">🔄 Architecture du flux de données</h2>
-  <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">🌐</div>
-      <strong>URL du restaurant</strong>
-      <div class="small text-muted mt-1">Page HTML / SPA</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">🔎</div>
-      <strong>Découverte de liens</strong>
-      <div class="small text-muted mt-1">Scoring par mots-clés<br>+ routes SPA (#/)</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">🕷</div>
-      <strong>Scrapling</strong>
-      <div class="small text-muted mt-1">AsyncFetcher (HTTP)<br>→ DynamicFetcher (JS)</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">🧠</div>
-      <strong>GPT-4o-mini</strong>
-      <div class="small text-muted mt-1">Extraction JSON<br>→ GPT-4o (fallback)</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">💾</div>
-      <strong>MySQL</strong>
-      <div class="small text-muted mt-1">promotions_table<br>+ grade + is_active</div>
-    </div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step flex-fill">
-      <div class="fs-2 mb-1">📊</div>
-      <strong>Dashboard</strong>
-      <div class="small text-muted mt-1">Flask + Bootstrap<br>Filtres + Grades</div>
-    </div>
-  </div>
-  <div class="alert alert-info small mb-5">
-    <strong>Fire &amp; Forget:</strong> chaque scrape démarre en arrière-plan (thread isolé).
-    Le frontend reçoit immédiatement un <code>job_id</code> et interroge <code>/job/&lt;id&gt;</code>
-    toutes les 2 secondes — aucun timeout HTTP.
-  </div>
-
-  <!-- Tech stack -->
-  <h2 class="fw-bold mb-3">⚙️ Stack technique</h2>
-  <div class="row g-3 mb-5">
-
-    <div class="col-md-6">
-      <div class="card stack-card discover p-3 h-100">
-        <h5 class="fw-bold" style="color:#0aa2c0">🔎 Découverte intelligente de liens</h5>
-        <p class="mb-2 small">
-          Avant de scraper, le système analyse les liens de la page principale et leur attribue
-          un <strong>score de pertinence promo</strong> basé sur des mots-clés. Les sous-pages les
-          mieux notées sont crawlées automatiquement — sans LLM, sans règles par restaurant.
-        </p>
-        <ul class="small mb-2">
-          <li>Mots-clés positifs : <code>promo</code>, <code>offre</code>, <code>commander</code>, <code>special</code>…</li>
-          <li>Bonus +15 pour les routes <code>/subcategory/</code>, +5 pour les SPA <code>#/</code></li>
-          <li>Filtrage des liens hors-domaine, légaux, login, réseaux sociaux</li>
-          <li>Jusqu'à <strong>3 sous-pages</strong> crawlées par restaurant</li>
-        </ul>
-        <div class="small text-muted">
-          Ex : <code>bennyandco.ca/promotions</code> → découvre automatiquement
-          <code>benny-co.com/commander/#/subcategory/7416</code>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card stack-card scrape p-3 h-100">
-        <h5 class="fw-bold text-primary">🕷 Scraping — Scrapling v0.4</h5>
-        <p class="mb-2 small">
-          <strong>Scrapling</strong> est un framework de scraping adaptatif avec trois modes de
-          récupération, appliqués en cascade automatiquement selon le contenu de la page.
-        </p>
-        <ul class="small mb-0">
-          <li><strong>AsyncFetcher</strong> — HTTP rapide via <code>curl_cffi</code> (TLS fingerprinting, anti-bot stealth)</li>
-          <li><strong>DynamicFetcher</strong> — Playwright/patchright (Chromium headless) pour les SPA JavaScript</li>
-          <li><strong>StealthyFetcher</strong> — Camoufox (Firefox modifié) pour les sites avec détection avancée</li>
-          <li>Sélection automatique : HTTP d'abord, Playwright si contenu insuffisant (&lt;1 500 chars)</li>
-        </ul>
-        <div class="mt-2">
-          <code>from scrapling.fetchers import AsyncFetcher, DynamicFetcher</code>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card stack-card ai p-3 h-100">
-        <h5 class="fw-bold" style="color:#6610f2">🧠 Extraction — GPT-4o-mini + GPT-4o</h5>
-        <p class="mb-2 small">
-          Le texte de chaque page est envoyé à un LLM avec un prompt structuré qui extrait
-          toutes les promotions sous forme de tableau JSON.
-        </p>
-        <ul class="small mb-2">
-          <li>
-            <span class="badge-mini">gpt-4o-mini</span> utilisé en priorité — 16x moins cher (~$0.15/M tokens)
-          </li>
-          <li>
-            <span class="badge-full">gpt-4o</span> utilisé en fallback (tentative 3) si mini retourne <code>[]</code>
-          </li>
-          <li>3 tentatives : <code>temperature=0</code> puis <code>0.3</code> pour varier le sampling</li>
-          <li>Retourne : <code>promo_type</code>, <code>promo_details</code>, <code>price</code>, <code>promo_date</code>, <code>link</code>, <code>image_url</code></li>
-          <li>Multilingue FR/EN, sans règles par restaurant</li>
-        </ul>
-        <div class="small">
-          <code>openai.chat.completions.create(model="gpt-4o-mini")</code>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card stack-card db p-3 h-100">
-        <h5 class="fw-bold text-success">🔍 Déduplication — exact match + embeddings optionnels</h5>
-        <p class="mb-2 small">
-          Avant d'insérer une promo, le système vérifie si elle existe déjà.
-          Deux modes selon la configuration.
-        </p>
-        <ul class="small mb-0">
-          <li><strong>Mode rapide</strong> (<code>SKIP_EMBEDDING_INIT=1</code>) : exact text match sur <code>promo_details</code></li>
-          <li><strong>Mode sémantique</strong> : embedding vectoriel (modèle <code>paraphrase-multilingual-MiniLM-L12-v2</code>, 384 dim) + similarité cosinus</li>
-          <li>Seuil : <strong>0.92</strong> — si score ≥ seuil, met à jour <code>last_seen</code> au lieu d'insérer</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card stack-card web p-3 h-100">
-        <h5 class="fw-bold" style="color:#e07b00">🌐 Backend — Flask async + Hypercorn</h5>
-        <p class="mb-2 small">
-          L'application Flask utilise des threads isolés pour les scrapers. Chaque job
-          possède son propre event loop asyncio, créé et détruit proprement.
-        </p>
-        <ul class="small mb-0">
-          <li>Flask 3.x avec routes synchrones (scrape en thread séparé)</li>
-          <li>Hypercorn — serveur ASGI (remplace Gunicorn/uWSGI)</li>
-          <li>MySQL via <code>mysql-connector-python</code></li>
-          <li>Frontend : Bootstrap 5 + JavaScript vanilla (fetch API, polling toutes les 2s)</li>
-          <li>APScheduler — scraping automatique toutes les <strong>{{ scrape_interval_hours }}h</strong></li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card p-3 h-100 border-secondary">
-        <h5 class="fw-bold text-secondary">⚡ Performance</h5>
-        <ul class="small mb-0">
-          <li>Réponse immédiate (202) — aucun timeout HTTP côté client</li>
-          <li>Polling léger toutes les 2s via <code>fetch('/job/&lt;id&gt;')</code></li>
-          <li>Scrapling AsyncFetcher : ~0.5–2s par page (HTTP)</li>
-          <li>DynamicFetcher (Playwright) : ~5–15s par page SPA</li>
-          <li>GPT-4o-mini : ~1–3s par extraction</li>
-          <li>Coût total estimé : ~$0.001–0.003 par restaurant/scrape</li>
-        </ul>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Grade system -->
-  <h2 class="fw-bold mb-3">🏅 Système de grades</h2>
-  <div class="card p-4 mb-5 shadow-sm">
-    <p class="text-muted small mb-3">
-      Chaque promotion est notée en fonction de son prix par rapport à une valeur de référence de
-      <strong>20 $</strong> (repas moyen au restaurant). Les économies estimées = 20 $ − prix.
-    </p>
-    <div class="table-responsive">
-      <table class="table table-bordered text-center mb-0">
-        <thead class="table-dark">
-          <tr><th>Grade</th><th>Prix</th><th>Économies estimées</th><th>Signification</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><span class="grade-demo" style="background:#198754">A+</span></td>
-            <td>&lt; 7 $</td><td class="text-success fw-bold">&gt; 13 $</td>
-            <td>Excellente affaire — prix très bas</td>
-          </tr>
-          <tr>
-            <td><span class="grade-demo" style="background:#20c997">A</span></td>
-            <td>7 – 12 $</td><td class="text-success">8 – 13 $</td>
-            <td>Très bonne affaire</td>
-          </tr>
-          <tr>
-            <td><span class="grade-demo" style="background:#0dcaf0; color:#000">B</span></td>
-            <td>12 – 16 $</td><td>4 – 8 $</td>
-            <td>Bonne affaire</td>
-          </tr>
-          <tr>
-            <td><span class="grade-demo" style="background:#ffc107; color:#000">C</span></td>
-            <td>16 – 20 $</td><td>0 – 4 $</td>
-            <td>Légère réduction</td>
-          </tr>
-          <tr>
-            <td><span class="grade-demo" style="background:#dc3545">D</span></td>
-            <td>&gt; 20 $</td><td class="text-muted">0 $</td>
-            <td>Prix au-dessus de la référence</td>
-          </tr>
-          <tr>
-            <td><span class="grade-demo" style="background:#adb5bd">N/A</span></td>
-            <td>Non fourni</td><td>—</td>
-            <td>Prix non extrait de la page</td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- PROCESS -->
+  <div class="section-title"><span class="fr">Le Procédé d'Extraction</span><span class="en">Extraction Process</span></div>
+  
+  <div class="process-step">
+    <div class="step-icon">1</div>
+    <div class="step-content">
+      <h4><span class="fr">Découverte de Liens (Link Discovery)</span><span class="en">Link Discovery</span></h4>
+      <p>
+        <span class="fr">Avant de scraper, le système analyse la page d'accueil pour trouver des sous-pages de promotions cachées (ex: <code>/offres</code>, <code>/deals</code>). Il utilise un système de scoring par mots-clés pour prioriser les liens les plus pertinents.</span>
+        <span class="en">Before scraping, the system analyzes the home page to find hidden promo sub-pages (e.g., <code>/deals</code>, <code>/offers</code>). It uses a keyword scoring system to prioritize the most relevant links.</span>
+      </p>
     </div>
   </div>
 
-  <!-- is_active -->
-  <h2 class="fw-bold mb-3">♻️ Gestion des promos expirées</h2>
-  <div class="card p-4 mb-5 shadow-sm">
-    <div class="row g-3">
-      <div class="col-md-4 text-center">
-        <div class="fs-2">✅</div>
-        <strong>Active</strong> (<code>is_active=1</code>)
-        <p class="small text-muted mt-1">Promo vue lors du dernier scrape. Affichée normalement.</p>
-      </div>
-      <div class="col-md-4 text-center">
-        <div class="fs-2">🔄</div>
-        <strong>Confirmée</strong>
-        <p class="small text-muted mt-1">Promo déjà connue, re-vue lors du scrape → <code>last_seen</code> mis à jour.</p>
-      </div>
-      <div class="col-md-4 text-center">
-        <div class="fs-2">⏸</div>
-        <strong>Expirée</strong> (<code>is_active=0</code>)
-        <p class="small text-muted mt-1">Non vue depuis +{{ inactive_days }} jours → masquée par défaut, conservée en archive.</p>
-      </div>
+  <div class="process-step">
+    <div class="step-icon">2</div>
+    <div class="step-content">
+      <h4><span class="fr">Scraping Adaptatif (Scrapling)</span><span class="en">Adaptive Scraping</span></h4>
+      <p>
+        <span class="fr">Le moteur bascule entre deux modes : <strong>HTTP Ultra-rapide</strong> pour les sites simples, et <strong>Navigateur Réel (Playwright)</strong> pour les sites complexes comme Tim Hortons ou DoorDash. Il simule des comportements humains pour contourner les protections anti-bot.</span>
+        <span class="en">The engine toggles between two modes: <strong>Ultra-fast HTTP</strong> for simple sites, and <strong>Real Browser (Playwright)</strong> for complex sites like Tim Hortons or DoorDash. It simulates human behavior to bypass anti-bot protections.</span>
+      </p>
     </div>
-    <hr>
-    <p class="small text-muted mb-0">
-      ⚙️ Après chaque scrape, les promos non revues depuis
-      <strong>{{ inactive_days }} jours</strong> sont automatiquement marquées comme expirées.
-      Elles restent en base de données pour l'historique et peuvent être réactivées manuellement.
+  </div>
+
+  <div class="process-step">
+    <div class="step-icon">3</div>
+    <div class="step-content">
+      <h4><span class="fr">Analyse par Intelligence Artificielle</span><span class="en">AI Analysis</span></h4>
+      <p>
+        <span class="fr">Le code HTML est purgé de tout contenu inutile (scripts, styles) pour ne garder que le texte. Ce texte est envoyé à <strong>GPT-4o-mini</strong> qui extrait les noms de plats, les prix, et les dates sous un format JSON structuré.</span>
+        <span class="en">The HTML code is purged of all useless content (scripts, styles) to keep only the text. This text is sent to <strong>GPT-4o-mini</strong> which extracts dish names, prices, and dates in a structured JSON format.</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section-title"><span class="fr">Stack Technique</span><span class="en">Tech Stack</span></div>
+  <div class="card">
+    <div style="margin-bottom: 1.5rem;">
+      <span class="tech-tag">Python 3.12</span>
+      <span class="tech-tag">Flask</span>
+      <span class="tech-tag">MySQL 8.0</span>
+      <span class="tech-tag">Docker</span>
+      <span class="tech-tag">OpenAI API</span>
+      <span class="tech-tag">Playwright</span>
+    </div>
+    <p class="small">
+      <span class="fr">L'application est conteneurisée pour garantir la stabilité. Le serveur de base de données est isolé et n'accepte aucune connexion externe. Le frontend communique avec Flask via une API asynchrone pour éviter tout blocage pendant les scans longs.</span>
+      <span class="en">The application is containerized to ensure stability. The database server is isolated and accepts no external connections. The frontend communicates with Flask via an async API to avoid blocking during long scans.</span>
     </p>
   </div>
 
-  <!-- DB schema -->
-  <h2 class="fw-bold mb-3">🗄️ Schéma de la base de données</h2>
-  <div class="card p-4 shadow-sm mb-5">
-    <h6 class="fw-bold">Table <code>promotions_table</code></h6>
-    <div class="table-responsive">
-      <table class="table table-sm table-bordered small mb-0">
-        <thead class="table-secondary"><tr><th>Colonne</th><th>Type</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>id</code></td><td>INT PK</td><td>Identifiant unique</td></tr>
-          <tr><td><code>restaurant</code></td><td>VARCHAR</td><td>Nom du restaurant</td></tr>
-          <tr><td><code>promo_type</code></td><td>VARCHAR</td><td>Type (Duo, Solo, Happy Hour…)</td></tr>
-          <tr><td><code>promo_details</code></td><td>TEXT</td><td>Description complète de la promo</td></tr>
-          <tr><td><code>price</code></td><td>VARCHAR</td><td>Prix extrait (ex: "12.99")</td></tr>
-          <tr><td><code>promo_date</code></td><td>VARCHAR</td><td>Période de validité</td></tr>
-          <tr><td><code>grade</code></td><td>VARCHAR(5)</td><td>Grade A+/A/B/C/D/N/A</td></tr>
-          <tr><td><code>savings_estimate</code></td><td>DECIMAL</td><td>Économies estimées (20$ − prix)</td></tr>
-          <tr><td><code>category</code></td><td>VARCHAR</td><td>Catégorie (Duo, Famille, Solo…)</td></tr>
-          <tr><td><code>embedding</code></td><td>LONGBLOB</td><td>Vecteur 384-dim pour déduplication sémantique (optionnel)</td></tr>
-          <tr><td><code>is_active</code></td><td>TINYINT(1)</td><td>1=active, 0=expirée</td></tr>
-          <tr><td><code>last_seen</code></td><td>DATETIME</td><td>Dernière confirmation lors d'un scrape</td></tr>
-          <tr><td><code>saved_date_time</code></td><td>DATETIME</td><td>Date de première découverte</td></tr>
-          <tr><td><code>link</code></td><td>VARCHAR</td><td>URL de la promo</td></tr>
-          <tr><td><code>image_url</code></td><td>VARCHAR</td><td>URL de l'image</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <h6 class="fw-bold mt-3">Table <code>restaurants</code></h6>
-    <div class="table-responsive">
-      <table class="table table-sm table-bordered small mb-0">
-        <thead class="table-secondary"><tr><th>Colonne</th><th>Type</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>id</code></td><td>INT PK</td><td>Identifiant unique</td></tr>
-          <tr><td><code>name</code></td><td>VARCHAR</td><td>Nom affiché dans le dashboard</td></tr>
-          <tr><td><code>url</code></td><td>VARCHAR</td><td>URL de départ pour le scraper</td></tr>
-          <tr><td><code>scraper_type</code></td><td>VARCHAR</td><td>Non utilisé (générique uniquement)</td></tr>
-          <tr><td><code>last_scraped</code></td><td>DATETIME</td><td>Dernier scrape réussi</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <!-- SECURITY -->
+  <div class="section-title"><span class="fr">Sécurité & Bunker</span><span class="en">Security & Bunker</span></div>
+  <div class="card">
+    <h3>🛡️ Protection Reverse-Proxy</h3>
+    <p class="small">
+      <span class="fr">Votre instance est protégée par un <strong>Bunker Nginx</strong>. Toute tentative d'accès non autorisée est bloquée avant même d'atteindre l'application Python.</span>
+      <span class="en">Your instance is protected by an <strong>Nginx Bunker</strong>. Any unauthorized access attempt is blocked before reaching the Python application.</span>
+    </p>
+    <ul class="small" style="color: var(--muted);">
+      <li><span class="fr">Authentification HTTP Basic forcée.</span><span class="en">Forced HTTP Basic Authentication.</span></li>
+      <li><span class="fr">Exposition via Tailscale Funnel (Chiffrement de bout en bout).</span><span class="en">Exposed via Tailscale Funnel (End-to-end encryption).</span></li>
+      <li><span class="fr">Isolation réseau Docker (Database invisible sur le web).</span><span class="en">Docker network isolation (Database invisible on the web).</span></li>
+    </ul>
   </div>
 
-  <!-- Quick start -->
-  <h2 class="fw-bold mb-3">🚀 Démarrage rapide</h2>
-  <div class="card p-4 shadow-sm mb-5">
-    <pre class="bg-dark text-white p-3 rounded small"><code># 1. Installer les dépendances
-pip install -r requirements.txt
-patchright install chromium   # navigateur pour les SPA JavaScript
+  <!-- MAINTENANCE -->
+  <div class="section-title">Maintenance</div>
+  <div class="card">
+    <span class="fr">Pour gérer votre instance, utilisez le toolkit inclus :</span>
+    <span class="en">To manage your instance, use the included toolkit:</span>
+    <pre><code># Voir les logs en temps réel
+./manage.sh logs
 
-# 2. Configurer l'environnement (.env)
-DB_HOST=127.0.0.1
-DB_USER=root
-DB_PASSWORD=1234
-DB_NAME=promotions_db
-OPENAI_API_KEY=sk-...
-SKIP_EMBEDDING_INIT=1    # mettre à 0 pour activer la déduplication sémantique
-SCRAPE_INTERVAL_HOURS=6  # fréquence du scheduler automatique
+# Mettre à jour le code
+./manage.sh update
 
-# 3. Lancer le dashboard
-cd /home/as/ProjetUqacStage/app
-bash run.sh
+# Changer le mot de passe
+./manage.sh setpass
 
-# 4. Accéder au dashboard
-# → http://localhost:5000</code></pre>
+# Sauvegarder la base de données
+./manage.sh backup</code></pre>
+  </div>
+
+  <!-- DATA SCHEMA -->
+  <div class="section-title"><span class="fr">Schéma des Données</span><span class="en">Data Schema</span></div>
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table>
+      <thead>
+        <tr><th>FIELD</th><th>TYPE</th><th><span class="fr">DESCRIPTION</span><span class="en">DESCRIPTION</span></th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>restaurant</code></td><td>VARCHAR</td><td>Source Name</td></tr>
+        <tr><td><code>price</code></td><td>VARCHAR</td><td>Extracted numeric text</td></tr>
+        <tr><td><code>grade</code></td><td>CHAR(2)</td><td>A+ to D rating</td></tr>
+        <tr><td><code>is_active</code></td><td>TINYINT</td><td>Availability flag</td></tr>
+        <tr><td><code>embedding</code></td><td>BLOB</td><td>AI Vector for dedup</td></tr>
+      </tbody>
+    </table>
   </div>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function toggleTheme() {
+  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('pref-theme', theme);
+}
+if (localStorage.getItem('pref-theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); }
+
+function toggleLang() {
+  const isEn = document.body.classList.toggle('lang-en');
+  document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') {
+  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
+}
+</script>
 </body>
 </html>

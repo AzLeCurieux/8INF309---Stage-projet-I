@@ -3,243 +3,237 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Promo Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Chiken Wings | Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    body { background:#f0f2f5; }
-    .navbar-brand { font-size:1.3rem; letter-spacing:.5px; }
-    .card { border:none; border-radius:12px; transition: transform .15s, box-shadow .15s; }
-    .card:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.12); }
-    .stat-badge { font-size:.75rem; font-weight:600; border-radius:20px; padding:.25em .7em; }
-    .grade-pill { display:inline-block; width:32px; height:32px; border-radius:50%;
-                  line-height:32px; text-align:center; font-weight:800; font-size:.85rem; color:#fff; }
-    .gAp { background:#198754; } .gA  { background:#20c997; }
-    .gB  { background:#0dcaf0; color:#000; } .gC  { background:#ffc107; color:#000; }
-    .gD  { background:#dc3545; } .gNA { background:#adb5bd; }
+    :root {
+      --bg: #fafafa; --fg: #111827; --border: #e5e7eb; --muted: #6b7280; --hover: #f3f4f6; --card-bg: #ffffff;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --fg: #f8fafc; --border: #334155; --muted: #94a3b8; --hover: #1e293b; --card-bg: #1e293b;
+    }
+    body { 
+      background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif;
+      margin: 0; padding: 0; line-height: 1.5; transition: background 0.3s, color 0.3s;
+    }
+    .navbar {
+      border-bottom: 1px solid var(--border); background: var(--card-bg);
+      padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    .nav-brand { font-weight: 600; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+    .btn-minimal {
+      background: var(--card-bg); border: 1px solid var(--border); color: var(--fg);
+      padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.875rem;
+      cursor: pointer; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-minimal:hover { background: var(--hover); }
+    .btn-primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .btn-danger { color: #ef4444; border-color: #ef4444; }
+    
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    
+    .list-wrapper {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .list-header {
+      display: flex; padding: 0.75rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border);
+      font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 600; letter-spacing: 0.05em;
+    }
+    .row-name { flex: 2; }
+    .row-stats { flex: 2; display: flex; gap: 2rem; }
+    .row-actions { flex: 1; text-align: right; }
+    
+    .site-row {
+      display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .site-row:last-child { border-bottom: none; }
+    .site-row:hover { background: var(--hover); }
+    
+    .site-icon { width: 24px; height: 24px; border-radius: 4px; margin-right: 0.75rem; background: #fff; }
+    .site-name-col { flex: 2; display: flex; align-items: center; font-weight: 500; }
+    .site-stats-col { flex: 2; display: flex; gap: 2rem; font-size: 0.875rem; color: var(--muted); align-items: center; }
+    .site-actions-col { flex: 1; display: flex; gap: 0.5rem; justify-content: flex-end; }
+    
+    .add-form {
+      display: flex; gap: 1rem; padding: 1rem; background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 2rem;
+    }
+    .input-minimal {
+      flex: 1; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;
+      font-size: 0.875rem; outline: none; transition: border 0.2s; background: var(--bg); color: var(--fg);
+    }
+    
+    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; }
+    .job-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.875rem; }
+    .job-logs { background: var(--bg); color: var(--muted); font-family: monospace; font-size: 0.7rem; padding: 8px; margin-top: 10px; height: 120px; overflow-y: auto; border: 1px solid var(--border); }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Job panel (fire-and-forget status) */
-    #jobPanel {
-      position:fixed; bottom:1.5rem; right:1.5rem;
-      width:380px; max-height:60vh; overflow-y:auto;
-      z-index:9000; display:flex; flex-direction:column; gap:.5rem;
-    }
-    .job-card {
-      background:#1e1e2e; color:#fff; border-radius:12px;
-      padding:.75rem 1rem; font-size:.85rem;
-      box-shadow:0 4px 20px rgba(0,0,0,.4);
-      transition:opacity .3s;
-    }
-    .job-card.done   { border-left:4px solid #20c997; }
-    .job-card.error  { border-left:4px solid #dc3545; }
-    .job-card.running{ border-left:4px solid #ffc107; }
-    .job-card.pending{ border-left:4px solid #6c757d; }
-    .job-name { font-weight:700; }
-    .job-detail { color:#adb5bd; margin-top:.25rem; }
-    .spin { display:inline-block; animation:spin 1s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .btn-close-sm { background:none; border:none; color:#adb5bd;
-                    font-size:.85rem; float:right; cursor:pointer; }
-    .btn-close-sm:hover { color:#fff; }
+    body.lang-en .fr { display: none !important; }
+    body.lang-fr .en { display: none !important; }
   </style>
 </head>
-<body>
-<nav class="navbar navbar-dark bg-dark mb-4 px-3">
-  <a class="navbar-brand fw-bold" href="/">Promo Dashboard</a>
-  <div class="d-flex gap-2 align-items-center">
-    <span class="badge bg-secondary" title="Auto-scrape toutes les {{ scrape_interval_hours }}h">
-      Auto /{{ scrape_interval_hours }}h
-    </span>
-    <a href="/about" class="btn btn-outline-light btn-sm">A propos</a>
-    <button class="btn btn-warning btn-sm" onclick="crawlAll()">Scraper tout</button>
-    <button class="btn btn-info btn-sm text-dark" onclick="classifyAll()">Classer tout</button>
+<body class="lang-fr">
+
+<nav class="navbar">
+  <div class="nav-brand"><span>🍗</span> Chiken Wings</div>
+  <div style="display:flex; gap: 0.75rem; align-items: center;">
+    <button class="btn-minimal" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
+    <button class="btn-minimal" onclick="toggleLang()">
+      <span class="fr">FR</span><span class="en">EN</span>
+    </button>
+    <a href="/about" class="btn-minimal">
+      <span class="fr">Infos</span><span class="en">About</span>
+    </a>
+    <button class="btn-minimal" onclick="crawlAll()">
+      <span class="fr">Tout Scraper</span><span class="en">Scan All</span>
+    </button>
   </div>
 </nav>
 
 <div class="container">
-  <div id="alert-zone" class="mb-3"></div>
+  <div id="alert-zone"></div>
 
-  <!-- Ajouter un restaurant -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-primary text-white fw-bold">
-      Ajouter un restaurant a surveiller
-    </div>
-    <div class="card-body">
-      <form action="/add_restaurant" method="POST" class="row g-2">
-        <div class="col-md-4">
-          <input type="text" name="name" class="form-control" placeholder="Nom du restaurant" required>
-        </div>
-        <div class="col-md-5">
-          <input type="url" name="url" class="form-control" placeholder="URL de la page promotions" required>
-        </div>
-        <div class="col-md-3">
-          <button type="submit" class="btn btn-primary w-100">Ajouter</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <form action="/add_restaurant" method="POST" class="add-form">
+    <input type="text" name="name" class="input-minimal" placeholder="Name (ex: KFC)" required>
+    <input type="url" name="url" class="input-minimal" placeholder="URL (https://...)" required>
+    <button type="submit" class="btn-minimal btn-primary">
+      <span class="fr">Ajouter</span><span class="en">Add</span>
+    </button>
+  </form>
 
-  <!-- Legende grades -->
-  <div class="d-flex gap-3 align-items-center mb-3 flex-wrap">
-    <small class="text-muted fw-bold">Grades :</small>
-    {% for g,cls,label in [('A+','gAp','< 7$'),('A','gA','7-12$'),('B','gB','12-16$'),('C','gC','16-20$'),('D','gD','> 20$')] %}
-    <span class="grade-pill {{ cls }}">{{ g }}</span><small class="text-muted me-2">{{ label }}</small>
-    {% endfor %}
-  </div>
-
-  <!-- Cartes restaurants -->
-  <div class="row row-cols-1 row-cols-md-3 g-3">
-    {% for r in restaurants %}
-    <div class="col">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title fw-bold">{{ r.name }}</h5>
-          <span class="badge bg-secondary mb-2">Scrapling</span>
-          <p class="card-text small text-truncate mb-2">
-            <a href="{{ r.url }}" target="_blank" class="text-decoration-none text-muted">{{ r.url }}</a>
-          </p>
-          <div class="d-flex gap-2 flex-wrap mb-2">
-            <span class="stat-badge bg-dark text-white">{{ r.active_promos or 0 }} actives</span>
-            <span class="stat-badge bg-success text-white">{{ r.top_promos or 0 }} top (A+/A)</span>
-            {% if r.total_promos != r.active_promos %}
-            <span class="stat-badge bg-secondary text-white">
-              {{ (r.total_promos or 0) - (r.active_promos or 0) }} expirees
-            </span>
-            {% endif %}
-          </div>
-          {% if r.last_scraped %}
-          <p class="small text-muted mb-0">Dernier crawl : {{ r.last_scraped }}</p>
-          {% endif %}
-        </div>
-        <div class="card-footer bg-transparent border-top d-flex gap-2 flex-wrap">
-          <a href="/restaurant/{{ r.id }}" class="btn btn-sm btn-outline-primary flex-fill">Voir promos</a>
-          <button class="btn btn-sm btn-warning flex-fill"
-                  data-rid="{{ r.id }}"
-                  data-rname="{{ r.name }}"
-                  onclick="crawlOne(this)">
-            Scraper
-          </button>
-          <form action="/delete_restaurant/{{ r.id }}" method="POST"
-                onsubmit="return confirm('Supprimer {{ r.name }} ?')">
-            <button type="submit" class="btn btn-sm btn-outline-danger px-2">X</button>
-          </form>
-        </div>
+  <div class="list-wrapper">
+    <div class="list-header">
+      <div class="row-name">Source</div>
+      <div class="row-stats">
+        <span style="width:80px">Active</span>
+        <span style="width:80px">Top (A)</span>
+        <span>Last Scan</span>
       </div>
+      <div class="row-actions">Actions</div>
     </div>
-    {% else %}
-    <div class="col-12">
-      <div class="alert alert-info">
-        Aucun restaurant. Ajoutez-en un ci-dessus pour commencer.
+
+    {% for r in restaurants %}
+    <div class="site-row">
+      <div class="site-name-col">
+        <img src="https://www.google.com/s2/favicons?domain={{ r.url }}&sz=64" class="site-icon" alt="icon">
+        <a href="{{ r.url }}" target="_blank" style="color:var(--fg); text-decoration:none;">{{ r.name }}</a>
+      </div>
+      <div class="site-stats-col">
+        <span style="width:80px; font-weight:600; color:var(--fg);">{{ r.active_promos or 0 }}</span>
+        <span style="width:80px; font-weight:600; color:var(--fg);">{{ r.top_promos or 0 }}</span>
+        <span>{{ (r.last_scraped|string).split(' ')[0] if r.last_scraped else '-' }}</span>
+      </div>
+      <div class="site-actions-col">
+        <a href="/restaurant/{{ r.id }}" class="btn-minimal"><span class="fr">Voir</span><span class="en">View</span></a>
+        <button class="btn-minimal" data-rid="{{ r.id }}" data-rname="{{ r.name }}" onclick="crawlOne(this)">Scan</button>
+        <form action="/delete_restaurant/{{ r.id }}" method="POST" class="m-0" onsubmit="return confirm('Delete {{ r.name }}?')">
+          <button type="submit" class="btn-minimal btn-danger">X</button>
+        </form>
       </div>
     </div>
     {% endfor %}
   </div>
 </div>
 
-<!-- Job status panel (bottom-right) -->
 <div id="jobPanel"></div>
 
 <script>
-// ── Job tracking ────────────────────────────────────────────────────────────
-const _activeJobs = {};  // jid → { card, interval }
+function toggleTheme() {
+  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('pref-theme', theme);
+}
+if (localStorage.getItem('pref-theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+}
 
+function toggleLang() {
+  const isEn = document.body.classList.toggle('lang-en');
+  document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') {
+  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
+}
+
+const _activeJobs = {};
 function _jobCard(jid, name) {
   const card = document.createElement('div');
-  card.className = 'job-card pending';
+  card.className = 'job-card';
   card.id = 'job-' + jid;
   card.innerHTML = `
-    <button class="btn-close-sm" onclick="this.closest('.job-card').remove()">✕</button>
-    <div class="job-name"><span class="spin">⟳</span> ${name}</div>
-    <div class="job-detail" id="jd-${jid}">En file d'attente…</div>`;
+    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+      <strong style="display:flex; align-items:center; gap:0.5rem"><span class="spin">⟳</span> ${name}</strong>
+      <button style="border:none;background:none;cursor:pointer;color:var(--muted)" onclick="this.closest('.job-card').remove()">✕</button>
+    </div>
+    <div id="jd-${jid}" style="color:var(--muted); font-size:0.75rem;">Initializing...</div>
+    <div class="job-logs" id="jl-${jid}"></div>`;
   document.getElementById('jobPanel').prepend(card);
   return card;
+}
+
+async function _updateLogs(jid) {
+  try {
+    const r = await fetch('/api/job/' + jid + '/logs');
+    const d = await r.json();
+    const logDiv = document.getElementById('jl-' + jid);
+    if (d.logs && d.logs.length > 0) {
+      logDiv.textContent = d.logs.slice(-15).join('\n');
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+  } catch(e) {}
 }
 
 function _pollJob(jid, card) {
   const detail = document.getElementById('jd-' + jid);
   const ivl = setInterval(async () => {
     try {
+      _updateLogs(jid);
       const r = await fetch('/job/' + jid);
       const d = await r.json();
       const status = d.status;
-      card.className = 'job-card ' + status;
-
-      if (status === 'running') {
-        detail.textContent = 'Scraping en cours…';
-        card.querySelector('.job-name span').textContent = '⟳';
-      } else if (status === 'done') {
+      if (status === 'done') {
         clearInterval(ivl);
         const res = d.result || {};
-        card.querySelector('.job-name span').textContent = '✓';
-        card.querySelector('.job-name span').style.animation = 'none';
-        detail.innerHTML =
-          `<span class="text-success">+${res.inserted||0} nouvelles</span> · ` +
-          `${res.updated||0} confirmees · ` +
-          `${res.marked_inactive||0} expirees`;
-        // Auto-reload after 3s if page is the dashboard
+        card.querySelector('.spin').textContent = '✓';
+        card.querySelector('.spin').style.animation = 'none';
+        detail.innerHTML = `Done: +${res.inserted||0} new`;
         setTimeout(() => location.reload(), 3000);
       } else if (status === 'error') {
         clearInterval(ivl);
-        card.querySelector('.job-name span').textContent = '✕';
-        card.querySelector('.job-name span').style.animation = 'none';
-        detail.innerHTML = `<span class="text-danger">Erreur : ${d.error}</span>`;
+        detail.textContent = 'Error';
       }
-    } catch(e) {
-      // network error – keep polling
-    }
+    } catch(e) {}
   }, 2000);
-  _activeJobs[jid] = { card, ivl };
 }
 
-function _launchJob(jid, name) {
-  const card = _jobCard(jid, name);
-  _pollJob(jid, card);
-}
+function _launchJob(jid, name) { const card = _jobCard(jid, name); _pollJob(jid, card); }
 
-function showAlert(type, html) {
-  document.getElementById('alert-zone').innerHTML =
-    `<div class="alert alert-${type} alert-dismissible fade show">
-      ${html}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
-  window.scrollTo(0, 0);
-}
-
-// ── Actions ──────────────────────────────────────────────────────────────────
 async function crawlOne(btn) {
-  const rid  = btn.dataset.rid;
-  const name = btn.dataset.rname;
   try {
-    const r = await fetch('/crawl/' + rid, {method:'POST'});
+    const r = await fetch('/crawl/' + btn.dataset.rid, {method:'POST'});
     const d = await r.json();
-    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
     _launchJob(d.job_id, d.name);
-  } catch(e) {
-    showAlert('danger', 'Erreur reseau : ' + e);
-  }
+  } catch(e) {}
 }
 
 async function crawlAll() {
   try {
     const r = await fetch('/crawl_all', {method:'POST'});
     const d = await r.json();
-    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
-    for (const job of (d.jobs || [])) {
-      _launchJob(job.job_id, job.name);
-    }
-  } catch(e) {
-    showAlert('danger', 'Erreur : ' + e);
-  }
+    for (const job of (d.jobs || [])) { _launchJob(job.job_id, job.name); }
+  } catch(e) {}
 }
 
 async function classifyAll() {
   try {
-    const r = await fetch('/classify_all', {method:'POST'});
-    const d = await r.json();
-    if (d.error) { showAlert('danger', 'Erreur : ' + d.error); return; }
-    showAlert('success', d.classified + ' promotions classifiees.');
-  } catch(e) {
-    showAlert('danger', 'Erreur : ' + e);
-  }
+    await fetch('/classify_all', {method:'POST'});
+    location.reload();
+  } catch(e) {}
 }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
