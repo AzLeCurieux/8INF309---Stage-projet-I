@@ -262,10 +262,25 @@ def _html_to_text(html: str, base_url: str = "") -> str:
         tag.decompose()
 
     # Embed image URLs as text markers before stripping HTML
+    # We look for src, data-src and also meta og:image for robustness
+    og_img = soup.find("meta", property="og:image")
+    if og_img and og_img.get("content"):
+        content = og_img.get("content").strip()
+        if content.startswith("http"):
+            soup.insert(0, soup.new_tag("img", src=content, alt="og:image"))
+
     for img in soup.find_all("img"):
         src = (img.get("src") or img.get("data-src") or
                img.get("data-lazy-src") or img.get("data-original") or
                img.get("data-srcset", "").split()[0] or "").strip()
+        
+        # Check background-image in style attribute
+        style = img.get("style", "")
+        if not src and "background-image" in style:
+            import re
+            m = re.search(r"url\(['\"]?(.*?)['\"]?\)", style)
+            if m: src = m.group(1).strip()
+
         if src and not src.startswith("data:") and len(src) > 5:
             # Convert relative URLs to absolute
             if base_url and src.startswith("/"):
@@ -1065,6 +1080,7 @@ def _start_scheduler():
 def dashboard():
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
+        # 1. Fetch Restaurants
         cur.execute("""
             SELECT r.id, r.name, r.url, r.scraper_type,
                    COUNT(p.id)                                       AS total_promos,
@@ -1078,10 +1094,23 @@ def dashboard():
             ORDER BY a_plus_count DESC, top_promos DESC, r.name ASC
         """)
         restaurants = cur.fetchall()
+
+        # 2. Selection of the Day: 6 random active A+/A promotions
+        cur.execute("""
+            SELECT p.*, r.id as restaurant_id, r.url as restaurant_url
+            FROM promotions_table p
+            JOIN restaurants r ON p.restaurant = r.name
+            WHERE p.is_active = 1 AND p.grade IN ('A+', 'A')
+            ORDER BY RAND()
+            LIMIT 6
+        """)
+        selection = cur.fetchall()
+
         cur.close(); db.close()
     except Exception as exc:
-        restaurants = []; logging.error(f"dashboard error: {exc}")
+        restaurants = []; selection = []; logging.error(f"dashboard error: {exc}")
     return render_template("index.html", restaurants=restaurants,
+                           selection=selection,
                            scrape_interval_hours=SCRAPE_INTERVAL_HOURS)
 
 
