@@ -23,7 +23,7 @@ services:
   gatekeeper:
     image: nginx:alpine
     ports:
-      - "127.0.0.1:8080:80"
+      - "80:80"
     environment:
       BUNKER_PASSWORD: "${BUNKER_PASSWORD:-sx0y58n0ufm5}"
     volumes:
