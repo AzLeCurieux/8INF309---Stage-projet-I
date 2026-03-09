@@ -183,68 +183,63 @@ _IMG_SKIP_KW = [
     "1x1", "pixel", "track", "blank", "placeholder", ".svg",
 ]
 
-def _find_candidate_promo_images(text: str, max_candidates: int = 10) -> list[dict]:
+def _find_candidate_promo_images(text: str, max_candidates: int = 15) -> list[dict]:
     """
-    Scan combined page text for [IMAGE:url] markers and score each by:
-      - URL pattern match (banner, promo, hero…)
-      - Proximity to price patterns or promo keywords in surrounding text
+    Scan combined page text for [IMG_N:url ALT:text] markers and score each.
     Returns top candidates sorted by score.
     """
-    pattern = re.compile(r'\[IMAGE:(https?://[^\]\s]{10,})\]')
+    # Updated regex to match the new [IMG_N:URL ALT:TEXT] format
+    pattern = re.compile(r'\[IMG_\d+:([^\]\s]+)(?: ALT:([^\]]*))?\]')
     candidates: list[dict] = []
     seen: set[str] = set()
 
     for m in pattern.finditer(text):
         url = m.group(1).strip()
+        alt = (m.group(2) or "").strip()
         if url in seen:
             continue
         url_lower = url.lower()
-
-        # Skip non-image URLs (must look like an image resource or a CDN path)
-        is_img_ext = any(
-            url_lower.endswith(ext) or f"{ext}?" in url_lower or f"{ext}&" in url_lower
-            for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]
-        )
-        is_img_cdn = any(
-            tok in url_lower for tok in ["cdn", "images", "/img/", "/media/", "upload", "static"]
-        )
-        if not is_img_ext and not is_img_cdn:
-            continue
 
         # Skip obvious non-promo images
         if any(skip in url_lower for skip in _IMG_SKIP_KW):
             continue
 
         score = 0
+        # ALT text is a HUGE indicator
+        if alt:
+            alt_lower = alt.lower()
+            for kw in _IMG_CTX_PROMO_KW:
+                if kw in alt_lower: score += 15
+            if re.search(r"\$\s*\d+|\d+[.,]\d{2}", alt_lower):
+                score += 30
 
         # URL keyword bonus
         for kw in _IMG_URL_PROMO_KW:
             if kw in url_lower:
-                score += 20
+                score += 15
                 break
 
-        # Context window around the [IMAGE:…] marker
+        # Context window around the marker
         start = m.start()
-        ctx_s = max(0, start - 400)
-        ctx_e = min(len(text), start + len(m.group(0)) + 400)
+        ctx_s = max(0, start - 500)
+        ctx_e = min(len(text), start + len(m.group(0)) + 500)
         ctx   = text[ctx_s:ctx_e].lower()
 
         for kw in _IMG_CTX_PROMO_KW:
-            if kw in ctx:
-                score += 8
+            if kw in ctx: score += 10
         if re.search(r"\$\s*\d+|\d+[.,]\d{2}", ctx):
-            score += 25   # price nearby → very likely a promo banner
+            score += 25
 
-        if score < 8:     # minimum bar to be a candidate
+        # Lowered minimum bar to be more proactive (from 8 to 5)
+        if score < 5:
             continue
 
         seen.add(url)
-        # Clean context snippet (strip the [IMAGE:…] marker itself)
-        ctx_snippet = text[ctx_s:ctx_e].replace(m.group(0), " ").strip()[:250]
-        candidates.append({"url": url, "score": score, "context": ctx_snippet})
+        ctx_snippet = text[ctx_s:ctx_e].replace(m.group(0), " ").strip()[:300]
+        candidates.append({"url": url, "score": score, "context": ctx_snippet, "alt": alt})
 
     candidates.sort(key=lambda x: -x["score"])
-    logging.info(f"Candidate promo images found: {len(candidates[:max_candidates])}")
+    logging.info(f"Candidate promo images found: {len(candidates)}")
     return candidates[:max_candidates]
 
 
