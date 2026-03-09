@@ -619,27 +619,31 @@ Page content:
     return []
 
 
-_MAX_IMAGES_PER_BATCH = 5   # hard cap to keep costs low
+_MAX_IMAGES_PER_BATCH = 15   # Increased from 5 to 15 to capture more banners
 
 def _analyze_images_with_vision(images: list[dict], restaurant_name: str, page_url: str) -> list[dict]:
     """
     Send each candidate image to GPT-4o Vision (detail=low).
-    detail=low uses ~85 tokens per image regardless of resolution.
-    Each call costs roughly $0.0002–$0.0005 total; 5 images ≈ $0.001–$0.002.
     """
     if not images or not OPENAI_API_KEY:
         return []
 
     all_promos: list[dict] = []
     client = OpenAIClient(api_key=OPENAI_API_KEY)
-    batch = images[:_MAX_IMAGES_PER_BATCH]
+    # Filter to ensure we only send real image URLs and prioritize high scores
+    batch = [img for img in images if img.get("url")][:_MAX_IMAGES_PER_BATCH]
 
     for img in batch:
         url     = img.get("url", "")
-        context = img.get("context", "")[:300]
+        context = img.get("context", "")[:400]
         if not url:
             continue
-        logging.info(f"[Vision] Analyzing image: {url[:80]}")
+        
+        # Skip small icons or tracker pixels that might have leaked through
+        if "1x1" in url or "pixel" in url or "favicon" in url:
+            continue
+
+        logging.info(f"[Vision] Analyzing image: {url[:80]} (Score: {img.get('score')})")
         try:
             resp = client.chat.completions.create(
                 model=EXTRACT_MODEL_FALLBACK,   # GPT-4o (vision-capable)
