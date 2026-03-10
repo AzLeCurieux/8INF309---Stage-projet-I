@@ -808,7 +808,7 @@ def save_promos_to_db(restaurant_name: str, new_promos: list[dict]) -> dict:
             emb_bytes = emb_arr.tobytes() if emb_arr is not None else None
             _img = (promo.get("image_url") or "").strip()
             if not _img or _img.lower() in ("not provided", "n/a", "none"):
-                _img = GENERIC_PROMO_IMAGE
+                _img = None
             try:
                 cur.execute(
                     "INSERT INTO promotions_table "
@@ -1185,7 +1185,11 @@ def add_restaurant():
 @app.route("/delete_restaurant/<int:rid>", methods=["POST"])
 def delete_restaurant(rid):
     try:
-        db = get_db(); cur = db.cursor()
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT name FROM restaurants WHERE id = %s", (rid,))
+        rest = cur.fetchone()
+        if rest:
+            cur.execute("DELETE FROM promotions_table WHERE restaurant = %s", (rest["name"],))
         cur.execute("DELETE FROM restaurants WHERE id = %s", (rid,))
         db.commit(); cur.close(); db.close()
     except Exception as exc: return f"Error: {exc}", 500

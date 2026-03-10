@@ -269,8 +269,14 @@
     #jobPanel {
       position: fixed; bottom: 1.5rem; right: 1.5rem;
       width: 400px; z-index: 9999;
-      display: flex; flex-direction: column; gap: 0.75rem;
+      display: flex; flex-direction: column-reverse; gap: 0.75rem;
+      max-height: calc(100vh - 5rem);
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+      padding: 0.25rem 4px 0.25rem 0;
+      pointer-events: none;
     }
+    #jobPanel > * { pointer-events: all; }
 
     .job-card {
       background: var(--card);
@@ -506,7 +512,7 @@
       .row-actions { padding-top: 0.25rem; gap: 0.4rem; }
       .btn-row { flex: 1; justify-content: center; height: 36px; font-size: 12px; }
 
-      #jobPanel { width: calc(100% - 1rem); left: 0.5rem; bottom: 0.5rem; }
+      #jobPanel { width: calc(100% - 1rem); left: 0.5rem; right: 0.5rem; bottom: 0.5rem; max-height: 50vh; }
     }
 
     /* ── SELECTION OF THE DAY STYLES ── */
@@ -528,6 +534,8 @@
     .card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
     .selection-card:hover .card-img { transform: scale(1.04); }
     .card-img-placeholder { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: 0.1; }
+    .card-img-favicon { height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--surface) 0%, var(--card) 100%); }
+    .card-img-favicon img { width: 56px; height: 56px; border-radius: 10px; opacity: 0.7; filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5)); }
 
     .grade-badge {
       position: absolute; top: 10px; right: 10px;
@@ -603,9 +611,6 @@
   <a href="/about" class="nav-btn">
     <span class="fr">Docs</span><span class="en">Docs</span>
   </a>
-  <button class="nav-btn" onclick="clearDB()" style="color:var(--red);border-color:var(--red)" title="Vider toutes les promotions / Clear all promotions">
-    <span class="fr">Vider DB</span><span class="en">Clear DB</span>
-  </button>
   <button class="nav-btn" onclick="crawlAll()">
     <span class="fr">Tout scanner</span><span class="en">Scan all</span>
   </button>
@@ -733,10 +738,13 @@
     {% for p in selection %}
     <div class="selection-card" style="animation-delay: {{ 0.2 + loop.index0 * 0.05 }}s">
       <div class="card-img-wrap">
-        {% if p.image_url and p.image_url != 'Not Provided' %}
-        <img src="{{ p.image_url }}" class="card-img" alt="" loading="lazy">
+        {% if p.image_url and p.image_url not in ('Not Provided', 'N/A', 'none') %}
+        <img src="{{ p.image_url }}" class="card-img" alt="" loading="lazy"
+             onerror="this.parentElement.innerHTML='<div class=\'card-img-favicon\'><img src=\'https://www.google.com/s2/favicons?domain={{ p.restaurant_url }}&sz=128\' alt=\'\'></div>'">
         {% else %}
-        <div class="card-img-placeholder">🍗</div>
+        <div class="card-img-favicon">
+          <img src="https://www.google.com/s2/favicons?domain={{ p.restaurant_url }}&sz=128" alt="{{ p.restaurant }}">
+        </div>
         {% endif %}
         <div class="source-tag">
           <img src="https://www.google.com/s2/favicons?domain={{ p.restaurant_url }}&sz=32" class="source-icon" alt="">
