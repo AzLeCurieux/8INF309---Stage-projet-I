@@ -280,11 +280,7 @@ def _html_to_text(html: str, base_url: str = "") -> str:
     html = html[:800_000]
     soup = BeautifulSoup(html, "html.parser")
 
-    for tag in soup(["script", "style", "nav", "footer",
-                     "noscript", "svg", "iframe"]):
-        tag.decompose()
-
-    # Embed og:image as first image
+    # Embed og:image BEFORE stripping, so we capture it even if in <head>
     og_img = soup.find("meta", property="og:image")
     if og_img and og_img.get("content"):
         src = og_img["content"].strip()
@@ -292,6 +288,7 @@ def _html_to_text(html: str, base_url: str = "") -> str:
             soup.insert(0, soup.new_tag("img", src=src, alt="og_featured"))
 
     # ── Pass 1: lift best <source srcset> into the sibling <img> ──────────
+    # (must run BEFORE stripping to capture <picture> anywhere in the page)
     for pic in soup.find_all("picture"):
         best = ""
         for source in pic.find_all("source"):
@@ -344,6 +341,11 @@ def _html_to_text(html: str, base_url: str = "") -> str:
         img_count += 1
         alt = (img.get("alt") or img.get("title") or img.get("data-alt") or "").strip()
         img.replace_with(f" [IMG_{img_count}:{src} ALT:{alt}] ")
+
+    # ── Pass 4: strip noise tags (navigation, forms, layout boilerplate) ──
+    for tag in soup(["script", "style", "nav", "footer", "header", "aside",
+                     "noscript", "form", "svg", "iframe", "button", "input"]):
+        tag.decompose()
 
     lines = [l.strip() for l in soup.get_text(separator="\n").splitlines()]
     return "\n".join(l for l in lines if l)
