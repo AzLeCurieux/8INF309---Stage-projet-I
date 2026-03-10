@@ -187,6 +187,14 @@
       .accuracy-block { flex-direction: column; align-items: flex-start; }
     }
     @media (max-width: 500px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Persistent job panel (other scans) */
+    #extJobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+    .job-card-ext { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .jce-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+    .jce-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
+    .jce-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 2px; border-radius: 3px; }
+    .jce-body { padding: 0.75rem 0.875rem; font-size: 12px; color: var(--muted-hi); }
   </style>
 </head>
 <body class="lang-fr">
@@ -207,6 +215,7 @@
   <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
 </nav>
 
+<div id="extJobPanel"></div>
 <div class="layout">
 
   <!-- Hero -->
@@ -338,6 +347,35 @@ async function pollJob(jid) {
 }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ─── Restore other scan jobs (not the verify job) ─────────────────────────
+(function() {
+  const KEY = 'cw_jobs';
+  function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
+  function set(j) { sessionStorage.setItem(KEY, JSON.stringify(j)); }
+  const fresh = get().filter(j => Date.now() - (j.ts||0) < 30*60*1000);
+  set(fresh);
+  fresh.forEach(j => {
+    const panel = document.getElementById('extJobPanel');
+    const c = document.createElement('div'); c.className='job-card-ext'; c.id='ejob-'+j.jid;
+    c.innerHTML=`<div class="jce-title"><span class="jce-name"><span id="epin-${j.jid}" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> ${j.name}</span><button class="jce-close" onclick="this.closest('.job-card-ext').remove()">✕</button></div><div class="jce-body" id="ejd-${j.jid}">En cours…</div>`;
+    panel.prepend(c);
+    const ivl = setInterval(async () => {
+      try {
+        const r = await fetch('/job/'+j.jid); const job = await r.json();
+        if (job.status==='done') {
+          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
+          const sp=document.getElementById('epin-'+j.jid); if(sp){sp.textContent='✓';sp.style.animation='none';sp.style.color='#10b981';}
+          const det=document.getElementById('ejd-'+j.jid); if(det) det.textContent=`+${(job.result||{}).inserted||0} nouvelles — terminé`;
+        } else if (job.status==='error') {
+          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
+          const sp=document.getElementById('epin-'+j.jid); if(sp){sp.textContent='✗';sp.style.animation='none';sp.style.color='var(--red)';}
+          const det=document.getElementById('ejd-'+j.jid); if(det) det.textContent=job.error||'Erreur';
+        }
+      } catch(e) {}
+    }, 2500);
+  });
+})();
 
 function renderResults(r) {
   const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';

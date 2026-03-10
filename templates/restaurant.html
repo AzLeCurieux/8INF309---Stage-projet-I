@@ -608,6 +608,43 @@ async function triggerClean(rid) {
     _pollCleanJob(d.job_id, card);
   } catch(e) { if(btn) btn.disabled=false; }
 }
+
+// ─── Restore scan jobs from other pages (sessionStorage) ──────────────────
+(function _restoreJobs() {
+  const KEY = 'cw_jobs';
+  function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
+  function set(j) { sessionStorage.setItem(KEY, JSON.stringify(j)); }
+  const now = Date.now();
+  const fresh = get().filter(j => now - (j.ts||0) < 30*60*1000);
+  set(fresh);
+  fresh.forEach(j => {
+    if (document.getElementById('job-' + j.jid)) return;
+    const c = _jobCard(j.jid, j.name);
+    const det = document.getElementById('jd-' + j.jid);
+    const ivl = setInterval(async () => {
+      try {
+        const [jr, lr] = await Promise.all([fetch('/job/'+j.jid), fetch('/api/job/'+j.jid+'/logs')]);
+        const [job, logs] = await Promise.all([jr.json(), lr.json()]);
+        const el = document.getElementById('jl-'+j.jid);
+        if (el && logs.logs) { el.textContent = logs.logs.slice(-12).join('\n'); el.scrollTop=el.scrollHeight; }
+        if (job.status === 'done') {
+          clearInterval(ivl);
+          set(get().filter(x => x.jid !== j.jid));
+          const sp = document.getElementById('spin-'+j.jid);
+          if (sp) { sp.textContent='✓'; sp.style.animation='none'; sp.style.color='#10b981'; }
+          const res = job.result || {};
+          if (det) det.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles — terminé</span><span class="en">new — done</span>`;
+        } else if (job.status === 'error') {
+          clearInterval(ivl);
+          set(get().filter(x => x.jid !== j.jid));
+          const sp = document.getElementById('spin-'+j.jid);
+          if (sp) { sp.textContent='✗'; sp.style.animation='none'; sp.style.color='var(--red)'; }
+          if (det) det.innerHTML = `<span style="color:var(--red)">${job.error||'Erreur'}</span>`;
+        }
+      } catch(e) {}
+    }, 2500);
+  });
+})();
 </script>
 </body>
 </html>

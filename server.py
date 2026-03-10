@@ -54,6 +54,7 @@ SIMILARITY_THRESHOLD  = 0.92
 INACTIVE_AFTER_DAYS   = 7
 SCRAPE_INTERVAL_HOURS = int(os.environ.get("SCRAPE_INTERVAL_HOURS", "6"))
 MAX_DISCOVERY_PAGES   = 3   # extra pages to follow per restaurant (reduced for perf)
+GENERIC_PROMO_IMAGE   = "https://placehold.co/600x400/121220/f5a623?text=Promo"
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(message)s")
@@ -805,6 +806,9 @@ def save_promos_to_db(restaurant_name: str, new_promos: list[dict]) -> dict:
             grade, savings, category = classify_promotion(
                 promo.get("price"), promo.get("promo_type", ""), det)
             emb_bytes = emb_arr.tobytes() if emb_arr is not None else None
+            _img = (promo.get("image_url") or "").strip()
+            if not _img or _img.lower() in ("not provided", "n/a", "none"):
+                _img = GENERIC_PROMO_IMAGE
             try:
                 cur.execute(
                     "INSERT INTO promotions_table "
@@ -813,7 +817,7 @@ def save_promos_to_db(restaurant_name: str, new_promos: list[dict]) -> dict:
                     "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s)",
                     (restaurant_name, promo.get("promo_type","Other"), det,
                      promo.get("price"), promo.get("promo_date"),
-                     promo.get("link"), promo.get("image_url"),
+                     promo.get("link"), _img,
                      now, emb_bytes, grade, savings, category, now))
                 db.commit()
                 existing.append({"id": cur.lastrowid, "det": det_lower,
@@ -1361,6 +1365,39 @@ def api_restaurants():
         rows = cur.fetchall(); cur.close(); db.close()
         return jsonify(rows)
     except Exception as exc: return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/clear_promotions", methods=["POST"])
+def clear_promotions():
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute("DELETE FROM promotions_table")
+        db.commit()
+        deleted = cur.rowcount
+        cur.close(); db.close()
+        logging.info(f"DB cleared: {deleted} promotions deleted.")
+        return jsonify({"deleted": deleted})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/fix_images", methods=["POST"])
+def fix_images():
+    """Replace NULL / 'Not Provided' image_url with the generic placeholder."""
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute(
+            "UPDATE promotions_table SET image_url=%s "
+            "WHERE image_url IS NULL OR TRIM(image_url)='' "
+            "OR LOWER(TRIM(image_url)) IN ('not provided','n/a','none')",
+            (GENERIC_PROMO_IMAGE,),
+        )
+        db.commit()
+        updated = cur.rowcount
+        cur.close(); db.close()
+        return jsonify({"updated": updated})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/ping")

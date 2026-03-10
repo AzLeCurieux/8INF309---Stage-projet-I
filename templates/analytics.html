@@ -130,6 +130,17 @@
       .charts-3col { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } }
+
+    /* Persistent job panel */
+    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+    .job-card { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .job-card-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+    .job-card-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
+    .job-card-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 2px; border-radius: 3px; transition: color 0.15s; }
+    .job-card-close:hover { color: var(--text); }
+    .job-card-body { padding: 0.75rem 0.875rem; }
+    .job-status { font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem; }
+    .job-logs { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); padding: 0.5rem; height: 80px; overflow-y: auto; line-height: 1.6; }
   </style>
 </head>
 <body class="lang-fr">
@@ -150,6 +161,7 @@
   <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
 </nav>
 
+<div id="jobPanel"></div>
 <div class="layout">
 
   <div id="loadingState" class="loading"><span class="spin">⟳</span> Chargement des données…</div>
@@ -431,6 +443,38 @@ async function loadData() {
 }
 
 loadData();
+
+// ─── Restore scan jobs from other pages ───────────────────────────────────
+(function() {
+  const KEY = 'cw_jobs';
+  function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
+  function set(j) { sessionStorage.setItem(KEY, JSON.stringify(j)); }
+  const fresh = get().filter(j => Date.now() - (j.ts||0) < 30*60*1000);
+  set(fresh);
+  fresh.forEach(j => {
+    const panel = document.getElementById('jobPanel');
+    const c = document.createElement('div'); c.className='job-card'; c.id='job-'+j.jid;
+    c.innerHTML=`<div class="job-card-title"><span class="job-card-name"><span id="spin-${j.jid}" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> ${j.name}</span><button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button></div><div class="job-card-body"><div class="job-status" id="jd-${j.jid}">En cours…</div><div class="job-logs" id="jl-${j.jid}"></div></div>`;
+    panel.prepend(c);
+    const ivl = setInterval(async () => {
+      try {
+        const [jr, lr] = await Promise.all([fetch('/job/'+j.jid), fetch('/api/job/'+j.jid+'/logs')]);
+        const [job, logs] = await Promise.all([jr.json(), lr.json()]);
+        const el = document.getElementById('jl-'+j.jid);
+        if (el && logs.logs) { el.textContent=logs.logs.slice(-12).join('\n'); el.scrollTop=el.scrollHeight; }
+        if (job.status==='done') {
+          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
+          const sp=document.getElementById('spin-'+j.jid); if(sp){sp.textContent='✓';sp.style.animation='none';sp.style.color='#10b981';}
+          const det=document.getElementById('jd-'+j.jid); if(det) det.innerHTML=`+${(job.result||{}).inserted||0} nouvelles — terminé`;
+        } else if (job.status==='error') {
+          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
+          const sp=document.getElementById('spin-'+j.jid); if(sp){sp.textContent='✗';sp.style.animation='none';sp.style.color='var(--red)';}
+          const det=document.getElementById('jd-'+j.jid); if(det) det.innerHTML=`<span style="color:var(--red)">${job.error||'Erreur'}</span>`;
+        }
+      } catch(e) {}
+    }, 2500);
+  });
+})();
 </script>
 </body>
 </html>

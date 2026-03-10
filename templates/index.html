@@ -603,6 +603,9 @@
   <a href="/about" class="nav-btn">
     <span class="fr">Docs</span><span class="en">Docs</span>
   </a>
+  <button class="nav-btn" onclick="clearDB()" style="color:var(--red);border-color:var(--red)" title="Vider toutes les promotions / Clear all promotions">
+    <span class="fr">Vider DB</span><span class="en">Clear DB</span>
+  </button>
   <button class="nav-btn" onclick="crawlAll()">
     <span class="fr">Tout scanner</span><span class="en">Scan all</span>
   </button>
@@ -784,12 +787,23 @@ if (localStorage.getItem('pref-lang') === 'en') {
   document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
 }
 
+// ─── Persistent job panel (survives navigation via sessionStorage) ──────────
+const _JP_KEY = 'cw_jobs';
+function _jpGet() { try { return JSON.parse(sessionStorage.getItem(_JP_KEY)||'[]'); } catch { return []; } }
+function _jpSet(j) { sessionStorage.setItem(_JP_KEY, JSON.stringify(j)); }
+function _jpAdd(jid, name, rid) {
+  const jobs = _jpGet().filter(j => j.jid !== jid);
+  jobs.push({ jid, name: String(name).replace(/<[^>]+>/g,''), rid: rid||null, ts: Date.now() });
+  _jpSet(jobs);
+}
+function _jpRemove(jid) { _jpSet(_jpGet().filter(j => j.jid !== jid)); }
+
 function _jobCard(jid, name) {
   const card = document.createElement('div');
   card.className = 'job-card'; card.id = 'job-' + jid;
   card.innerHTML = `
     <div class="job-card-title">
-      <span class="job-card-name"><span class="spin">⟳</span> ${name}</span>
+      <span class="job-card-name"><span class="spin" id="spin-${jid}">⟳</span> ${name}</span>
       <button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button>
     </div>
     <div class="job-card-body">
@@ -895,8 +909,9 @@ function _pollJob(jid, card, rid) {
       const d = await r.json();
       if (d.status === 'done') {
         clearInterval(ivl);
+        _jpRemove(jid);
         const res = d.result || {};
-        const spinEl = card.querySelector('.spin');
+        const spinEl = document.getElementById('spin-' + jid);
         if (spinEl) { spinEl.textContent = '✓'; spinEl.style.animation = 'none'; spinEl.style.color = '#10b981'; }
         const imgs = res.candidate_images || [];
         const effectiveRid = rid || res.restaurant_id || null;
@@ -912,8 +927,9 @@ function _pollJob(jid, card, rid) {
         }
       } else if (d.status === 'error') {
         clearInterval(ivl);
+        _jpRemove(jid);
         detail.innerHTML = `<span style="color:var(--red)">${d.error||'Erreur'}</span>`;
-        const spinEl = card.querySelector('.spin');
+        const spinEl = document.getElementById('spin-' + jid);
         if (spinEl) { spinEl.textContent = '✗'; spinEl.style.animation = 'none'; spinEl.style.color = 'var(--red)'; }
       }
     } catch(e) {}
@@ -921,6 +937,7 @@ function _pollJob(jid, card, rid) {
 }
 
 function _launchJob(jid, name, rid) {
+  _jpAdd(jid, name, rid);
   const card = _jobCard(jid, name);
   _pollJob(jid, card, rid || null);
 }
@@ -940,6 +957,34 @@ async function crawlAll() {
     for (const job of (d.jobs || [])) _launchJob(job.job_id, job.name, job.restaurant_id);
   } catch(e) {}
 }
+
+async function clearDB() {
+  const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';
+  const msg = lang === 'en'
+    ? 'Delete ALL promotions from the database? (Restaurants are kept)'
+    : 'Supprimer TOUTES les promotions de la base de données ? (Les sources sont conservées)';
+  if (!confirm(msg)) return;
+  try {
+    const r = await fetch('/api/clear_promotions', {method: 'POST'});
+    const d = await r.json();
+    if (d.error) { alert('Erreur: ' + d.error); return; }
+    const n = d.deleted || 0;
+    alert(lang === 'en' ? `${n} promotions deleted.` : `${n} promotions supprimées.`);
+    location.reload();
+  } catch(e) { alert('Erreur réseau'); }
+}
+
+// Restore jobs that were active on a previous page
+(function _restoreJobs() {
+  const now = Date.now();
+  const fresh = _jpGet().filter(j => now - (j.ts||0) < 30 * 60 * 1000);
+  _jpSet(fresh);
+  fresh.forEach(j => {
+    if (document.getElementById('job-' + j.jid)) return; // already shown
+    const card = _jobCard(j.jid, j.name);
+    _pollJob(j.jid, card, j.rid);
+  });
+})();
 
 let _sortCol = null, _sortDir = 1;
 function sortTable(col) {
