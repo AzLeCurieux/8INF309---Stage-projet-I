@@ -1140,12 +1140,107 @@ def clean_promos_sync(restaurant_name: str) -> dict:
         return {"error": str(exc), "non_promo_removed": 0, "deduped": 0, "total_checked": 0}
 
 
+LLM_DEDUP_THRESHOLD = 0.75  # cosine sim minimum pour grouper des candidats doublon
+
+
+def _llm_dedup_restaurant(restaurant_name: str) -> int:
+    """
+    Déduplication IA en 2 étapes :
+      1. Clustering par embedding cosine >= LLM_DEDUP_THRESHOLD (union-find)
+      2. Pour chaque cluster >= 2 promos, GPT-4o-mini décide lesquelles supprimer
+    Retourne le nombre de promos désactivées.
+    """
+    if embedding_model is None or cosine_similarity is None:
+        return 0
+    try:
+        db  = get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, promo_type, promo_details, price, embedding FROM promotions_table "
+            "WHERE restaurant=%s AND is_active=1 AND embedding IS NOT NULL",
+            (restaurant_name,))
+        rows = cur.fetchall()
+        if len(rows) < 2:
+            cur.close(); db.close(); return 0
+
+        embs = np.vstack([np.frombuffer(r["embedding"], dtype=np.float32) for r in rows])
+        sims = cosine_similarity(embs)
+
+        # Union-find clustering
+        parent = list(range(len(rows)))
+        def _find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]; x = parent[x]
+            return x
+        for i in range(len(rows)):
+            for j in range(i + 1, len(rows)):
+                if sims[i][j] >= LLM_DEDUP_THRESHOLD:
+                    root_i, root_j = _find(i), _find(j)
+                    if root_i != root_j:
+                        parent[root_i] = root_j
+
+        clusters: dict[int, list[int]] = {}
+        for idx in range(len(rows)):
+            clusters.setdefault(_find(idx), []).append(idx)
+
+        to_deactivate: list[int] = []
+        client = OpenAIClient(api_key=OPENAI_API_KEY)
+
+        for cluster_indices in clusters.values():
+            if len(cluster_indices) < 2:
+                continue
+            cluster_rows = [rows[i] for i in cluster_indices]
+            items = "\n".join(
+                f'{k+1}. [{r["promo_type"]}] {r["promo_details"]} | Prix: {r["price"] or "N/A"}'
+                for k, r in enumerate(cluster_rows)
+            )
+            prompt = (
+                "Tu es un expert en promotions de restaurant. "
+                "Voici un groupe de promotions potentiellement similaires ou dupliquées :\n\n"
+                f"{items}\n\n"
+                "Réponds UNIQUEMENT avec les numéros (séparés par des virgules) des promotions "
+                "qui sont de VRAIS DOUBLONS à supprimer (garde la plus complète/spécifique). "
+                "Si aucune n'est un doublon, réponds 'aucun'."
+            )
+            try:
+                resp = client.chat.completions.create(
+                    model=EXTRACT_MODEL_PRIMARY,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=60, temperature=0)
+                answer = resp.choices[0].message.content.strip().lower()
+                if answer == "aucun":
+                    continue
+                for part in re.split(r"[,\s]+", answer):
+                    part = part.strip()
+                    if part.isdigit():
+                        k = int(part) - 1
+                        if 0 <= k < len(cluster_rows):
+                            to_deactivate.append(cluster_rows[k]["id"])
+            except Exception as e:
+                logging.warning(f"[LLM-dedup] API error: {e}")
+
+        if to_deactivate:
+            fmt = ",".join(["%s"] * len(to_deactivate))
+            cur.execute(
+                f"UPDATE promotions_table SET is_active=0 WHERE id IN ({fmt})",
+                to_deactivate)
+            db.commit()
+            logging.info(f"[LLM-dedup] {restaurant_name}: {len(to_deactivate)} doublons désactivés")
+
+        cur.close(); db.close()
+        return len(to_deactivate)
+    except Exception as exc:
+        logging.error(f"_llm_dedup_restaurant error: {exc}")
+        return 0
+
+
 def _background_clean(jid: str, restaurant_name: str):
     _thread_context.job_id = jid
     _set_job(jid, "running")
     try:
         logging.info(f"[Clean] Job {jid} démarré pour {restaurant_name}")
         stats = clean_promos_sync(restaurant_name)
+        stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
         stats["clean"] = True
         _set_job(jid, "done", result=stats)
         logging.info(f"[Clean] Job {jid} terminé: {stats}")
@@ -1163,6 +1258,7 @@ def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dic
     stats["pages_crawled"]   = crawled
     if AUTO_CLEAN_AFTER_SCRAPE:
         clean_stats = clean_promos_sync(restaurant_name)
+        clean_stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
         stats["auto_cleaned"] = clean_stats
     return stats
 
@@ -1178,7 +1274,9 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
         if rid is not None:
             stats["restaurant_id"] = rid
         if AUTO_CLEAN_AFTER_SCRAPE:
-            stats["auto_cleaned"]  = clean_promos_sync(restaurant_name)
+            clean_stats = clean_promos_sync(restaurant_name)
+            clean_stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
+            stats["auto_cleaned"] = clean_stats
         _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
