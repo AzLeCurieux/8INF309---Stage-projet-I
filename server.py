@@ -53,7 +53,7 @@ EXTRACT_MODEL_FALLBACK = "gpt-4o"
 SIMILARITY_THRESHOLD  = 0.92
 INACTIVE_AFTER_DAYS   = 7
 SCRAPE_INTERVAL_HOURS = int(os.environ.get("SCRAPE_INTERVAL_HOURS", "6"))
-MAX_DISCOVERY_PAGES   = 3   # extra pages to follow per restaurant (reduced for perf)
+MAX_DISCOVERY_PAGES   = 8   # extra pages to follow per restaurant
 GENERIC_PROMO_IMAGE   = "https://placehold.co/600x400/121220/f5a623?text=Promo"
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -355,18 +355,21 @@ def _html_to_text(html: str, base_url: str = "") -> str:
 _PROMO_LINK_KW = [
     # French – promos / offres
     "promo", "promotion", "offre", "offres", "spécial", "special", "vedette",
-    "rabais", "réduction", "économie", "commander", "commande", "commander-en",
-    "nouveau", "nouveauté", "limité", "journée", "midi", "happy", "aubaine",
-    "featured", "featuring", "menu-vedette",
+    "rabais", "réduction", "économie", "nouveau", "nouveauté", "limité",
+    "journée", "midi", "happy", "aubaine", "featured", "featuring",
+    "menu-vedette", "sur-mesure", "exclusif", "exclusive", "solde", "vente",
     # French – menu / plats (souvent des promos sur les pages vedettes)
     "menu", "plat", "repas", "mets", "assiette", "dejeuner", "dîner", "souper",
-    "brunch", "lunch", "soir", "cuisine", "chef", "signature",
+    "brunch", "lunch", "soir", "cuisine", "chef", "signature", "commander",
+    "commande", "livraison",
     # English – promos / deals
     "offer", "deal", "discount", "featured", "specials", "weekly", "daily",
     "order", "combo", "bundle", "value", "savings", "limited", "spotlight",
+    "sale", "clearance", "flash", "exclusive",
     # English – food pages that often carry featured promos
     "food", "eats", "dishes", "meals", "plate", "dinner", "supper",
-    "seasonal", "feature", "today", "week",
+    "seasonal", "feature", "today", "week", "wings", "chicken", "poulet",
+    "ailes", "burger", "sandwich", "pizza", "poutine",
 ]
 # Link patterns that are almost certainly NOT promotions
 _PROMO_LINK_EXCLUDE = [
@@ -374,12 +377,9 @@ _PROMO_LINK_EXCLUDE = [
     "tel:", "mailto:", "careers", "emploi", "franchise", "investor",
     "privacy", "terms", "conditions", "legal", "about-us", "a-propos",
     "history", "histoire", "team", "equipe", "login", "signin", "register",
-    "carte-cadeau", "giftcard", "location", "trouver", "find-us",
-    # Ordering/checkout flows – not promotion pages
-    "/order", "/commande", "commander", "checkout", "panier", "cart",
-    "livraison", "delivery", "/gift", "/gift-card",
-    # Full menu directories (too much content, not promo pages)
-    "/menus/", "cocktail", "boisson", "drinks", "wine", "vin",
+    "carte-cadeau", "giftcard", "find-us",
+    # Checkout/payment flows only (not all ordering pages)
+    "checkout", "panier", "cart", "/gift-card",
 ]
 
 def _score_link(url: str, anchor_text: str) -> int:
@@ -463,10 +463,17 @@ def _content_looks_static(text: str) -> bool:
     return has_price or has_kw
 
 async def _scroll_and_wait(page):
-    """Scroll pour déclencher le lazy-load."""
+    """Scroll progressif pour déclencher tout le lazy-load."""
     try:
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        await page.wait_for_timeout(1000)
+        # Scroll progressif en 4 étapes pour déclencher les images/sections lazy
+        for fraction in [0.25, 0.5, 0.75, 1.0]:
+            await page.evaluate(
+                f"window.scrollTo(0, document.body.scrollHeight * {fraction})"
+            )
+            await page.wait_for_timeout(600)
+        # Revenir en haut puis attendre les éventuels appels réseaux
+        await page.evaluate("window.scrollTo(0, 0)")
+        await page.wait_for_timeout(800)
     except Exception:
         pass
 
@@ -533,10 +540,11 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
         text, html = await loop.run_in_executor(None, _curl_cffi_fetch_sync, url, SCRAPER_PROXY)
 
     # Étape 3 : DynamicFetcher pour JS-rendered
-    # Skip si curl_cffi a déjà récupéré un HTML substantiel (>15k) avec du texte (>500)
-    is_hard_antibot  = "doordash.com" in url or "ubereats.com" in url or "timhortons.ca" in url
-    curl_got_content = len(html) > 15_000 and len(text) > 500
-    need_playwright  = is_hard_antibot or (not curl_got_content and not _content_looks_static(text))
+    # On skip Playwright UNIQUEMENT si curl a récupéré un contenu riche ET avec des promos
+    is_hard_antibot   = "doordash.com" in url or "ubereats.com" in url or "timhortons.ca" in url
+    curl_got_content  = len(html) > 15_000 and len(text) > 800
+    has_promo_content = _content_looks_static(text)  # a des prix / mots-clés promo
+    need_playwright   = is_hard_antibot or not (curl_got_content and has_promo_content)
 
     if need_playwright:
         logging.info(f"Playwright needed ({len(text)} chars) for {url}")
@@ -545,9 +553,9 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
             proxy_cfg = {"server": SCRAPER_PROXY} if SCRAPER_PROXY and not html else None
             pw_kwargs = dict(
                 headless=True, network_idle=True,
-                timeout=45_000, wait=5000,
-                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                retries=1, page_action=_scroll_and_wait,
+                timeout=60_000, wait=6000,
+                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                retries=2, page_action=_scroll_and_wait,
             )
             if proxy_cfg:
                 pw_kwargs["proxy"] = proxy_cfg
@@ -575,40 +583,54 @@ async def _smart_crawl(url: str) -> tuple[str, list[str]]:
     """
     1. Fetch the given URL
     2. If the page has no promo content, also try the site root to discover links
-    3. Discover promotion-related links and fetch up to MAX_DISCOVERY_PAGES extra
+    3. Discover promotion-related links from root + sub-pages (2-level discovery)
     4. Return combined text and list of crawled URLs
     """
     text, html = await _fetch_single_page(url)
     crawled = [url]
+    crawled_set: set[str] = {url}
 
     # If the starting URL yielded nothing useful, try the site homepage too
-    if not html or len(text) < 300:
-        parsed = urlparse(url)
-        root = f"{parsed.scheme}://{parsed.netloc}/"
-        if root != url and root + "/" != url:
-            logging.info(f"Starting URL thin, trying site root: {root}")
-            root_text, root_html = await _fetch_single_page(root)
-            if root_html and len(root_text) > len(text):
-                html = root_html
-                if root_text:
-                    text = root_text
-                crawled.append(root)
+    parsed_base = urlparse(url)
+    root = f"{parsed_base.scheme}://{parsed_base.netloc}/"
+    if (not html or len(text) < 500) and root not in crawled_set:
+        logging.info(f"Starting URL thin, trying site root: {root}")
+        root_text, root_html = await _fetch_single_page(root)
+        if root_html and len(root_text) > len(text):
+            html = root_html
+            text = root_text
+        elif root_html:
+            html = root_html  # use root html for link discovery even if less text
+        crawled.append(root)
+        crawled_set.add(root)
 
     if not html:
         return text, crawled
 
-    candidate_links = _discover_promo_links(html, url)
     all_parts = [text] if text else []
 
+    # Level-1 discovery: links from root/starting page
+    candidate_links = _discover_promo_links(html, url)
+
     for link in candidate_links:
-        if len(crawled) > MAX_DISCOVERY_PAGES + 1:
+        if len(crawled) >= MAX_DISCOVERY_PAGES + 1:
             break
+        if link in crawled_set:
+            continue
         try:
-            sub_text, _ = await _fetch_single_page(link)
+            sub_text, sub_html = await _fetch_single_page(link)
+            crawled_set.add(link)
             if sub_text and len(sub_text) > 200:
-                all_parts.append(f"\n\n=== Contenu supplémentaire : {link} ===\n{sub_text}")
+                all_parts.append(f"\n\n=== Page : {link} ===\n{sub_text}")
                 crawled.append(link)
                 logging.info(f"Sub-page {link}: {len(sub_text)} chars added")
+
+                # Level-2 discovery: look for more promo links inside this sub-page
+                if sub_html and len(crawled) < MAX_DISCOVERY_PAGES + 1:
+                    sub_links = _discover_promo_links(sub_html, link)
+                    for sub_link in sub_links[:3]:  # max 3 nested links per sub-page
+                        if sub_link not in crawled_set and len(crawled) < MAX_DISCOVERY_PAGES + 1:
+                            candidate_links.append(sub_link)  # add to main queue
         except Exception as exc:
             logging.warning(f"Sub-page fetch failed {link}: {exc}")
 
