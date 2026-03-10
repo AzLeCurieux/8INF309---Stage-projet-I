@@ -397,16 +397,38 @@ def _score_link(url: str, anchor_text: str) -> int:
         score += 15
     return min(score, 100)
 
-def _discover_promo_links(html: str, base_url: str) -> list[str]:
+def _link_context(a_tag) -> str:
+    """Extract surrounding text for a link: parent + siblings (up to 120 chars)."""
+    parts = []
+    parent = a_tag.parent
+    if parent:
+        # Section/nav label (grandparent heading)
+        gp = parent.parent
+        if gp:
+            for hdr in gp.find_all(["h1","h2","h3","h4"], limit=1):
+                t = hdr.get_text(strip=True)
+                if t: parts.append(t)
+        # Sibling text near the link
+        for sib in list(a_tag.previous_siblings)[-2:] + list(a_tag.next_siblings)[:2]:
+            if hasattr(sib, "get_text"):
+                t = sib.get_text(strip=True)[:60]
+                if t: parts.append(t)
+    return " | ".join(parts)[:120]
+
+
+def _discover_promo_links(html: str, base_url: str) -> tuple[list[str], list[dict]]:
     """
-    Extract links from the page that are likely to lead to promotions.
-    Returns up to MAX_DISCOVERY_PAGES URLs, scored by keyword relevance.
-    Hash-only fragments (#section) are excluded – they point to the same page.
+    Extract links from the page.
+    Returns:
+      - high_conf: links with keyword score > 0, sorted by score
+      - uncertain: same-domain links with score 0, with anchor+context (for LLM review)
+    Hash-only fragments (#section) are excluded.
     """
     base = urlparse(base_url)
     base_no_frag = base._replace(fragment="").geturl()
     soup = BeautifulSoup(html, "html.parser")
     scored: list[tuple[int, str]] = []
+    uncertain: list[dict] = []
     seen: set[str] = {base_no_frag}
 
     for a in soup.find_all("a", href=True):
@@ -414,14 +436,12 @@ def _discover_promo_links(html: str, base_url: str) -> list[str]:
         if not href or href.startswith("javascript:") or href.startswith("mailto:"):
             continue
         if href.startswith("#"):
-            continue   # pure fragment – same page, skip
+            continue
         full = urljoin(base_url, href)
         parsed = urlparse(full)
-        # Strip fragment and normalize trailing slash for deduplication
         no_frag = parsed._replace(fragment="")
         path = no_frag.path.rstrip("/") or "/"
         full_no_frag = no_frag._replace(path=path).geturl()
-        # Same domain only (allow different subdomains of same root)
         base_root = ".".join(base.netloc.rsplit(".", 2)[-2:])
         link_root = ".".join(parsed.netloc.rsplit(".", 2)[-2:])
         if base_root != link_root:
@@ -429,16 +449,69 @@ def _discover_promo_links(html: str, base_url: str) -> list[str]:
         if full_no_frag in seen:
             continue
         seen.add(full_no_frag)
-        text = a.get_text(strip=True)
-        score = _score_link(full_no_frag, text)
+        anchor = a.get_text(strip=True)
+        score = _score_link(full_no_frag, anchor)
         if score > 0:
             scored.append((score, full_no_frag))
+        else:
+            # Collect for LLM review – skip pure utility links already in exclude list
+            combined = (full_no_frag + " " + anchor).lower()
+            if not any(exc in combined for exc in _PROMO_LINK_EXCLUDE):
+                uncertain.append({
+                    "url": full_no_frag,
+                    "anchor": anchor[:80],
+                    "context": _link_context(a),
+                })
 
     scored.sort(key=lambda x: -x[0])
-    result = [url for _, url in scored[:MAX_DISCOVERY_PAGES]]
-    if result:
-        logging.info(f"Link discovery found: {result}")
-    return result
+    high_conf = [url for _, url in scored[:MAX_DISCOVERY_PAGES]]
+    if high_conf:
+        logging.info(f"Link discovery (keyword): {high_conf}")
+    return high_conf, uncertain[:40]  # cap uncertain at 40 for LLM
+
+
+def _llm_filter_links(candidates: list[dict], page_url: str) -> list[str]:
+    """
+    Send uncertain links to GPT-mini in one batch call.
+    Returns the subset of URLs that GPT thinks could lead to promotional content.
+    """
+    if not candidates or not OPENAI_API_KEY:
+        return []
+    lines = "\n".join(
+        f"{i+1}. [{c['anchor']}] {c['url']}"
+        + (f"  (contexte: {c['context']})" if c['context'] else "")
+        for i, c in enumerate(candidates)
+    )
+    prompt = (
+        f"Tu analyses le site {page_url} d'un restaurant.\n"
+        "Voici des liens trouvés sur la page. Identifie ceux qui mènent probablement "
+        "à des promotions, offres spéciales, menus vedettes, combos ou nouveautés.\n\n"
+        f"{lines}\n\n"
+        "Réponds UNIQUEMENT avec les numéros des liens pertinents, séparés par des virgules. "
+        "Si aucun n'est pertinent, réponds 'aucun'."
+    )
+    try:
+        client = OpenAIClient(api_key=OPENAI_API_KEY)
+        resp = client.chat.completions.create(
+            model=EXTRACT_MODEL_PRIMARY,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=80, temperature=0,
+        )
+        answer = resp.choices[0].message.content.strip().lower()
+        if answer == "aucun":
+            return []
+        picked = []
+        for part in re.split(r"[,\s]+", answer):
+            part = part.strip()
+            if part.isdigit():
+                k = int(part) - 1
+                if 0 <= k < len(candidates):
+                    picked.append(candidates[k]["url"])
+        logging.info(f"LLM link filter picked {len(picked)}/{len(candidates)}: {picked}")
+        return picked
+    except Exception as exc:
+        logging.warning(f"_llm_filter_links error: {exc}")
+        return []
 
 
 def _is_cloudflare_block(html: str) -> bool:
@@ -609,8 +682,19 @@ async def _smart_crawl(url: str) -> tuple[str, list[str]]:
 
     all_parts = [text] if text else []
 
-    # Level-1 discovery: links from root/starting page
-    candidate_links = _discover_promo_links(html, url)
+    # Level-1 discovery: keyword-scored links + LLM-filtered uncertain links
+    high_conf, uncertain = _discover_promo_links(html, url)
+
+    # Ask LLM to pick relevant links among those with no keyword match
+    slots_for_llm = max(0, MAX_DISCOVERY_PAGES - len(high_conf))
+    llm_links: list[str] = []
+    if uncertain and slots_for_llm > 0:
+        loop = asyncio.get_running_loop()
+        llm_links = await loop.run_in_executor(
+            None, _llm_filter_links, uncertain[:30], url)
+        llm_links = [l for l in llm_links if l not in crawled_set][:slots_for_llm]
+
+    candidate_links = high_conf + llm_links
 
     for link in candidate_links:
         if len(crawled) >= MAX_DISCOVERY_PAGES + 1:
@@ -627,10 +711,10 @@ async def _smart_crawl(url: str) -> tuple[str, list[str]]:
 
                 # Level-2 discovery: look for more promo links inside this sub-page
                 if sub_html and len(crawled) < MAX_DISCOVERY_PAGES + 1:
-                    sub_links = _discover_promo_links(sub_html, link)
-                    for sub_link in sub_links[:3]:  # max 3 nested links per sub-page
+                    sub_high, sub_uncertain = _discover_promo_links(sub_html, link)
+                    for sub_link in sub_high[:3]:
                         if sub_link not in crawled_set and len(crawled) < MAX_DISCOVERY_PAGES + 1:
-                            candidate_links.append(sub_link)  # add to main queue
+                            candidate_links.append(sub_link)
         except Exception as exc:
             logging.warning(f"Sub-page fetch failed {link}: {exc}")
 
