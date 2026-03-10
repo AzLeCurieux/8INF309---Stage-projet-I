@@ -1375,6 +1375,221 @@ def scheduler_status():
                     "fallback_model": EXTRACT_MODEL_FALLBACK})
 
 
+# ─── Analytics ────────────────────────────────────────────────────────────────
+
+@app.route("/analytics")
+def analytics():
+    return render_template("analytics.html")
+
+
+@app.route("/api/analytics/stats")
+def api_analytics_stats():
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+
+        cur.execute("""SELECT COALESCE(grade,'N/A') as grade, COUNT(*) as count
+            FROM promotions_table WHERE is_active=1 GROUP BY grade
+            ORDER BY FIELD(grade,'A+','A','B','C','D','N/A')""")
+        grade_dist = cur.fetchall()
+
+        cur.execute("""SELECT COALESCE(category,'Other') as category, COUNT(*) as count
+            FROM promotions_table WHERE is_active=1
+            GROUP BY category ORDER BY count DESC LIMIT 10""")
+        cat_dist = cur.fetchall()
+
+        cur.execute("""SELECT restaurant,
+            COUNT(*) as total,
+            SUM(is_active=1) as active,
+            SUM(CASE WHEN grade='A+' AND is_active=1 THEN 1 ELSE 0 END) as a_plus,
+            ROUND(AVG(CASE WHEN savings_estimate IS NOT NULL AND savings_estimate>0
+                THEN savings_estimate END), 2) as avg_savings
+            FROM promotions_table GROUP BY restaurant ORDER BY active DESC""")
+        rest_comparison = cur.fetchall()
+
+        cur.execute("""SELECT DATE_FORMAT(saved_date_time,'%Y-%m') as month, COUNT(*) as count
+            FROM promotions_table
+            WHERE saved_date_time >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY month ORDER BY month ASC""")
+        timeline = cur.fetchall()
+
+        cur.execute("""SELECT COALESCE(category,'Other') as category,
+            ROUND(AVG(savings_estimate),2) as avg_savings,
+            ROUND(MAX(savings_estimate),2) as max_savings, COUNT(*) as count
+            FROM promotions_table WHERE is_active=1 AND savings_estimate > 0
+            GROUP BY category ORDER BY avg_savings DESC""")
+        savings_by_cat = cur.fetchall()
+
+        cur.execute("""SELECT SUM(is_active=1) as active, SUM(is_active=0) as inactive,
+            COUNT(*) as total FROM promotions_table""")
+        active_ratio = cur.fetchone()
+
+        cur.execute("""SELECT restaurant, promo_type, promo_details, price, grade,
+            savings_estimate, category
+            FROM promotions_table WHERE is_active=1 AND savings_estimate IS NOT NULL
+            ORDER BY savings_estimate DESC LIMIT 5""")
+        top_savings = cur.fetchall()
+
+        cur.close(); db.close()
+        return jsonify({
+            "grade_dist": grade_dist,
+            "cat_dist": cat_dist,
+            "rest_comparison": rest_comparison,
+            "timeline": timeline,
+            "savings_by_cat": savings_by_cat,
+            "active_ratio": active_ratio,
+            "top_savings": top_savings,
+        })
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# ─── Seasonal Calendar ────────────────────────────────────────────────────────
+
+_SEASONAL_EVENTS = [
+    {"month": 1,  "name_fr": "Nouvel An",             "name_en": "New Year's",       "emoji": "🥂",  "keywords": ["nouvel an","new year","janvier","january","hiver","winter"]},
+    {"month": 2,  "name_fr": "Saint-Valentin",         "name_en": "Valentine's Day",   "emoji": "❤️",  "keywords": ["valentin","valentine","amour","love","février","february"]},
+    {"month": 3,  "name_fr": "St-Patrick / Printemps", "name_en": "St. Patrick's Day", "emoji": "☘️",  "keywords": ["patrick","paddy","mars","march","printemps","spring"]},
+    {"month": 4,  "name_fr": "Pâques",                 "name_en": "Easter",            "emoji": "🐣",  "keywords": ["pâques","easter","avril","april","spring","printemps"]},
+    {"month": 5,  "name_fr": "Fête des Mères",         "name_en": "Mother's Day",      "emoji": "🌸",  "keywords": ["mère","mother","mom","maman","mai","may"]},
+    {"month": 6,  "name_fr": "Fête des Pères / St-Jean","name_en": "Father's Day",     "emoji": "👨",  "keywords": ["père","father","dad","papa","st-jean","jean","juin","june","summer","été"]},
+    {"month": 7,  "name_fr": "Fête du Canada",         "name_en": "Canada Day",        "emoji": "🍁",  "keywords": ["canada","juillet","july","été","summer","bbq"]},
+    {"month": 8,  "name_fr": "Fin d'été",              "name_en": "Late Summer",       "emoji": "☀️",  "keywords": ["été","summer","août","august","bbq"]},
+    {"month": 9,  "name_fr": "Fête du Travail / Rentrée","name_en": "Labour Day",      "emoji": "🎒",  "keywords": ["travail","labour","labor","rentrée","back to school","septembre","september"]},
+    {"month": 10, "name_fr": "Halloween / Action de grâce","name_en": "Halloween & Thanksgiving","emoji": "🎃","keywords": ["halloween","thanksgiving","action de grâce","citrouille","pumpkin","octobre","october"]},
+    {"month": 11, "name_fr": "Vendredi Fou",           "name_en": "Black Friday",      "emoji": "🛍️", "keywords": ["black friday","vendredi fou","novembre","november","cyber"]},
+    {"month": 12, "name_fr": "Noël / Fêtes",           "name_en": "Christmas / Holidays","emoji": "🎄","keywords": ["noël","christmas","noel","décembre","december","fêtes","holiday","hiver"]},
+]
+
+
+@app.route("/calendar")
+def promo_calendar():
+    return render_template("calendar.html")
+
+
+@app.route("/api/calendar")
+def api_calendar():
+    year = int(request.args.get("year", datetime.now().year))
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        result = []
+        for event in _SEASONAL_EVENTS:
+            kw_clause = " OR ".join(
+                ["(LOWER(promo_details) LIKE %s OR LOWER(promo_type) LIKE %s)"]
+                * len(event["keywords"])
+            )
+            kw_params = []
+            for kw in event["keywords"]:
+                kw_params.extend([f"%{kw}%", f"%{kw}%"])
+            cur.execute(
+                f"""SELECT id, restaurant, promo_type, promo_details, price, grade,
+                    category, saved_date_time, is_active
+                    FROM promotions_table
+                    WHERE ({kw_clause})
+                    ORDER BY FIELD(grade,'A+','A','B','C','D','N/A') ASC,
+                             saved_date_time DESC LIMIT 20""",
+                kw_params,
+            )
+            promos = cur.fetchall()
+            for p in promos:
+                if p.get("saved_date_time"): p["saved_date_time"] = str(p["saved_date_time"])
+            result.append({**event, "promos": promos, "promo_count": len(promos)})
+        cur.close(); db.close()
+        return jsonify({"year": year, "events": result})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# ─── Promotions Verification ──────────────────────────────────────────────────
+
+def _background_verify(jid: str, restaurant_name: str, url: str, rid: int):
+    """Fresh scrape → compare with DB → report accuracy (no DB writes)."""
+    _thread_context.job_id = jid
+    try:
+        logging.info(f"[verify] Starting verification for {restaurant_name}")
+        fresh_promos, pages, _ = _scrape_sync(url, restaurant_name, jid)
+
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, promo_type, promo_details, price, grade, category "
+            "FROM promotions_table WHERE restaurant=%s AND is_active=1",
+            (restaurant_name,),
+        )
+        db_promos = cur.fetchall()
+        cur.close(); db.close()
+
+        matched, new_promos = [], []
+        used_db_ids = set()
+
+        for fp in fresh_promos:
+            det = (fp.get("promo_details") or "").strip().lower()
+            if not det: continue
+            best_ratio, best_dp = 0.0, None
+            for dp in db_promos:
+                if dp["id"] in used_db_ids: continue
+                dp_det = (dp.get("promo_details") or "").strip().lower()
+                ratio = SequenceMatcher(None, det, dp_det).ratio()
+                if ratio > best_ratio:
+                    best_ratio, best_dp = ratio, dp
+            if best_ratio >= 0.72 and best_dp:
+                used_db_ids.add(best_dp["id"])
+                matched.append({**fp, "db_id": best_dp["id"],
+                                "db_grade": best_dp.get("grade"),
+                                "similarity": round(best_ratio, 2)})
+            else:
+                new_promos.append(fp)
+
+        stale = [dp for dp in db_promos if dp["id"] not in used_db_ids]
+        total = len(fresh_promos)
+        accuracy = round(len(matched) / total * 100) if total > 0 else 0
+
+        _set_job(jid, "done", result={
+            "scraped_count": total,
+            "matched_count": len(matched),
+            "new_count": len(new_promos),
+            "stale_count": len(stale),
+            "db_total": len(db_promos),
+            "accuracy": accuracy,
+            "matched": matched,
+            "new": new_promos,
+            "stale": stale,
+            "pages": pages,
+            "restaurant": restaurant_name,
+            "rid": rid,
+        })
+        logging.info(f"[verify] Done – accuracy={accuracy}% matched={len(matched)} new={len(new_promos)} stale={len(stale)}")
+    except Exception as exc:
+        logging.exception(f"[verify] Error: {exc}")
+        _set_job(jid, "error", error=str(exc))
+
+
+@app.route("/verify/<int:rid>")
+def verify_restaurant(rid):
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM restaurants WHERE id=%s", (rid,))
+        rest = cur.fetchone(); cur.close(); db.close()
+        if not rest: return "Restaurant not found", 404
+    except Exception as exc:
+        return f"Error: {exc}", 500
+    return render_template("verify.html", restaurant=rest)
+
+
+@app.route("/api/verify/<int:rid>", methods=["POST"])
+def api_verify_restaurant(rid):
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM restaurants WHERE id=%s", (rid,))
+        rest = cur.fetchone(); cur.close(); db.close()
+        if not rest: return jsonify({"error": "not found"}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    jid = _new_job(f"Verify {rest['name']}")
+    t = threading.Thread(target=_background_verify,
+                         args=(jid, rest["name"], rest["url"], rid), daemon=True)
+    t.start()
+    return jsonify({"job_id": jid})
+
+
 @app.errorhandler(Exception)
 def handle_error(err):
     from werkzeug.exceptions import HTTPException

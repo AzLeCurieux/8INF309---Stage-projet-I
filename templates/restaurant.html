@@ -373,6 +373,12 @@
   <button class="nav-btn" onclick="toggleLang()">
     <span class="fr">FR</span><span class="en">EN</span>
   </button>
+  <a href="/verify/{{ restaurant.id }}" class="nav-btn" title="Vérifier la précision / Verify accuracy">
+    <span class="fr">Vérifier</span><span class="en">Verify</span>
+  </a>
+  <a href="/analytics" class="nav-btn">
+    <span class="fr">Analyse</span><span class="en">Analytics</span>
+  </a>
   <button class="nav-btn nav-btn-clean" id="cleanBtn" onclick="triggerClean({{ restaurant.id }})">
     <span class="fr">Nettoyer</span><span class="en">Clean</span>
   </button>

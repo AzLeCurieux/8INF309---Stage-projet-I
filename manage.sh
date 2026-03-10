@@ -17,7 +17,8 @@ function show_help() {
     echo "  start       : Lance toute l'infrastructure (Docker)"
     echo "  stop        : Arrête tous les services"
     echo "  restart     : Redémarre proprement tous les services"
-    echo "  update      : Reconstruit l'application (après modif du code)"
+    echo "  pull        : Récupère le code depuis GitHub (Git pull)"
+    echo "  update      : Reconstruit et redémarre l'application (sans Git pull)"
     echo "  logs        : Affiche les logs en temps réel"
     echo "  setpass     : Change le mot de passe du Bunker (Nginx Auth)"
     echo "  funnel      : Active l'exposition publique via Tailscale Funnel"
@@ -38,8 +39,12 @@ case "$1" in
         echo -e "${BLUE}Redémarrage en cours...${NC}"
         sudo docker compose restart
         ;;
+    pull)
+        echo -e "${BLUE}Récupération du code depuis GitHub...${NC}"
+        git pull origin main
+        ;;
     update)
-        echo -e "${GREEN}Mise à jour et reconstruction de l'application...${NC}"
+        echo -e "${GREEN}Reconstruction de l'application...${NC}"
         sudo docker compose up -d --build app
         ;;
     logs)

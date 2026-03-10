@@ -594,6 +594,12 @@
   <button class="nav-btn" onclick="toggleLang()">
     <span class="fr">FR</span><span class="en">EN</span>
   </button>
+  <a href="/calendar" class="nav-btn">
+    <span class="fr">Calendrier</span><span class="en">Calendar</span>
+  </a>
+  <a href="/analytics" class="nav-btn">
+    <span class="fr">Analyse</span><span class="en">Analytics</span>
+  </a>
   <a href="/about" class="nav-btn">
     <span class="fr">Docs</span><span class="en">Docs</span>
   </a>
@@ -691,6 +697,9 @@
         <div class="row-actions col-act">
           <a href="/restaurant/{{ r.id }}" class="btn-row">
             <span class="fr">Voir</span><span class="en">View</span>
+          </a>
+          <a href="/verify/{{ r.id }}" class="btn-row" title="Vérifier la précision du scraper / Verify scraper accuracy">
+            <span class="fr">Vérifier</span><span class="en">Verify</span>
           </a>
           <button class="btn-row btn-scan" data-rid="{{ r.id }}" data-rname="{{ r.name }}" onclick="crawlOne(this)">
             Scan

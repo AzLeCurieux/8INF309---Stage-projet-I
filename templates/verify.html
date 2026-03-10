@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vérification — {{ restaurant.name }}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07070c; --surface: #0e0e18; --card: #121220; --card-hover: #16162a;
+      --border: #1e1e32; --border-hi: #2e2e48;
+      --text: #e2e2f0; --muted: #5a5a7a; --muted-hi: #8888aa;
+      --accent: #f5a623; --accent-dim: rgba(245,166,35,0.12); --accent-glow: rgba(245,166,35,0.25);
+      --green: #10b981; --green-dim: rgba(16,185,129,0.12);
+      --red: #ef4444; --red-dim: rgba(239,68,68,0.12);
+      --blue: #6366f1; --blue-dim: rgba(99,102,241,0.1);
+      --orange: #f97316;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f8; --surface: #ffffff; --card: #ffffff; --card-hover: #f8f8fc;
+      --border: #e0e0ec; --border-hi: #c8c8e0;
+      --text: #0f0f1e; --muted: #8080a0; --muted-hi: #505070;
+      --accent: #d4850a; --accent-dim: rgba(212,133,10,0.1); --accent-glow: rgba(212,133,10,0.2);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; line-height: 1.5; min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+      pointer-events: none; z-index: 9997;
+    }
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,12,0.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; gap: 1.5rem;
+    }
+    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
+    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
+    .logo-text span { color: var(--accent); }
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+    .nav-spacer { flex: 1; }
+    .nav-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
+      padding: 0 0.75rem; height: 30px; border-radius: 5px;
+      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+      transition: all 0.15s; text-decoration: none; white-space: nowrap;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .nav-btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .nav-btn-primary:hover { background: #fbbf24; border-color: #fbbf24; color: #000; }
+    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    /* Hero */
+    .verify-hero {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 2rem; margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 2rem;
+    }
+    .hero-icon { font-size: 40px; flex-shrink: 0; }
+    .hero-info { flex: 1; }
+    .hero-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; margin-bottom: 0.25rem; }
+    .hero-url { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-hi); margin-bottom: 1rem; }
+    .hero-desc { font-size: 13px; color: var(--muted-hi); line-height: 1.6; }
+    .btn-verify {
+      background: var(--accent); color: #000; border: none;
+      padding: 0 1.75rem; height: 40px; border-radius: 8px;
+      font-weight: 700; font-size: 14px; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .btn-verify:hover { background: #fbbf24; }
+    .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Status */
+    .status-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-idle    { background: var(--muted); }
+    .dot-running { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+    .dot-done    { background: var(--green); }
+    .dot-error   { background: var(--red); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .status-text { flex: 1; color: var(--muted-hi); }
+    .log-area {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-hi);
+      max-height: 180px; overflow-y: auto; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;
+      margin-top: 0.5rem; display: none; line-height: 1.6;
+    }
+
+    /* KPI row */
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.25rem; display: flex; flex-direction: column; gap: 0.2rem; text-align: center;
+    }
+    .kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; }
+    .kpi-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* Accuracy meter */
+    .accuracy-block {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem;
+    }
+    .accuracy-circle {
+      width: 90px; height: 90px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+      border: 4px solid var(--border); position: relative; font-family: 'JetBrains Mono', monospace;
+    }
+    .accuracy-pct { font-size: 22px; font-weight: 700; }
+    .accuracy-sub { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+    .accuracy-info { flex: 1; }
+    .accuracy-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 0.4rem; }
+    .accuracy-desc { font-size: 12.5px; color: var(--muted-hi); line-height: 1.6; }
+    .acc-bar-track { background: var(--border); border-radius: 6px; height: 8px; margin-top: 0.75rem; overflow: hidden; }
+    .acc-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+
+    /* Sections */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 0.5rem; }
+    .section-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .badge-green  { background: var(--green-dim); color: var(--green); }
+    .badge-orange { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .badge-muted  { background: var(--border); color: var(--muted-hi); }
+
+    /* Promo cards */
+    .promo-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem; }
+    .promo-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.875rem 1rem; display: flex; align-items: flex-start; gap: 1rem;
+    }
+    .promo-item.matched   { border-left: 3px solid var(--green); }
+    .promo-item.new-promo { border-left: 3px solid var(--orange); }
+    .promo-item.stale     { border-left: 3px solid var(--muted); opacity: 0.7; }
+    .pi-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+    .pi-body { flex: 1; }
+    .pi-header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+    .pi-type { font-size: 10px; color: var(--muted); background: var(--border); border-radius: 3px; padding: 1px 5px; }
+    .pi-details { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .pi-meta { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.4rem; font-size: 11.5px; color: var(--muted-hi); }
+    .pi-price { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+    .pi-sim { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+    .grade-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
+    .g-Ap { background: rgba(16,185,129,0.15); color: #10b981; }
+    .g-A  { background: rgba(245,166,35,0.15); color: #f5a623; }
+    .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
+    .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
+    .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+    .empty-section { text-align: center; padding: 2.5rem 1rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+
+    /* idle state */
+    .idle-card {
+      background: var(--surface); border: 2px dashed var(--border); border-radius: 12px;
+      padding: 4rem 2rem; text-align: center; color: var(--muted);
+    }
+    .idle-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .idle-text { font-size: 13.5px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+
+    /* lang */
+    .fr, .en { display: none; }
+    body.lang-fr .fr { display: inline; }
+    body.lang-en .en { display: inline; }
+
+    @media (max-width: 768px) {
+      .kpi-row { grid-template-columns: repeat(3, 1fr); }
+      .verify-hero { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .accuracy-block { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 500px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body class="lang-fr">
+
+<nav class="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label">
+    <span class="fr">Vérification</span><span class="en">Verification</span>
+  </span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <a href="/restaurant/{{ restaurant.id }}" class="nav-btn">← {{ restaurant.name }}</a>
+  <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+</nav>
+
+<div class="layout">
+
+  <!-- Hero -->
+  <div class="verify-hero">
+    <div class="hero-icon">🔍</div>
+    <div class="hero-info">
+      <div class="hero-title">{{ restaurant.name }}</div>
+      <div class="hero-url">{{ restaurant.url }}</div>
+      <div class="hero-desc">
+        <span class="fr">Lance un nouveau scrape <strong>en lecture seule</strong> et compare les résultats avec la base de données. Identifie les promotions manquées, obsolètes, ou nouvelles, et calcule le taux de précision du scraper.</span>
+        <span class="en">Runs a fresh <strong>read-only</strong> scrape and compares results with the database. Identifies missed, stale, or new promotions, and calculates the scraper's accuracy rate.</span>
+      </div>
+    </div>
+    <button class="btn-verify" id="btnVerify" onclick="startVerification()">
+      <span class="fr">Lancer la vérification</span>
+      <span class="en">Start verification</span>
+    </button>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar" style="display:none">
+    <div class="status-dot dot-running" id="statusDot"></div>
+    <div class="status-text" id="statusText"></div>
+    <button class="nav-btn" onclick="toggleLogs()" id="btnLogs" style="display:none">
+      <span class="fr">Logs</span><span class="en">Logs</span>
+    </button>
+  </div>
+  <div class="log-area" id="logArea"></div>
+
+  <!-- Results -->
+  <div id="resultsArea">
+    <div class="idle-card">
+      <div class="idle-icon">📋</div>
+      <div class="idle-text">
+        <span class="fr">Cliquez sur «&nbsp;Lancer la vérification&nbsp;» pour analyser ce restaurant. Le scraper re-téléchargera la page et comparera chaque promotion trouvée avec la base de données.</span>
+        <span class="en">Click "Start verification" to analyse this restaurant. The scraper will re-download the page and compare every found promotion with the database.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('pref-theme', t || 'dark');
+}
+if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+function toggleLang() {
+  const isEn = document.body.classList.toggle('lang-en');
+  document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
+
+let _pollTimer = null;
+let _logsVisible = false;
+
+function toggleLogs() {
+  _logsVisible = !_logsVisible;
+  document.getElementById('logArea').style.display = _logsVisible ? 'block' : 'none';
+}
+
+function gradeClass(g) {
+  if (g === 'A+') return 'g-Ap'; if (g === 'A') return 'g-A';
+  if (g === 'B')  return 'g-B';  if (g === 'C') return 'g-C';
+  if (g === 'D')  return 'g-D';  return '';
+}
+
+async function startVerification() {
+  const btn = document.getElementById('btnVerify');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="fr">Vérification en cours…</span><span class="en">Verifying…</span>';
+  // show spinner in button text
+  const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';
+  btn.textContent = lang === 'en' ? '⟳ Verifying…' : '⟳ Vérification…';
+
+  const sb = document.getElementById('statusBar');
+  sb.style.display = 'flex';
+  setStatus('running', lang === 'en' ? 'Starting verification scrape…' : 'Démarrage du scrape de vérification…');
+
+  const resp = await fetch('/api/verify/{{ restaurant.id }}', { method: 'POST' });
+  const d = await resp.json();
+  if (d.error) { setStatus('error', d.error); btn.disabled = false; return; }
+
+  document.getElementById('btnLogs').style.display = 'flex';
+  _pollTimer = setInterval(() => pollJob(d.job_id), 2500);
+}
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot dot-' + state;
+  document.getElementById('statusText').textContent = msg;
+}
+
+async function pollJob(jid) {
+  try {
+    const [jResp, lResp] = await Promise.all([
+      fetch('/job/' + jid),
+      fetch('/api/job/' + jid + '/logs'),
+    ]);
+    const job  = await jResp.json();
+    const logs = await lResp.json();
+
+    // Update logs
+    if (logs.logs && logs.logs.length) {
+      const la = document.getElementById('logArea');
+      la.innerHTML = logs.logs.slice(-60).map(l => `<div>${escHtml(l)}</div>`).join('');
+      la.scrollTop = la.scrollHeight;
+    }
+
+    const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';
+    if (job.status === 'running') {
+      setStatus('running', lang === 'en' ? 'Scraping in progress…' : 'Scrape en cours…');
+    } else if (job.status === 'done') {
+      clearInterval(_pollTimer);
+      setStatus('done', lang === 'en' ? 'Verification complete.' : 'Vérification terminée.');
+      document.getElementById('btnVerify').disabled = false;
+      document.getElementById('btnVerify').innerHTML = '<span class="fr">Re-vérifier</span><span class="en">Re-verify</span>';
+      renderResults(job.result);
+    } else if (job.status === 'error') {
+      clearInterval(_pollTimer);
+      setStatus('error', (lang === 'en' ? 'Error: ' : 'Erreur : ') + (job.error || ''));
+      document.getElementById('btnVerify').disabled = false;
+    }
+  } catch (e) { console.error(e); }
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderResults(r) {
+  const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = '';
+
+  // Accuracy block
+  const pct = r.accuracy;
+  const accColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--accent)' : 'var(--red)';
+  const accMsg = pct >= 80
+    ? (lang === 'en' ? 'Excellent accuracy — the scraper is capturing most promotions.' : 'Excellente précision — le scraper capture la plupart des promotions.')
+    : pct >= 50
+    ? (lang === 'en' ? 'Moderate accuracy — some promotions may be missed.' : 'Précision modérée — certaines promotions peuvent être manquées.')
+    : (lang === 'en' ? 'Low accuracy — the scraper may be missing many promotions.' : 'Faible précision — le scraper manque probablement de nombreuses promotions.');
+
+  area.innerHTML += `
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <span class="kpi-val" style="color:var(--blue)">${r.scraped_count}</span>
+        <span class="kpi-label">${lang === 'en' ? 'Found on site' : 'Trouvées sur le site'}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" style="color:var(--muted-hi)">${r.db_total}</span>
+        <span class="kpi-label">${lang === 'en' ? 'In database' : 'En base de données'}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" style="color:var(--green)">${r.matched_count}</span>
+        <span class="kpi-label">${lang === 'en' ? 'Matched (✓ in DB)' : 'Concordantes (✓ DB)'}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" style="color:var(--orange)">${r.new_count}</span>
+        <span class="kpi-label">${lang === 'en' ? 'New (not in DB)' : 'Nouvelles (absentes)'}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" style="color:var(--muted)">${r.stale_count}</span>
+        <span class="kpi-label">${lang === 'en' ? 'Stale (DB only)' : 'Obsolètes (DB seule)'}</span>
+      </div>
+    </div>
+
+    <div class="accuracy-block">
+      <div class="accuracy-circle" style="border-color:${accColor}">
+        <span class="accuracy-pct" style="color:${accColor}">${pct}%</span>
+        <span class="accuracy-sub">${lang === 'en' ? 'accuracy' : 'précision'}</span>
+      </div>
+      <div class="accuracy-info">
+        <div class="accuracy-title">${lang === 'en' ? 'Scraper accuracy' : 'Précision du scraper'}</div>
+        <div class="accuracy-desc">${accMsg}</div>
+        <div class="accuracy-desc" style="margin-top:0.25rem;font-size:11px;color:var(--muted)">
+          ${lang === 'en'
+            ? `${r.matched_count} of ${r.scraped_count} promotions found on the site are already in the database.`
+            : `${r.matched_count} des ${r.scraped_count} promotions trouvées sur le site sont déjà en base de données.`}
+        </div>
+        <div class="acc-bar-track"><div class="acc-bar-fill" style="width:${pct}%;background:${accColor}"></div></div>
+      </div>
+    </div>`;
+
+  // Matched
+  area.innerHTML += `
+    <div class="section-head">
+      <span class="section-title">
+        <span class="badge badge-green">✓</span>
+        ${lang === 'en' ? 'Already in database' : 'Déjà en base de données'}
+      </span>
+      <span class="section-count">${r.matched_count}</span>
+    </div>`;
+  if (r.matched.length === 0) {
+    area.innerHTML += `<div class="empty-section">${lang === 'en' ? 'None matched.' : 'Aucune concordance.'}</div>`;
+  } else {
+    const list = document.createElement('div'); list.className = 'promo-list';
+    r.matched.forEach(p => {
+      const gc = gradeClass(p.db_grade || p.grade);
+      list.innerHTML += `
+        <div class="promo-item matched">
+          <span class="pi-icon">✓</span>
+          <div class="pi-body">
+            <div class="pi-header">
+              <span class="pi-type">${p.promo_type || 'Promo'}</span>
+              ${p.db_grade ? `<span class="grade-badge ${gc}">${p.db_grade}</span>` : ''}
+              <span class="pi-sim" style="color:var(--green)">≈${Math.round(p.similarity * 100)}%</span>
+            </div>
+            <div class="pi-details">${escHtml(p.promo_details || '—')}</div>
+            <div class="pi-meta">
+              ${p.price ? `<span class="pi-price">$${p.price}</span>` : ''}
+              <span>ID #${p.db_id}</span>
+            </div>
+          </div>
+        </div>`;
+    });
+    area.appendChild(list);
+  }
+
+  // New (missed)
+  area.innerHTML += `
+    <div class="section-head" style="margin-top:2rem">
+      <span class="section-title">
+        <span class="badge badge-orange">!</span>
+        ${lang === 'en' ? 'New / Missed promotions' : 'Promotions nouvelles / manquées'}
+      </span>
+      <span class="section-count">${r.new_count}</span>
+    </div>`;
+  if (r.new.length === 0) {
+    area.innerHTML += `<div class="empty-section" style="color:var(--green)">
+      ${lang === 'en' ? '✓ No missed promotions — the scraper captured everything.' : '✓ Aucune promo manquée — le scraper a tout capturé.'}
+    </div>`;
+  } else {
+    const list = document.createElement('div'); list.className = 'promo-list';
+    r.new.forEach(p => {
+      list.innerHTML += `
+        <div class="promo-item new-promo">
+          <span class="pi-icon" style="color:var(--orange)">⚑</span>
+          <div class="pi-body">
+            <div class="pi-header">
+              <span class="pi-type">${p.promo_type || 'Promo'}</span>
+            </div>
+            <div class="pi-details">${escHtml(p.promo_details || '—')}</div>
+            <div class="pi-meta">
+              ${p.price ? `<span class="pi-price">$${p.price}</span>` : ''}
+              <span style="color:var(--orange)">${lang === 'en' ? 'Not in database' : 'Absent de la base de données'}</span>
+            </div>
+          </div>
+        </div>`;
+    });
+    area.appendChild(list);
+  }
+
+  // Stale
+  area.innerHTML += `
+    <div class="section-head" style="margin-top:2rem">
+      <span class="section-title">
+        <span class="badge badge-muted">⚬</span>
+        ${lang === 'en' ? 'Stale in database (not found on site)' : 'Obsolètes en base (non trouvées sur le site)'}
+      </span>
+      <span class="section-count">${r.stale_count}</span>
+    </div>`;
+  if (r.stale.length === 0) {
+    area.innerHTML += `<div class="empty-section">${lang === 'en' ? 'No stale promotions.' : 'Aucune promo obsolète.'}</div>`;
+  } else {
+    const list = document.createElement('div'); list.className = 'promo-list';
+    r.stale.forEach(p => {
+      const gc = gradeClass(p.grade);
+      list.innerHTML += `
+        <div class="promo-item stale">
+          <span class="pi-icon" style="color:var(--muted)">⚬</span>
+          <div class="pi-body">
+            <div class="pi-header">
+              <span class="pi-type">${p.promo_type || 'Promo'}</span>
+              ${p.grade ? `<span class="grade-badge ${gc}">${p.grade}</span>` : ''}
+            </div>
+            <div class="pi-details">${escHtml(p.promo_details || '—')}</div>
+            <div class="pi-meta">
+              ${p.price ? `<span class="pi-price">$${p.price}</span>` : ''}
+              <span>${lang === 'en' ? 'Still active in DB, not found on site' : 'Active en DB, introuvable sur le site'}</span>
+            </div>
+          </div>
+        </div>`;
+    });
+    area.appendChild(list);
+  }
+
+  // Pages crawled
+  if (r.pages && r.pages.length) {
+    area.innerHTML += `
+      <div style="margin-top:2rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">
+          ${lang === 'en' ? 'Pages crawled' : 'Pages analysées'} (${r.pages.length})
+        </div>
+        ${r.pages.map(u => `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(u)}</div>`).join('')}
+      </div>`;
+  }
+}
+</script>
+</body>
+</html>

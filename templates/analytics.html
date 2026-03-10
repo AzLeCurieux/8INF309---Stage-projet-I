@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #07070c; --surface: #0e0e18; --card: #121220; --card-hover: #16162a;
+      --border: #1e1e32; --border-hi: #2e2e48;
+      --text: #e2e2f0; --muted: #5a5a7a; --muted-hi: #8888aa;
+      --accent: #f5a623; --accent-dim: rgba(245,166,35,0.12); --accent-glow: rgba(245,166,35,0.25);
+      --green: #10b981; --green-dim: rgba(16,185,129,0.12);
+      --red: #ef4444; --red-dim: rgba(239,68,68,0.12);
+      --blue: #6366f1; --blue-dim: rgba(99,102,241,0.12);
+      --purple: #a855f7;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f8; --surface: #ffffff; --card: #ffffff; --card-hover: #f8f8fc;
+      --border: #e0e0ec; --border-hi: #c8c8e0;
+      --text: #0f0f1e; --muted: #8080a0; --muted-hi: #505070;
+      --accent: #d4850a; --accent-dim: rgba(212,133,10,0.1); --accent-glow: rgba(212,133,10,0.2);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; line-height: 1.5; min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+      pointer-events: none; z-index: 9997;
+    }
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(7,7,12,0.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; gap: 1.5rem;
+    }
+    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
+    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
+    .logo-text span { color: var(--accent); }
+    .nav-divider { width: 1px; height: 20px; background: var(--border); }
+    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+    .nav-spacer { flex: 1; }
+    .nav-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
+      padding: 0 0.75rem; height: 30px; border-radius: 5px;
+      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+      transition: all 0.15s; text-decoration: none; white-space: nowrap;
+    }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .layout { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    /* KPI row */
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .kpi-sub { font-size: 12px; color: var(--muted-hi); margin-top: 0.25rem; }
+
+    /* Section */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+    .section-muted { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* Chart grid */
+    .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px; }
+    .chart-sub { font-size: 11px; color: var(--muted); }
+    .chart-wrap { position: relative; height: 220px; }
+    .chart-wrap.tall { height: 300px; }
+
+    /* Bars (custom) */
+    .bar-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .bar-item { display: flex; flex-direction: column; gap: 0.25rem; }
+    .bar-meta { display: flex; justify-content: space-between; font-size: 12px; }
+    .bar-name { color: var(--text); font-weight: 500; }
+    .bar-count { color: var(--muted-hi); font-family: 'JetBrains Mono', monospace; }
+    .bar-track { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.5s ease; }
+
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--card-hover); }
+    .grade-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+    .g-Ap { background: rgba(16,185,129,0.15); color: #10b981; }
+    .g-A  { background: rgba(245,166,35,0.15); color: #f5a623; }
+    .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
+    .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
+    .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); gap: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* lang */
+    .fr, .en { display: none; }
+    body.lang-fr .fr { display: inline; }
+    body.lang-en .en { display: inline; }
+    body.lang-fr .fr.block { display: block; }
+    body.lang-en .en.block { display: block; }
+
+    @media (max-width: 900px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .charts-2col { grid-template-columns: 1fr; }
+      .charts-3col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body class="lang-fr">
+
+<nav class="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label">
+    <span class="fr">Analyse</span><span class="en">Analytics</span>
+  </span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <a href="/calendar" class="nav-btn"><span class="fr">Calendrier</span><span class="en">Calendar</span></a>
+  <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+</nav>
+
+<div class="layout">
+
+  <div id="loadingState" class="loading"><span class="spin">⟳</span> Chargement des données…</div>
+  <div id="mainContent" style="display:none">
+
+    <!-- KPI Row -->
+    <div class="kpi-row" style="margin-bottom:2rem">
+      <div class="kpi-card">
+        <span class="kpi-val" id="kpi-active" style="color:var(--green)">—</span>
+        <span class="kpi-label"><span class="fr">Promos actives</span><span class="en">Active promos</span></span>
+        <span class="kpi-sub" id="kpi-active-sub"></span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="kpi-total" style="color:var(--accent)">—</span>
+        <span class="kpi-label"><span class="fr">Total historique</span><span class="en">Total historical</span></span>
+        <span class="kpi-sub" id="kpi-total-sub"></span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="kpi-aplus" style="color:var(--blue)">—</span>
+        <span class="kpi-label"><span class="fr">Grade A+</span><span class="en">Grade A+</span></span>
+        <span class="kpi-sub"><span class="fr">Meilleures offres</span><span class="en">Top deals</span></span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="kpi-savings" style="color:var(--purple)">—</span>
+        <span class="kpi-label"><span class="fr">Économies moy.</span><span class="en">Avg. savings</span></span>
+        <span class="kpi-sub"><span class="fr">Par promotion A+/A</span><span class="en">Per A+/A promo</span></span>
+      </div>
+    </div>
+
+    <!-- Row 1: timeline + grade donut -->
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Promotions découvertes (12 mois)</span><span class="en">Promotions discovered (12 months)</span></div>
+          <div class="chart-sub"><span class="fr">Nouvelles promos sauvegardées par mois</span><span class="en">New promos saved per month</span></div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartTimeline"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Distribution des grades</span><span class="en">Grade distribution</span></div>
+          <div class="chart-sub"><span class="fr">Promos actives seulement</span><span class="en">Active promos only</span></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartGrade"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 2: categories bar + savings by category -->
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Top catégories</span><span class="en">Top categories</span></div>
+          <div class="chart-sub"><span class="fr">Promos actives par catégorie</span><span class="en">Active promos by category</span></div>
+        </div>
+        <div id="catBars" class="bar-list"></div>
+      </div>
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Économies par catégorie</span><span class="en">Savings by category</span></div>
+          <div class="chart-sub"><span class="fr">Économie moyenne estimée ($)</span><span class="en">Average estimated savings ($)</span></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartSavings"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 3: restaurant comparison -->
+    <div class="chart-card" style="margin-bottom:2rem">
+      <div>
+        <div class="chart-title"><span class="fr">Comparaison des sources</span><span class="en">Source comparison</span></div>
+        <div class="chart-sub"><span class="fr">Promos actives, A+, et économies moyennes par restaurant</span><span class="en">Active promos, A+, and avg savings per restaurant</span></div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chartRestaurants"></canvas></div>
+    </div>
+
+    <!-- Top savings table -->
+    <div class="chart-card" style="margin-bottom:2rem">
+      <div>
+        <div class="chart-title"><span class="fr">Meilleures économies du moment</span><span class="en">Best current savings</span></div>
+        <div class="chart-sub"><span class="fr">Top 5 promotions actives par économie estimée</span><span class="en">Top 5 active promos by estimated savings</span></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
+              <th><span class="fr">Promotion</span><span class="en">Promotion</span></th>
+              <th><span class="fr">Prix</span><span class="en">Price</span></th>
+              <th><span class="fr">Grade</span><span class="en">Grade</span></th>
+              <th><span class="fr">Économie est.</span><span class="en">Est. savings</span></th>
+            </tr>
+          </thead>
+          <tbody id="topSavingsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /mainContent -->
+</div>
+
+<script>
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('pref-theme', t || 'dark');
+}
+if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+function toggleLang() {
+  const isEn = document.body.classList.toggle('lang-en');
+  document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
+
+const GRADE_COLORS = {
+  'A+': '#10b981', 'A': '#f5a623', 'B': '#6366f1', 'C': '#a855f7', 'D': '#ef4444', 'N/A': '#5a5a7a'
+};
+const CAT_PALETTE = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399','#818cf8','#c084fc'];
+
+function gradeClass(g) {
+  if (g === 'A+') return 'g-Ap';
+  if (g === 'A')  return 'g-A';
+  if (g === 'B')  return 'g-B';
+  if (g === 'C')  return 'g-C';
+  if (g === 'D')  return 'g-D';
+  return '';
+}
+
+Chart.defaults.color = '#5a5a7a';
+Chart.defaults.borderColor = '#1e1e32';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+async function loadData() {
+  const resp = await fetch('/api/analytics/stats');
+  const d = await resp.json();
+  if (d.error) { document.getElementById('loadingState').textContent = 'Error: ' + d.error; return; }
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = '';
+
+  // KPIs
+  const ar = d.active_ratio || {};
+  document.getElementById('kpi-active').textContent = ar.active || 0;
+  document.getElementById('kpi-active-sub').textContent = (ar.inactive || 0) + ' inactives';
+  document.getElementById('kpi-total').textContent = ar.total || 0;
+  document.getElementById('kpi-total-sub').textContent = 'dont ' + (ar.active || 0) + ' actives';
+  const aplus = (d.grade_dist || []).find(g => g.grade === 'A+');
+  document.getElementById('kpi-aplus').textContent = aplus ? aplus.count : 0;
+
+  // Avg savings (from savings_by_cat)
+  let totalWeightedSavings = 0, totalPromos = 0;
+  (d.savings_by_cat || []).forEach(s => {
+    totalWeightedSavings += (s.avg_savings || 0) * (s.count || 0);
+    totalPromos += s.count || 0;
+  });
+  const avgSavings = totalPromos > 0 ? (totalWeightedSavings / totalPromos).toFixed(2) : '—';
+  document.getElementById('kpi-savings').textContent = avgSavings !== '—' ? '$' + avgSavings : '—';
+
+  // Timeline chart
+  const tlLabels = (d.timeline || []).map(t => t.month);
+  const tlData   = (d.timeline || []).map(t => t.count);
+  new Chart(document.getElementById('chartTimeline'), {
+    type: 'bar',
+    data: {
+      labels: tlLabels,
+      datasets: [{
+        label: 'Promos',
+        data: tlData,
+        backgroundColor: 'rgba(245,166,35,0.6)',
+        borderColor: '#f5a623',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+
+  // Grade donut
+  const gradeLabels = (d.grade_dist || []).map(g => g.grade);
+  const gradeData   = (d.grade_dist || []).map(g => g.count);
+  const gradeColors = gradeLabels.map(g => GRADE_COLORS[g] || '#5a5a7a');
+  new Chart(document.getElementById('chartGrade'), {
+    type: 'doughnut',
+    data: {
+      labels: gradeLabels,
+      datasets: [{ data: gradeData, backgroundColor: gradeColors, borderColor: '#0e0e18', borderWidth: 2, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } }
+      }
+    }
+  });
+
+  // Category bars
+  const maxCat = Math.max(1, ...(d.cat_dist || []).map(c => c.count));
+  const catBarsEl = document.getElementById('catBars');
+  (d.cat_dist || []).forEach((c, i) => {
+    const pct = Math.round(c.count / maxCat * 100);
+    const el = document.createElement('div');
+    el.className = 'bar-item';
+    el.innerHTML = `
+      <div class="bar-meta">
+        <span class="bar-name">${c.category}</span>
+        <span class="bar-count">${c.count}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CAT_PALETTE[i%CAT_PALETTE.length]}"></div></div>`;
+    catBarsEl.appendChild(el);
+  });
+
+  // Savings by category
+  const sLabels = (d.savings_by_cat || []).map(s => s.category);
+  const sData   = (d.savings_by_cat || []).map(s => s.avg_savings);
+  new Chart(document.getElementById('chartSavings'), {
+    type: 'bar',
+    data: {
+      labels: sLabels,
+      datasets: [{
+        label: 'Avg savings ($)',
+        data: sData,
+        backgroundColor: sLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length] + 'aa'),
+        borderColor:     sLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length]),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e1e32' }, beginAtZero: true },
+        y: { grid: { color: '#1e1e32' } }
+      }
+    }
+  });
+
+  // Restaurant comparison
+  const rests = d.rest_comparison || [];
+  new Chart(document.getElementById('chartRestaurants'), {
+    type: 'bar',
+    data: {
+      labels: rests.map(r => r.restaurant),
+      datasets: [
+        { label: 'Active', data: rests.map(r => r.active), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
+        { label: 'A+',     data: rests.map(r => r.a_plus), backgroundColor: 'rgba(245,166,35,0.7)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+
+  // Top savings table
+  const tbody = document.getElementById('topSavingsBody');
+  (d.top_savings || []).forEach(p => {
+    const gc = gradeClass(p.grade);
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600">${p.restaurant}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.promo_details}">${p.promo_details}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${p.price ? '$'+p.price : '—'}</td>
+        <td><span class="grade-badge ${gc}">${p.grade}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--green)">$${p.savings_estimate ? p.savings_estimate.toFixed(2) : '0.00'}</td>
+      </tr>`;
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>
