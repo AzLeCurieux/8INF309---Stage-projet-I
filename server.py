@@ -244,48 +244,106 @@ def _find_candidate_promo_images(text: str, max_candidates: int = 35) -> list[di
     return candidates[:max_candidates]
 
 
+def _best_srcset_url(srcset: str) -> str:
+    """Pick the highest-resolution URL from a srcset attribute string."""
+    if not srcset:
+        return ""
+    parts = [p.strip() for p in srcset.split(",") if p.strip()]
+    if not parts:
+        return ""
+    # last entry is usually the largest; take the URL part (before optional descriptor)
+    return parts[-1].split()[0].strip()
+
+
+def _resolve_url(src: str, base_url: str) -> str:
+    if not src or src.startswith("data:") or len(src) < 6:
+        return ""
+    if base_url and src.startswith("//"):
+        scheme = urlparse(base_url).scheme or "https"
+        return f"{scheme}:{src}"
+    if base_url and src.startswith("/"):
+        p = urlparse(base_url)
+        return f"{p.scheme}://{p.netloc}{src}"
+    if base_url and not src.startswith("http"):
+        return urljoin(base_url, src)
+    return src
+
+
 def _html_to_text(html: str, base_url: str = "") -> str:
     """
     Convert HTML to clean text for LLM processing.
     Image URLs are embedded as [IMG_N:url ALT:text] markers.
+    Captures: <img>, <picture>/<source>, srcset, data-src variants,
+    data-bg/data-background/data-background-image on any element,
+    inline background-image styles.
     """
-    html = html[:800_000]  # Slightly higher cap
+    html = html[:800_000]
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style", "nav", "footer", "header", "aside",
-                     "noscript", "form", "svg", "iframe", "button", "input"]):
+
+    for tag in soup(["script", "style", "nav", "footer",
+                     "noscript", "svg", "iframe"]):
         tag.decompose()
 
-    # Embed meta og:image as a high-priority image
+    # Embed og:image as first image
     og_img = soup.find("meta", property="og:image")
     if og_img and og_img.get("content"):
-        content = og_img.get("content").strip()
-        if content.startswith("http"):
-            soup.insert(0, soup.new_tag("img", src=content, alt="featured_og"))
+        src = og_img["content"].strip()
+        if src.startswith("http"):
+            soup.insert(0, soup.new_tag("img", src=src, alt="og_featured"))
 
+    # ── Pass 1: lift best <source srcset> into the sibling <img> ──────────
+    for pic in soup.find_all("picture"):
+        best = ""
+        for source in pic.find_all("source"):
+            cand = _best_srcset_url(source.get("srcset", ""))
+            if cand:
+                best = cand
+                break           # first <source> is usually the best format (webp/avif)
+        if best:
+            img_inside = pic.find("img")
+            if img_inside and not (img_inside.get("src") or "").strip():
+                img_inside["src"] = best
+            elif not img_inside:
+                pic.insert(0, soup.new_tag("img", src=best, alt=""))
+        pic.unwrap()            # keep children (the <img>) in place
+
+    # ── Pass 2: inject data-bg / data-background images from any element ──
+    _BG_ATTRS = ("data-bg", "data-background", "data-background-image",
+                 "data-lazy-background", "data-src-bg")
+    for attr in _BG_ATTRS:
+        for el in soup.find_all(attrs={attr: True}):
+            src = _resolve_url(el.get(attr, "").strip(), base_url)
+            if src:
+                new_img = soup.new_tag("img", src=src, alt=el.get("data-alt", ""))
+                el.insert(0, new_img)
+
+    # ── Pass 3: replace all <img> with [IMG_N:url ALT:text] markers ───────
     img_count = 0
     for img in soup.find_all("img"):
-        src = (img.get("src") or img.get("data-src") or
-               img.get("data-lazy-src") or img.get("data-original") or
-               img.get("data-srcset", "").split()[0] or "").strip()
-        
-        style = img.get("style", "")
-        if not src and "background-image" in style:
-            import re
-            m = re.search(r"url\(['\"]?(.*?)['\"]?\)", style)
-            if m: src = m.group(1).strip()
+        # Collect src from every known lazy-load / srcset attribute
+        src = ""
+        for attr in ("src", "data-src", "data-lazy-src", "data-original",
+                     "data-lazy", "data-image", "data-img"):
+            src = (img.get(attr) or "").strip()
+            if src and not src.startswith("data:"): break
 
-        if src and not src.startswith("data:") and len(src) > 5:
-            if base_url and src.startswith("/"):
-                parsed = urlparse(base_url)
-                src = f"{parsed.scheme}://{parsed.netloc}{src}"
-            elif base_url and not src.startswith("http"):
-                src = urljoin(base_url, src)
-            
-            img_count += 1
-            alt = (img.get("alt") or img.get("title") or "").strip()
-            img.replace_with(f" [IMG_{img_count}:{src} ALT:{alt}] ")
-        else:
+        if not src:
+            src = _best_srcset_url(img.get("srcset", "") or img.get("data-srcset", ""))
+
+        if not src:
+            style = img.get("style", "")
+            if "background-image" in style:
+                m = re.search(r"url\(['\"]?(.*?)['\"]?\)", style)
+                if m: src = m.group(1).strip()
+
+        src = _resolve_url(src, base_url)
+        if not src:
             img.decompose()
+            continue
+
+        img_count += 1
+        alt = (img.get("alt") or img.get("title") or img.get("data-alt") or "").strip()
+        img.replace_with(f" [IMG_{img_count}:{src} ALT:{alt}] ")
 
     lines = [l.strip() for l in soup.get_text(separator="\n").splitlines()]
     return "\n".join(l for l in lines if l)
@@ -561,34 +619,49 @@ def _extract_promos_sync(text: str, restaurant_name: str, page_url: str) -> list
     Retries if empty result (model is occasionally non-deterministic).
     Called SYNCHRONOUSLY with NO asyncio event loop active in the thread.
     """
-    content = text[:45_000]  # Increased from 15k to 45k to capture more data
+    content = text[:50_000]
+    # Pre-extract all image markers so the LLM has an explicit list
+    img_markers = re.findall(r'\[IMG_\d+:[^\]]+\]', content)
+    img_list_hint = "\n".join(img_markers[:60]) if img_markers else "(none found)"
+
     prompt = f"""You are a promotion extractor for a restaurant analytics system.
 
 Restaurant: {restaurant_name}
 Source URL: {page_url}
 
-TASK: Extract every promotional item, special offer, combo, or featured dish from the text.
-The text contains markers like [IMG_1:url ALT:description]. 
+── IMAGE MARKERS ──────────────────────────────────────────────────────────────
+The page text embeds image tags as: [IMG_N:URL ALT:description]
+Images found on this page ({len(img_markers)} total, first 60 shown):
+{img_list_hint}
 
-For each item return a JSON object with:
-  - "promo_type"    : "Duo", "Famille", "Solo", "Happy Hour", "Spécial du Jour", "Combo", "Other"
-  - "promo_details" : full description
-  - "price"         : price like "12.99" or "Not Provided"
-  - "promo_date"    : validity or "Not Provided"
-  - "link"          : direct URL or "{page_url}"
-  - "image_url"     : Select the ABSOLUTE BEST [IMG_N:url] for this promo. 
-                      CRITICAL: 
-                      1. Check the ALT text of [IMG_N] for keywords matching the promo name.
-                      2. If no match, check the [IMG_N] immediately PRECEDING the promo text block.
-                      3. If the page is a grid, the image is usually RIGHT ABOVE the price/title.
-                      4. Return only the URL. "Not Provided" if none.
+── HOW TO ASSIGN AN IMAGE TO EACH PROMO ──────────────────────────────────────
+RULE 1 – PROXIMITY (most reliable):
+  The [IMG_N:...] marker that appears IMMEDIATELY BEFORE a promo title/price
+  in the text is almost always that promo's image. Restaurant pages are grids:
+  each card has [image] then [title] then [description] then [price].
 
-Rules:
-- Include ALL items even if they look like regular menu items on this page.
-- For image_url: Be extremely precise. Prefer high-index images for items at the bottom of the page.
-- Return ONLY a valid JSON array.
+RULE 2 – ALT TEXT MATCH:
+  If the ALT text of an [IMG_N] contains words from the promo name/type,
+  that image belongs to this promo.
 
-Page content:
+RULE 3 – NEVER LEAVE image_url EMPTY:
+  If you cannot identify a specific image, use the [IMG_1:URL] (first image)
+  or the og_featured image. NEVER return "Not Provided" for image_url.
+  Every promo MUST have an image_url that is a real absolute URL from the list above.
+
+── TASK ───────────────────────────────────────────────────────────────────────
+Extract every promotional item, special offer, combo, or featured dish.
+For each item return a JSON object with EXACTLY these fields:
+  "promo_type"    : one of "Duo","Famille","Solo","Happy Hour","Spécial du Jour","Combo","Other"
+  "promo_details" : full description (keep original language)
+  "price"         : numeric string like "12.99", or "Not Provided"
+  "promo_date"    : validity date/period, or "Not Provided"
+  "link"          : most specific URL for this promo, or "{page_url}"
+  "image_url"     : REQUIRED – absolute URL of the image for this promo (see rules above)
+
+Return ONLY a valid JSON array. No markdown, no comments.
+
+── PAGE CONTENT ───────────────────────────────────────────────────────────────
 {content}"""
 
     models = [EXTRACT_MODEL_PRIMARY, EXTRACT_MODEL_PRIMARY, EXTRACT_MODEL_FALLBACK]
@@ -620,6 +693,62 @@ Page content:
             logging.error(f"LLM error attempt {attempt} for {restaurant_name}: {exc}")
     logging.warning(f"All {len(models)} attempts failed for {restaurant_name}")
     return []
+
+
+def _assign_missing_images(promos: list[dict], page_text: str) -> list[dict]:
+    """
+    Post-processing pass: for promos still missing an image_url, find the best
+    match from the page's [IMG_N:url ALT:text] markers using two strategies:
+      1. Alt-text keyword overlap with promo_type + promo_details
+      2. Positional proximity – nearest image marker before the promo text
+    Falls back to the first non-logo image on the page.
+    """
+    img_pattern = re.compile(r'\[IMG_\d+:([^\]\s]+)(?: ALT:([^\]]*))?\]')
+    _skip = ("logo", ".svg", "icon", "favicon", "sprite", "1x1", "pixel", "blank")
+    all_imgs = [
+        (m.start(), m.group(1).strip(), (m.group(2) or "").strip())
+        for m in img_pattern.finditer(page_text)
+        if not any(s in m.group(1).lower() for s in _skip)
+    ]
+    if not all_imgs:
+        return promos
+
+    first_valid_url = all_imgs[0][1] if all_imgs else None
+    _stopwords = {"the","le","la","les","des","pour","avec","dans","une","et","ou"}
+
+    for promo in promos:
+        img = (promo.get("image_url") or "").strip()
+        if img and img.lower() not in ("not provided", "n/a", "none", ""):
+            continue  # already has a real image
+
+        search = f"{promo.get('promo_type','')} {promo.get('promo_details','')}".lower()
+        words = {w for w in re.findall(r'\w{3,}', search) if w not in _stopwords}
+
+        # Strategy 1: best alt-text keyword overlap
+        best_score, best_url = 0, None
+        for _, url, alt in all_imgs:
+            score = sum(1 for w in words if w in alt.lower())
+            if score > best_score:
+                best_score, best_url = score, url
+
+        if best_url and best_score > 0:
+            promo["image_url"] = best_url
+            continue
+
+        # Strategy 2: closest image marker BEFORE the promo text in page
+        snippet = search[:50]
+        pos = page_text.lower().find(snippet)
+        if pos > 0:
+            before = [(p, u) for p, u, _ in all_imgs if p < pos]
+            if before:
+                promo["image_url"] = max(before, key=lambda x: x[0])[1]
+                continue
+
+        # Strategy 3: global fallback – first non-logo image
+        if first_valid_url:
+            promo["image_url"] = first_valid_url
+
+    return promos
 
 
 _MAX_IMAGES_PER_BATCH = 15   # Increased from 5 to 15 to capture more banners
@@ -731,6 +860,16 @@ def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[
     logging.info(f"Starting LLM extraction ({len(text)} chars)...")
     promos = _extract_promos_sync(text, restaurant_name, url)
     logging.info(f"LLM finished. Promos found: {len(promos)}")
+
+    # Phase 3: fill missing images via alt-text/proximity matching
+    missing_before = sum(1 for p in promos if not (p.get("image_url") or "").strip()
+                         or (p.get("image_url") or "").lower() in ("not provided","n/a","none"))
+    if missing_before:
+        promos = _assign_missing_images(promos, text)
+        missing_after = sum(1 for p in promos if not (p.get("image_url") or "").strip()
+                            or (p.get("image_url") or "").lower() in ("not provided","n/a","none"))
+        logging.info(f"Image assignment: {missing_before} missing → {missing_after} remaining after fallback")
+
     return promos, crawled, candidate_images
 
 
