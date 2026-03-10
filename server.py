@@ -992,8 +992,8 @@ def mark_inactive_promos(restaurant_name: str) -> int:
 
 
 # Seuils de similarité pour la déduplication fuzzy
-_DEDUP_TEXT_THRESHOLD  = 0.82   # textes similaires → duplicate
-_DEDUP_PRICE_THRESHOLD = 0.68   # seuil plus bas si le prix est aussi identique
+_DEDUP_TEXT_THRESHOLD  = 0.92   # textes très similaires → duplicate
+_DEDUP_PRICE_THRESHOLD = 0.88   # seuil légèrement plus bas si le prix est aussi identique
 _NON_PROMO_VERY_SHORT  = 14     # détails trop courts → clairement pas une promo
 
 # Mots/phrases de navigation fréquemment extraits par erreur
@@ -1240,7 +1240,6 @@ def _background_clean(jid: str, restaurant_name: str):
     try:
         logging.info(f"[Clean] Job {jid} démarré pour {restaurant_name}")
         stats = clean_promos_sync(restaurant_name)
-        stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
         stats["clean"] = True
         _set_job(jid, "done", result=stats)
         logging.info(f"[Clean] Job {jid} terminé: {stats}")
@@ -1257,9 +1256,7 @@ def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dic
     stats["marked_inactive"] = mark_inactive_promos(restaurant_name)
     stats["pages_crawled"]   = crawled
     if AUTO_CLEAN_AFTER_SCRAPE:
-        clean_stats = clean_promos_sync(restaurant_name)
-        clean_stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
-        stats["auto_cleaned"] = clean_stats
+        stats["auto_cleaned"] = clean_promos_sync(restaurant_name)
     return stats
 
 def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None):
@@ -1274,9 +1271,7 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
         if rid is not None:
             stats["restaurant_id"] = rid
         if AUTO_CLEAN_AFTER_SCRAPE:
-            clean_stats = clean_promos_sync(restaurant_name)
-            clean_stats["llm_deduped"] = _llm_dedup_restaurant(restaurant_name)
-            stats["auto_cleaned"] = clean_stats
+            stats["auto_cleaned"] = clean_promos_sync(restaurant_name)
         _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
