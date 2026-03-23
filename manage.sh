@@ -23,7 +23,8 @@ function show_help() {
     echo "  setpass     : Change le mot de passe du Bunker (Nginx Auth)"
     echo "  funnel      : Active l'exposition publique via Tailscale Funnel"
     echo "  status      : Affiche l'état des services et du tunnel"
-    echo "  backup      : Sauvegarde la base de données MySQL"
+    echo "  backup      : Sauvegarde la base de données MySQL
+  cleardb     : Vide toutes les promotions de la base de données"
 }
 
 case "$1" in
@@ -79,6 +80,18 @@ case "$1" in
         DB_CONTAINER=$(sudo docker compose ps -q db)
         sudo docker exec $DB_CONTAINER /usr/bin/mysqldump -u root -p1234 promotions_db > "$FILE"
         echo "Terminé."
+        ;;
+    cleardb)
+        echo -e "${RED}Attention : cette opération va vider toutes les promotions.${NC}"
+        read -p "Confirmer ? (oui/non) : " confirm
+        if [ "$confirm" = "oui" ]; then
+            DB_CONTAINER=$(sudo docker compose ps -q db)
+            sudo docker exec $DB_CONTAINER /usr/bin/mysql -u root -p1234 promotions_db \
+                -e "DELETE FROM promotions_table;"
+            echo -e "${GREEN}Base de données vidée.${NC}"
+        else
+            echo "Annulé."
+        fi
         ;;
     *)
         show_help
