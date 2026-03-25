@@ -1359,7 +1359,10 @@ AUTO_CLEAN_AFTER_SCRAPE = os.environ.get("AUTO_CLEAN_AFTER_SCRAPE", "1") == "1"
 def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dict:
     promos, crawled, _ = _scrape_sync(url, restaurant_name, jid=jid)
     stats = save_promos_to_db(restaurant_name, promos)
-    stats["marked_inactive"] = mark_inactive_promos(restaurant_name)
+    # N'archiver que si le scrape a réellement trouvé des promos :
+    # si le scraper retourne 0 résultat, c'est probablement un échec réseau/site,
+    # pas la disparition des promos → on ne touche pas à is_active.
+    stats["marked_inactive"] = mark_inactive_promos(restaurant_name) if promos else 0
     stats["pages_crawled"]   = crawled
     if AUTO_CLEAN_AFTER_SCRAPE:
         stats["auto_cleaned"] = clean_promos_sync(restaurant_name)
@@ -1371,7 +1374,7 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
     try:
         promos, crawled, candidate_images = _scrape_sync(url, restaurant_name, jid=jid)
         stats = save_promos_to_db(restaurant_name, promos)
-        stats["marked_inactive"]   = mark_inactive_promos(restaurant_name)
+        stats["marked_inactive"]   = mark_inactive_promos(restaurant_name) if promos else 0
         stats["pages_crawled"]     = crawled
         stats["candidate_images"]  = candidate_images
         if rid is not None:
