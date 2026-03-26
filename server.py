@@ -758,8 +758,19 @@ RULE 3 – NEVER LEAVE image_url EMPTY:
   Every promo MUST have an image_url that is a real absolute URL from the list above.
 
 ── TASK ───────────────────────────────────────────────────────────────────────
-Extract every promotional item, special offer, combo, or featured dish.
-For each item return a JSON object with EXACTLY these fields:
+Extract ONLY items that represent a real promotion or limited-time offer.
+A real promotion MUST have at least one of:
+  - An explicit discount (%, $off, rabais, save, économi)
+  - A bundle deal (combo/duo/trio/famille at a special grouped price)
+  - A time-limited or seasonal special explicitly marketed as such
+  - A price explicitly labelled "special", "promo", or reduced vs normal price
+
+DO NOT extract:
+  - Regular menu items at standard prices (e.g. a plain burger or wings listed on the menu)
+  - Descriptions without any deal/offer/discount component
+  - Navigation elements, headers, or generic section titles
+
+For each qualifying promo, return a JSON object with EXACTLY these fields:
   "promo_type"    : one of "Duo","Famille","Solo","Happy Hour","Spécial du Jour","Combo","Other"
   "promo_details" : full description (keep original language)
   "price"         : numeric string like "12.99", or "Not Provided"
@@ -1114,13 +1125,18 @@ _NAV_PHRASES = {
     "télécharger", "download", "reserve", "réserver",
 }
 
-# Mots-clés qui confirment qu'il s'agit d'une vraie promo
-_PROMO_CONFIRM_KW = [
-    "$", "%", "promo", "offre", "deal", "special", "spécial", "combo",
-    "rabais", "gratuit", "free", "save", "économ", "vedette", "featured",
-    "happy hour", "pizza", "burger", "poulet", "chicken", "ailes", "wings",
-    "plat", "repas", "meal", "trio", "duo", "famille", "family", "entrée",
-    "sandwich", "soupe", "dessert", "boisson", "drink", "assiette", "wrap",
+# Indicateurs d'une vraie promotion (réduction, offre groupée, spécial limité)
+# NB: les noms d'aliments seuls (pizza, wings, burger…) ne sont PAS des indicateurs
+#     de promotion — un item du menu normal peut les contenir.
+_PROMO_DEAL_KW = [
+    "$", "%", "promo", "offre", "deal", "spécial", "special",
+    "rabais", "économ", "economis", "save", "savings",
+    "gratuit", "free", "2 pour", "2 for", "buy one", "achetez",
+    "happy hour", "combo", "duo", "trio", "famille", "family",
+    "forfait", "package", "bundle", "limité", "limited", "exclusif",
+    "à partir de", "starting at", "seulement", "only",
+    "spécial du", "special of", "du jour", "of the day",
+    "semaine", "week", "midi", "lunch", "soir", "evening",
 ]
 
 
@@ -1135,26 +1151,32 @@ def _normalize_for_dedup(text: str) -> str:
 
 
 def _is_not_promo(det: str, price: str) -> bool:
-    """Retourne True si l'entrée est clairement une non-promotion."""
+    """Retourne True si l'entrée est clairement une non-promotion.
+
+    Logique :
+      - Trop court → pas une promo
+      - Phrase de navigation → pas une promo
+      - URL seule → pas une promo
+      - Aucun prix ET aucun mot de deal → item menu normal, pas une promo
+    Les noms d'aliments seuls (pizza, wings…) ne suffisent plus à confirmer
+    une promo : il faut un vrai indicateur de réduction/offre/bundle.
+    """
     det = (det or "").strip()
     if len(det) < _NON_PROMO_VERY_SHORT:
         return True
     det_l = det.lower()
-    # Phrase de navigation exacte
     if det_l in _NAV_PHRASES:
         return True
-    # Commence par une phrase de nav (avec peu de texte en plus)
     for phrase in _NAV_PHRASES:
         if det_l.startswith(phrase) and len(det_l) < len(phrase) + 12:
             return True
-    # URL seule
     if re.match(r"^https?://\S+$", det_l):
         return True
-    # Pas de prix ET pas de mot-clé promo ET texte court
     has_price = (price or "Not Provided").strip().lower() not in (
         "not provided", "n/a", "", "none")
-    has_kw = any(k in det_l for k in _PROMO_CONFIRM_KW)
-    if not has_price and not has_kw and len(det) < 55:
+    has_deal_kw = any(k in det_l for k in _PROMO_DEAL_KW)
+    # Sans prix ET sans indicateur de deal → item menu ordinaire
+    if not has_price and not has_deal_kw:
         return True
     return False
 
@@ -1244,6 +1266,94 @@ def clean_promos_sync(restaurant_name: str) -> dict:
     except Exception as exc:
         logging.error(f"clean_promos_sync error for {restaurant_name}: {exc}")
         return {"error": str(exc), "non_promo_removed": 0, "deduped": 0, "total_checked": 0}
+
+
+def _llm_reverify_restaurant(restaurant_name: str) -> dict:
+    """
+    Re-vérifie via GPT-4o-mini toutes les promos actives d'un restaurant.
+    Demande au LLM d'identifier celles qui NE sont PAS de vraies promotions
+    (items menu normaux, texte de navigation, descriptions génériques, etc.)
+    et les désactive.
+    Retourne {"checked": N, "deactivated": M}.
+    """
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, promo_type, promo_details, price FROM promotions_table "
+            "WHERE restaurant=%s AND is_active=1",
+            (restaurant_name,),
+        )
+        promos = cur.fetchall()
+        cur.close(); db.close()
+    except Exception as exc:
+        logging.error(f"[Reverify] DB error for {restaurant_name}: {exc}")
+        return {"checked": 0, "deactivated": 0, "error": str(exc)}
+
+    if not promos:
+        return {"checked": 0, "deactivated": 0}
+
+    BATCH = 30
+    to_deactivate: list[int] = []
+
+    for i in range(0, len(promos), BATCH):
+        batch = promos[i:i + BATCH]
+        items_text = "\n".join(
+            f'ID {p["id"]}: [{p["promo_type"]}] {p["promo_details"]}'
+            + (f' — Prix: {p["price"]}' if p.get("price") and
+               str(p["price"]).lower() not in ("not provided", "n/a", "", "none") else "")
+            for p in batch
+        )
+        prompt = (
+            f"Tu analyses les entrées de la base de données de promotions du restaurant \"{restaurant_name}\".\n\n"
+            "Pour chaque entrée ci-dessous, détermine si c'est une vraie promotion ou non.\n\n"
+            "Une VRAIE PROMOTION doit avoir au moins un de :\n"
+            "  - Un rabais explicite (%, $, économi, save, gratuit, free)\n"
+            "  - Un forfait bundle (combo/duo/trio/famille à prix groupé)\n"
+            "  - Un spécial limité dans le temps explicitement présenté comme tel\n"
+            "  - Un prix clairement présenté comme réduit ou spécial\n\n"
+            "N'EST PAS une promotion :\n"
+            "  - Un item du menu normal à prix standard (ex: 'Ailes de poulet 12.99$')\n"
+            "  - Une description générique sans composante d'offre/réduction\n"
+            "  - Du texte de navigation ou des titres de section\n\n"
+            f"Entrées :\n{items_text}\n\n"
+            "Réponds avec un JSON : {\"not_promos\": [liste des IDs qui ne sont PAS de vraies promotions]}\n"
+            "Si toutes sont valides, réponds {\"not_promos\": []}."
+        )
+        try:
+            client = OpenAIClient(api_key=OPENAI_API_KEY)
+            resp = client.chat.completions.create(
+                model=EXTRACT_MODEL_PRIMARY,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=512,
+                temperature=0,
+                timeout=30,
+            )
+            raw = resp.choices[0].message.content.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            result = json.loads(raw)
+            bad_ids = [int(x) for x in result.get("not_promos", [])
+                       if any(p["id"] == int(x) for p in batch)]
+            to_deactivate.extend(bad_ids)
+            logging.info(f"[Reverify] {restaurant_name} batch {i//BATCH+1}: "
+                         f"{len(bad_ids)} non-promos détectées sur {len(batch)}")
+        except Exception as exc:
+            logging.error(f"[Reverify] LLM error for {restaurant_name} batch {i//BATCH+1}: {exc}")
+
+    if to_deactivate:
+        try:
+            db = get_db(); cur = db.cursor()
+            fmt = ",".join(["%s"] * len(to_deactivate))
+            cur.execute(
+                f"UPDATE promotions_table SET is_active=0 WHERE id IN ({fmt})",
+                to_deactivate,
+            )
+            db.commit(); cur.close(); db.close()
+            logging.info(f"[Reverify] {restaurant_name}: {len(to_deactivate)} non-promos désactivées")
+        except Exception as exc:
+            logging.error(f"[Reverify] DB write error for {restaurant_name}: {exc}")
+
+    return {"checked": len(promos), "deactivated": len(to_deactivate)}
 
 
 LLM_DEDUP_THRESHOLD = 0.75  # cosine sim minimum pour grouper des candidats doublon
@@ -1972,6 +2082,42 @@ def api_verify_restaurant(rid):
                          args=(jid, rest["name"], rest["url"], rid), daemon=True)
     t.start()
     return jsonify({"job_id": jid})
+
+
+@app.route("/api/reverify-all", methods=["POST"])
+def api_reverify_all():
+    """
+    Lance en arrière-plan la re-vérification LLM de toutes les promos actives
+    pour chaque restaurant : détecte et désactive les non-promotions (items
+    menu normaux, texte de navigation, descriptions génériques).
+    Combine le nettoyage rule-based (clean_promos_sync) et la vérification LLM
+    (_llm_reverify_restaurant) pour chaque restaurant.
+    """
+    def _run():
+        try:
+            db = get_db(); cur = db.cursor(dictionary=True)
+            cur.execute("SELECT name FROM restaurants")
+            restaurants = [r["name"] for r in cur.fetchall()]
+            cur.close(); db.close()
+        except Exception as exc:
+            logging.error(f"[reverify-all] DB error: {exc}"); return
+
+        total_deactivated = 0
+        for name in restaurants:
+            logging.info(f"[reverify-all] Processing {name}…")
+            clean_stats = clean_promos_sync(name)
+            llm_stats   = _llm_reverify_restaurant(name)
+            deactivated = (clean_stats.get("non_promo_removed", 0) +
+                           clean_stats.get("deduped", 0) +
+                           llm_stats.get("deactivated", 0))
+            total_deactivated += deactivated
+            logging.info(f"[reverify-all] {name}: rule={clean_stats}, llm={llm_stats}")
+
+        logging.info(f"[reverify-all] Done. Total désactivées : {total_deactivated}")
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return jsonify({"status": "started", "message": "Re-vérification lancée en arrière-plan"})
 
 
 @app.errorhandler(Exception)
