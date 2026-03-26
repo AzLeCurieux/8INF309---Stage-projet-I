@@ -1490,7 +1490,10 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
         if rid is not None:
             stats["restaurant_id"] = rid
         if AUTO_CLEAN_AFTER_SCRAPE:
-            stats["auto_cleaned"] = clean_promos_sync(restaurant_name)
+            cleaned = clean_promos_sync(restaurant_name)
+            stats["auto_cleaned"] = cleaned
+            removed = cleaned.get("non_promo_removed", 0) + cleaned.get("deduped", 0)
+            stats["inserted"] = max(0, stats["inserted"] - removed)
         _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
