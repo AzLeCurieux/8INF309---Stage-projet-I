@@ -26,22 +26,33 @@ def _serializer() -> URLSafeTimedSerializer:
 
 
 def _send_email(to: str, subject: str, html_body: str) -> bool:
-    """Send an email via Flask-Mail. Returns False (logs warning) if mail not configured."""
-    try:
-        mail = current_app.extensions.get("mail")
-        if mail is None:
-            logging.warning("[auth] Flask-Mail not configured — email not sent to %s", to)
-            return False
-        from flask_mail import Message
-        msg = Message(subject=subject,
-                      recipients=[to],
-                      html=html_body,
-                      sender=current_app.config.get("MAIL_DEFAULT_SENDER", "noreply@chickenwings.local"))
-        mail.send(msg)
-        return True
-    except Exception as exc:
-        logging.warning("[auth] Failed to send email to %s: %s", to, exc)
+    """Fire-and-forget email via Resend HTTP API in a background thread.
+    Returns True immediately so the response is never blocked by the network call."""
+    import threading
+    import requests as _requests
+    api_key = current_app.config.get("MAIL_PASSWORD", "") or os.environ.get("MAIL_PASSWORD", "")
+    sender  = current_app.config.get("MAIL_DEFAULT_SENDER", "noreply@chickenwings.local")
+    if not api_key:
+        logging.warning("[auth] MAIL_PASSWORD (Resend API key) not set — email not sent to %s", to)
         return False
+
+    def _do_send():
+        try:
+            resp = _requests.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"from": sender, "to": [to], "subject": subject, "html": html_body},
+                timeout=15,
+            )
+            if resp.status_code in (200, 201):
+                logging.info("[auth] Email sent to %s via Resend API (id=%s)", to, resp.json().get("id"))
+            else:
+                logging.warning("[auth] Resend API error %s for %s: %s", resp.status_code, to, resp.text)
+        except Exception as exc:
+            logging.warning("[auth] Failed to send email to %s: %s", to, exc)
+
+    threading.Thread(target=_do_send, daemon=True).start()
+    return True
 
 
 def _send_verification(user):
