@@ -25,7 +25,8 @@ function show_help() {
     echo "  status      : Affiche l'état des services et du tunnel"
     echo "  backup      : Sauvegarde la base de données MySQL
   clearpromos : Vide les promotions uniquement (conserve les restaurants)
-  cleardb     : Vide toute la base de données (promotions + restaurants)"
+  cleardb     : Vide toute la base de données (promotions + restaurants)
+  makeadmin   : Donne le rôle admin à un utilisateur par email"
 }
 
 case "$1" in
@@ -104,6 +105,21 @@ case "$1" in
             echo -e "${GREEN}Base de données vidée.${NC}"
         else
             echo "Annulé."
+        fi
+        ;;
+    makeadmin)
+        read -p "Email de l'utilisateur à promouvoir admin : " email
+        if [ -n "$email" ]; then
+            DB_CONTAINER=$(sudo docker compose ps -q db)
+            RESULT=$(sudo docker exec $DB_CONTAINER /usr/bin/mysql -u root -p1234 promotions_db \
+                -se "UPDATE users SET role='admin' WHERE email='$email'; SELECT ROW_COUNT();")
+            if [ "$RESULT" = "1" ]; then
+                echo -e "${GREEN}✓ $email est maintenant admin.${NC}"
+            else
+                echo -e "${RED}Aucun utilisateur trouvé avec l'email : $email${NC}"
+            fi
+        else
+            echo -e "${RED}Erreur : email vide.${NC}"
         fi
         ;;
     *)
