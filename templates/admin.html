@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Panel — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#07070c; --surface:#0e0e18; --card:#121220; --card-hover:#16162a;
+      --border:#1e1e32; --border-hi:#2e2e48;
+      --text:#e2e2f0; --muted:#5a5a7a; --muted-hi:#8888aa;
+      --accent:#f5a623; --accent-dim:rgba(245,166,35,0.12);
+      --green:#10b981; --green-dim:rgba(16,185,129,0.12);
+      --red:#ef4444; --red-dim:rgba(239,68,68,0.12);
+      --blue:#6366f1; --blue-dim:rgba(99,102,241,0.12);
+    }
+    [data-theme="light"] { --bg:#f4f4f8; --surface:#ffffff; --card:#ffffff; --card-hover:#f8f8fc; --border:#e0e0ec; --border-hi:#c8c8e0; --text:#0f0f1e; --muted:#8080a0; --muted-hi:#505070; --accent:#d4850a; --accent-dim:rgba(212,133,10,0.1); }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; line-height:1.5; min-height:100vh; transition:background 0.3s,color 0.3s; }
+
+    /* Navbar */
+    .navbar { position:sticky; top:0; z-index:100; background:rgba(7,7,12,0.95); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 2rem; height:56px; display:flex; align-items:center; gap:1.5rem; }
+    [data-theme="light"] .navbar { background:rgba(244,244,248,0.95); }
+    .logo { display:flex; align-items:center; gap:0.6rem; text-decoration:none; }
+    .logo-icon { width:28px; height:28px; background:var(--accent); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; letter-spacing:0.05em; color:var(--text); }
+    .logo-text span { color:var(--accent); }
+    .nav-badge { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; background:var(--red); color:#fff; padding:2px 7px; border-radius:4px; text-transform:uppercase; letter-spacing:0.05em; }
+    .nav-spacer { flex:1; }
+    .nav-btn { background:transparent; border:1px solid var(--border); color:var(--muted-hi); padding:0 0.75rem; height:30px; border-radius:5px; font-size:12px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
+    .nav-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+    /* Layout */
+    .layout { max-width:1200px; margin:0 auto; padding:2rem 1.5rem; }
+
+    /* Tabs */
+    .tab-bar { display:flex; gap:0.25rem; border-bottom:1px solid var(--border); margin-bottom:2rem; overflow-x:auto; }
+    .tab-btn { background:none; border:none; color:var(--muted-hi); font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; padding:0.65rem 1.1rem; border-bottom:2px solid transparent; transition:all 0.15s; margin-bottom:-1px; white-space:nowrap; }
+    .tab-btn:hover { color:var(--text); }
+    .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* Metric cards */
+    .metrics { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .metric { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.25rem; }
+    .metric-val { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; margin-bottom:0.15rem; }
+    .metric-label { font-size:11px; color:var(--muted-hi); text-transform:uppercase; letter-spacing:0.07em; font-family:'JetBrains Mono',monospace; }
+    .mv-amber { color:var(--accent); }
+    .mv-green { color:var(--green); }
+    .mv-blue  { color:var(--blue); }
+    .mv-red   { color:var(--red); }
+    .mv-muted { color:var(--muted-hi); }
+
+    /* Tables */
+    .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .section-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
+    .search-input { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:0 0.75rem; height:32px; border-radius:6px; font-size:12px; outline:none; width:220px; }
+    .search-input:focus { border-color:var(--accent); }
+    .data-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .data-table th { text-align:left; padding:0.6rem 0.75rem; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted-hi); font-family:'JetBrains Mono',monospace; border-bottom:1px solid var(--border); }
+    .data-table td { padding:0.65rem 0.75rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .data-table tr:last-child td { border-bottom:none; }
+    .data-table tr:hover td { background:var(--card-hover); }
+    .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; overflow-x:auto; }
+
+    /* Badges */
+    .badge { display:inline-flex; align-items:center; gap:0.25rem; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em; }
+    .badge-admin   { background:var(--accent-dim); color:var(--accent); }
+    .badge-user    { background:var(--blue-dim); color:var(--blue); }
+    .badge-ok      { background:var(--green-dim); color:var(--green); }
+    .badge-warn    { background:var(--accent-dim); color:var(--accent); }
+    .badge-err     { background:var(--red-dim); color:var(--red); }
+    .badge-pending { background:var(--blue-dim); color:var(--blue); }
+
+    /* Action buttons */
+    .act-btn { background:transparent; border:1px solid var(--border); color:var(--muted-hi); padding:0 0.5rem; height:26px; border-radius:4px; font-size:11px; cursor:pointer; transition:all 0.15s; font-family:'Plus Jakarta Sans',sans-serif; }
+    .act-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .act-btn-red:hover { border-color:var(--red); color:var(--red); }
+    .act-btn-green:hover { border-color:var(--green); color:var(--green); }
+    .act-btns { display:flex; gap:0.4rem; }
+
+    /* Log entries */
+    .log-action { font-family:'JetBrains Mono',monospace; font-size:11px; }
+    .log-details { color:var(--muted-hi); font-size:12px; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .log-time { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); white-space:nowrap; }
+
+    /* Empty state */
+    .empty { text-align:center; padding:2.5rem; color:var(--muted-hi); font-size:13px; }
+
+    /* Job status rows */
+    .job-name { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted-hi); }
+
+    /* Subscribers */
+    .sub-count { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; color:var(--green); margin-bottom:0.25rem; }
+    .sub-label { font-size:12px; color:var(--muted-hi); }
+    .email-compose { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.5rem; margin-top:1.5rem; }
+    .email-compose h3 { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:1rem; }
+    .compose-field { margin-bottom:0.875rem; }
+    .compose-field label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted-hi); margin-bottom:0.35rem; font-family:'JetBrains Mono',monospace; }
+    .compose-field input, .compose-field textarea { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:0.5rem 0.75rem; border-radius:6px; font-size:13px; outline:none; font-family:'Plus Jakarta Sans',sans-serif; }
+    .compose-field textarea { min-height:120px; resize:vertical; }
+    .compose-field input:focus, .compose-field textarea:focus { border-color:var(--accent); }
+    .compose-note { font-size:12px; color:var(--muted); margin-top:0.75rem; }
+    .btn-primary { background:var(--accent); color:#000; border:none; border-radius:6px; padding:0 1.25rem; height:36px; font-weight:700; font-size:13px; cursor:pointer; transition:background 0.15s; }
+    .btn-primary:hover { background:#fbbf24; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <span class="nav-badge">Admin</span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <a href="/" class="nav-btn">← Dashboard</a>
+  <a href="/auth/logout" class="nav-btn">Sign out</a>
+</nav>
+
+<div class="layout">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('users', this)">Users</button>
+    <button class="tab-btn" onclick="switchTab('logs', this)">Activity Logs</button>
+    <button class="tab-btn" onclick="switchTab('scraping', this)">Scraping Reports</button>
+    <button class="tab-btn" onclick="switchTab('email', this)">Email & Newsletter</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="tab-pane active">
+    <div class="metrics" id="metrics-grid">
+      <div class="metric"><div class="metric-val mv-amber" id="m-users">–</div><div class="metric-label">Total users</div></div>
+      <div class="metric"><div class="metric-val mv-green" id="m-verified">–</div><div class="metric-label">Verified</div></div>
+      <div class="metric"><div class="metric-val mv-blue" id="m-subscribers">–</div><div class="metric-label">Subscribers</div></div>
+      <div class="metric"><div class="metric-val mv-amber" id="m-promos">–</div><div class="metric-label">Total promos</div></div>
+      <div class="metric"><div class="metric-val mv-green" id="m-active">–</div><div class="metric-label">Active promos</div></div>
+      <div class="metric"><div class="metric-val mv-muted" id="m-restaurants">–</div><div class="metric-label">Sources</div></div>
+    </div>
+    <div class="section-head"><div class="section-title">Recent Activity</div></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+        <tbody id="overview-logs"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div id="tab-users" class="tab-pane">
+    <div class="section-head">
+      <div class="section-title">Users (<span id="user-count">–</span>)</div>
+      <input class="search-input" placeholder="Search by email…" oninput="filterUsers(this.value)">
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Verified</th><th>Newsletter</th><th>Last Login</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div id="tab-logs" class="tab-pane">
+    <div class="section-head">
+      <div class="section-title">Activity Logs</div>
+      <input class="search-input" placeholder="Filter by email or action…" oninput="filterLogs(this.value)">
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+        <tbody id="logs-tbody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SCRAPING -->
+  <div id="tab-scraping" class="tab-pane">
+    <div class="section-head"><div class="section-title">Scraping Jobs</div></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Started</th><th>Finished</th><th>Result</th></tr></thead>
+        <tbody id="jobs-tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div style="margin-top:1.5rem;">
+      <div class="section-head"><div class="section-title">Per-Restaurant Summary</div></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Restaurant</th><th>Total promos</th><th>Active</th><th>A+/A</th><th>Last scraped</th></tr></thead>
+          <tbody id="rest-tbody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMAIL -->
+  <div id="tab-email" class="tab-pane">
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr);max-width:480px;margin-bottom:1.5rem;">
+      <div class="metric"><div class="sub-count" id="sub-total">–</div><div class="sub-label">Subscribers</div></div>
+      <div class="metric"><div class="sub-count" id="sub-verified" style="color:var(--blue)">–</div><div class="sub-label">Verified</div></div>
+      <div class="metric"><div class="sub-count" id="sub-all" style="color:var(--muted-hi)">–</div><div class="sub-label">Total accounts</div></div>
+    </div>
+    <div class="section-head"><div class="section-title">Subscriber List</div></div>
+    <div class="table-wrap" style="margin-bottom:1.5rem;">
+      <table class="data-table">
+        <thead><tr><th>Email</th><th>Name</th><th>Joined</th></tr></thead>
+        <tbody id="sub-tbody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="email-compose">
+      <h3>Compose Newsletter <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">(coming soon)</span></h3>
+      <div class="compose-field">
+        <label>Subject</label>
+        <input type="text" placeholder="e.g. This week's best chicken wing deals">
+      </div>
+      <div class="compose-field">
+        <label>Message body (HTML or plain text)</label>
+        <textarea placeholder="Write your newsletter content here…"></textarea>
+      </div>
+      <button class="btn-primary" disabled title="Newsletter sending is coming soon">Send to all subscribers</button>
+      <p class="compose-note">This feature will send an email to all verified, subscribed users. The email will respect unsubscribe preferences.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('theme', next);
+}
+(function(){ const t = localStorage.getItem('theme'); if(t) document.documentElement.dataset.theme = t; })();
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'users')    loadUsers();
+  if (name === 'logs')     loadLogs();
+  if (name === 'scraping') loadScraping();
+  if (name === 'email')    loadEmail();
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('en-CA', {month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtDateShort(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('en-CA', {month:'short',day:'numeric',year:'numeric'});
+}
+
+// === OVERVIEW ===
+async function loadOverview() {
+  const res = await fetch('/api/admin/stats');
+  if (!res.ok) return;
+  const d = await res.json();
+  document.getElementById('m-users').textContent       = d.users?.total ?? '–';
+  document.getElementById('m-verified').textContent    = d.users?.verified ?? '–';
+  document.getElementById('m-subscribers').textContent = d.users?.subscribers ?? '–';
+  document.getElementById('m-promos').textContent      = d.promos?.total ?? '–';
+  document.getElementById('m-active').textContent      = d.promos?.active ?? '–';
+  document.getElementById('m-restaurants').textContent = d.restaurants ?? '–';
+
+  const tbody = document.getElementById('overview-logs');
+  if (d.recent_logs && d.recent_logs.length) {
+    tbody.innerHTML = d.recent_logs.map(l => `<tr>
+      <td class="log-time">${fmtDate(l.created_at)}</td>
+      <td style="font-size:12px">${l.user_email || '—'}</td>
+      <td><span class="log-action">${l.action}</span></td>
+      <td class="log-details">${l.details || ''}</td>
+      <td style="font-size:11px;color:var(--muted)">${l.ip_address || ''}</td>
+    </tr>`).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No activity yet.</td></tr>';
+  }
+}
+
+// === USERS ===
+let _users = [];
+async function loadUsers() {
+  const res = await fetch('/api/admin/users');
+  if (!res.ok) return;
+  _users = (await res.json()).users || [];
+  document.getElementById('user-count').textContent = _users.length;
+  renderUsers(_users);
+}
+function filterUsers(q) {
+  const filtered = _users.filter(u => u.email.toLowerCase().includes(q.toLowerCase()));
+  renderUsers(filtered);
+}
+function renderUsers(users) {
+  const tbody = document.getElementById('users-tbody');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No users found.</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => `<tr>
+    <td style="font-size:12px">${u.email}</td>
+    <td style="font-size:12px">${[u.first_name,u.last_name].filter(Boolean).join(' ')||'—'}</td>
+    <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role}</span></td>
+    <td><span class="badge ${u.is_verified?'badge-ok':'badge-warn'}">${u.is_verified?'Yes':'No'}</span></td>
+    <td><span class="badge ${u.newsletter_subscribed?'badge-ok':'badge-warn'}">${u.newsletter_subscribed?'Yes':'No'}</span></td>
+    <td class="log-time">${fmtDateShort(u.last_login)}</td>
+    <td class="log-time">${fmtDateShort(u.created_at)}</td>
+    <td><div class="act-btns">
+      <button class="act-btn act-btn-green" onclick="toggleAdmin(${u.id},'${u.role}')">
+        ${u.role==='admin'?'Revoke admin':'Make admin'}
+      </button>
+      <button class="act-btn act-btn-red" onclick="deleteUser(${u.id},'${u.email}')">Delete</button>
+    </div></td>
+  </tr>`).join('');
+}
+async function toggleAdmin(uid, currentRole) {
+  const newRole = currentRole === 'admin' ? 'user' : 'admin';
+  if (!confirm(`Change role to "${newRole}"?`)) return;
+  await fetch('/api/admin/users/' + uid + '/role', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role:newRole}) });
+  loadUsers();
+}
+async function deleteUser(uid, email) {
+  if (!confirm(`Delete user "${email}"? This cannot be undone.`)) return;
+  await fetch('/api/admin/users/' + uid, { method:'DELETE' });
+  loadUsers();
+}
+
+// === LOGS ===
+let _logs = [];
+async function loadLogs() {
+  const res = await fetch('/api/admin/logs');
+  if (!res.ok) return;
+  _logs = (await res.json()).logs || [];
+  renderLogs(_logs);
+}
+function filterLogs(q) {
+  const filtered = _logs.filter(l =>
+    (l.user_email||'').toLowerCase().includes(q.toLowerCase()) ||
+    (l.action||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderLogs(filtered);
+}
+function renderLogs(logs) {
+  const tbody = document.getElementById('logs-tbody');
+  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No logs.</td></tr>'; return; }
+  tbody.innerHTML = logs.map(l => `<tr>
+    <td class="log-time">${fmtDate(l.created_at)}</td>
+    <td style="font-size:12px">${l.user_email||'—'}</td>
+    <td><span class="log-action">${l.action}</span></td>
+    <td class="log-details" title="${(l.details||'').replace(/"/g,'&quot;')}">${l.details||''}</td>
+    <td style="font-size:11px;color:var(--muted)">${l.ip_address||''}</td>
+  </tr>`).join('');
+}
+
+// === SCRAPING ===
+async function loadScraping() {
+  const [jobsRes, restRes] = await Promise.all([
+    fetch('/api/admin/jobs'),
+    fetch('/api/admin/restaurants')
+  ]);
+  const jobs = jobsRes.ok ? (await jobsRes.json()).jobs || [] : [];
+  const rests = restRes.ok ? (await restRes.json()).restaurants || [] : [];
+
+  const jTbody = document.getElementById('jobs-tbody');
+  if (!jobs.length) { jTbody.innerHTML = '<tr><td colspan="6" class="empty">No jobs recorded.</td></tr>'; }
+  else {
+    jTbody.innerHTML = jobs.map(j => {
+      const sc = j.status==='done'?'badge-ok':j.status==='error'?'badge-err':'badge-pending';
+      const result = j.result ? JSON.stringify(j.result).substring(0,80) : '';
+      return `<tr>
+        <td class="job-name">${j.id}</td>
+        <td style="font-size:12px">${j.name}</td>
+        <td><span class="badge ${sc}">${j.status}</span></td>
+        <td class="log-time">${fmtDate(j.started_at)}</td>
+        <td class="log-time">${fmtDate(j.finished_at)}</td>
+        <td style="font-size:11px;color:var(--muted-hi);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${result}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const rTbody = document.getElementById('rest-tbody');
+  if (!rests.length) { rTbody.innerHTML = '<tr><td colspan="5" class="empty">No data.</td></tr>'; }
+  else {
+    rTbody.innerHTML = rests.map(r => `<tr>
+      <td style="font-weight:600">${r.name}</td>
+      <td>${r.total_promos||0}</td>
+      <td>${r.active_promos||0}</td>
+      <td>${r.top_promos||0}</td>
+      <td class="log-time">${fmtDate(r.last_scraped)}</td>
+    </tr>`).join('');
+  }
+}
+
+// === EMAIL ===
+async function loadEmail() {
+  const res = await fetch('/api/admin/subscribers');
+  if (!res.ok) return;
+  const d = await res.json();
+  document.getElementById('sub-total').textContent   = d.subscribers?.length ?? 0;
+  document.getElementById('sub-verified').textContent = d.stats?.verified ?? 0;
+  document.getElementById('sub-all').textContent      = d.stats?.total ?? 0;
+  const tbody = document.getElementById('sub-tbody');
+  if (!d.subscribers || !d.subscribers.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">No subscribers yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = d.subscribers.map(s => `<tr>
+    <td style="font-size:12px">${s.email}</td>
+    <td style="font-size:12px">${[s.first_name,s.last_name].filter(Boolean).join(' ')||'—'}</td>
+    <td class="log-time">${fmtDateShort(s.created_at)}</td>
+  </tr>`).join('');
+}
+
+// Init
+loadOverview();
+</script>
+</body>
+</html>
