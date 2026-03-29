@@ -24,7 +24,9 @@ import numpy as np
 from bs4 import BeautifulSoup
 from openai import OpenAI as OpenAIClient
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for, abort
+from flask_login import LoginManager, login_required, current_user
+from flask_mail import Mail
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -1503,6 +1505,74 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
 
 app = Flask(__name__)
 
+# Secret key (required for sessions & itsdangerous tokens)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
+
+# Flask-Login
+login_manager = LoginManager(app)
+login_manager.login_view = "auth.login"
+login_manager.login_message = ""  # suppress default flash message
+
+from models import get_user_by_id as _get_user_by_id  # noqa: E402
+
+@login_manager.user_loader
+def _user_loader(user_id):
+    return _get_user_by_id(int(user_id))
+
+# Flask-Mail
+app.config.update(
+    MAIL_SERVER   = os.environ.get("MAIL_SERVER", ""),
+    MAIL_PORT     = int(os.environ.get("MAIL_PORT", "587")),
+    MAIL_USE_TLS  = os.environ.get("MAIL_USE_TLS", "true").lower() == "true",
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", ""),
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", ""),
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@chickenwings.local"),
+)
+if app.config["MAIL_SERVER"]:
+    mail = Mail(app)
+    app.extensions["mail"] = mail
+
+# OAuth SSO
+from oauth_client import oauth as _oauth  # noqa: E402
+_oauth.init_app(app)
+_oauth.register(
+    "google",
+    client_id     = os.environ.get("GOOGLE_CLIENT_ID", ""),
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+    server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs = {"scope": "openid email profile"},
+)
+_oauth.register(
+    "github",
+    client_id          = os.environ.get("GITHUB_CLIENT_ID", ""),
+    client_secret      = os.environ.get("GITHUB_CLIENT_SECRET", ""),
+    api_base_url       = "https://api.github.com/",
+    access_token_url   = "https://github.com/login/oauth/access_token",
+    authorize_url      = "https://github.com/login/oauth/authorize",
+    client_kwargs      = {"scope": "user:email"},
+)
+
+# Blueprints
+from auth import auth as auth_blueprint    # noqa: E402
+from admin import admin as admin_blueprint  # noqa: E402
+from decorators import admin_required       # noqa: E402
+app.register_blueprint(auth_blueprint)
+app.register_blueprint(admin_blueprint)
+
+# Expose _jobs to admin blueprint via app attribute
+app.jobs = _jobs
+
+# Require login for all non-auth, non-static, non-ping routes
+@app.before_request
+def _require_login():
+    open_prefixes = ("auth.", "static")
+    open_endpoints = ("ping",)
+    ep = request.endpoint or ""
+    if any(ep.startswith(p) for p in open_prefixes) or ep in open_endpoints:
+        return None
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login", next=request.url))
+
 
 def _auto_scrape_job():
     logging.info("[Scheduler] Auto-scrape starting…")
@@ -1623,6 +1693,7 @@ def about():
 
 
 @app.route("/add_restaurant", methods=["POST"])
+@admin_required
 def add_restaurant():
     name = request.form.get("name", "").strip()
     url  = request.form.get("url", "").strip()
@@ -1639,6 +1710,7 @@ def add_restaurant():
 
 
 @app.route("/delete_restaurant/<int:rid>", methods=["POST"])
+@admin_required
 def delete_restaurant(rid):
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -1653,6 +1725,7 @@ def delete_restaurant(rid):
 
 
 @app.route("/crawl/<int:rid>", methods=["POST"])
+@admin_required
 def crawl_one(rid):
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -1669,6 +1742,7 @@ def crawl_one(rid):
 
 
 @app.route("/crawl_all", methods=["POST"])
+@admin_required
 def crawl_all():
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -1703,6 +1777,7 @@ def job_logs(jid):
 
 
 @app.route("/api/analyze_images", methods=["POST"])
+@admin_required
 def analyze_images():
     """
     Approuver l'extraction des promotions depuis des images bannières.
@@ -1750,6 +1825,7 @@ def analyze_images():
 
 
 @app.route("/clean/<int:rid>", methods=["POST"])
+@admin_required
 def clean_restaurant(rid):
     """Lance un job de nettoyage (dédoublonnage + suppression non-promos) en arrière-plan."""
     try:
@@ -1768,6 +1844,7 @@ def clean_restaurant(rid):
 
 
 @app.route("/classify_all", methods=["POST"])
+@admin_required
 def classify_all():
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -1786,6 +1863,7 @@ def classify_all():
 
 
 @app.route("/reactivate/<int:pid>", methods=["POST"])
+@admin_required
 def reactivate_promo(pid):
     try:
         db = get_db(); cur = db.cursor()
@@ -1828,6 +1906,7 @@ def api_restaurants():
 
 
 @app.route("/api/clear_promotions", methods=["POST"])
+@admin_required
 def clear_promotions():
     try:
         db = get_db(); cur = db.cursor()
@@ -1842,6 +1921,7 @@ def clear_promotions():
 
 
 @app.route("/api/fix_images", methods=["POST"])
+@admin_required
 def fix_images():
     """Replace NULL / 'Not Provided' image_url with the generic placeholder."""
     try:
@@ -2072,6 +2152,7 @@ def verify_restaurant(rid):
 
 
 @app.route("/api/verify/<int:rid>", methods=["POST"])
+@admin_required
 def api_verify_restaurant(rid):
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
@@ -2088,6 +2169,7 @@ def api_verify_restaurant(rid):
 
 
 @app.route("/api/reverify-all", methods=["POST"])
+@admin_required
 def api_reverify_all():
     """
     Lance en arrière-plan la re-vérification LLM de toutes les promos actives
@@ -2123,12 +2205,165 @@ def api_reverify_all():
     return jsonify({"status": "started", "message": "Re-vérification lancée en arrière-plan"})
 
 
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("errors/403.html"), 403
+
+
 @app.errorhandler(Exception)
 def handle_error(err):
     from werkzeug.exceptions import HTTPException
     if isinstance(err, HTTPException): return err
     logging.exception("Unhandled error: %s", err)
     return jsonify({"error": "internal-server-error", "detail": str(err)}), 500
+
+
+# ---------------------------------------------------------------------------
+# User dashboard
+# ---------------------------------------------------------------------------
+
+@app.route("/dashboard")
+@login_required
+def user_dashboard():
+    return render_template("dashboard.html")
+
+
+# ---------------------------------------------------------------------------
+# Admin API endpoints
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/stats")
+@admin_required
+def api_admin_stats():
+    from models import get_user_count
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT COUNT(*) AS total FROM promotions_table")
+        total_promos = (cur.fetchone() or {}).get("total", 0)
+        cur.execute("SELECT COUNT(*) AS active FROM promotions_table WHERE is_active=1")
+        active_promos = (cur.fetchone() or {}).get("active", 0)
+        cur.execute("SELECT COUNT(*) AS cnt FROM restaurants")
+        restaurants = (cur.fetchone() or {}).get("cnt", 0)
+        cur.close(); db.close()
+    except Exception as exc:
+        logging.error(f"admin_stats: {exc}")
+        total_promos = active_promos = restaurants = 0
+
+    from models import get_activity_logs
+    recent_logs = get_activity_logs(limit=20)
+
+    # Convert datetime objects to strings for JSON
+    for log in recent_logs:
+        for k, v in log.items():
+            if hasattr(v, 'isoformat'):
+                log[k] = v.isoformat()
+
+    user_counts = get_user_count()
+    return jsonify({
+        "users":        user_counts,
+        "promos":       {"total": total_promos, "active": active_promos},
+        "restaurants":  restaurants,
+        "recent_logs":  recent_logs,
+    })
+
+
+@app.route("/api/admin/users")
+@admin_required
+def api_admin_users():
+    from models import get_all_users
+    users = get_all_users()
+    for u in users:
+        for k, v in u.items():
+            if hasattr(v, 'isoformat'):
+                u[k] = v.isoformat()
+    return jsonify({"users": users})
+
+
+@app.route("/api/admin/users/<int:uid>/role", methods=["POST"])
+@admin_required
+def api_admin_set_role(uid):
+    from models import set_user_role, log_activity
+    data = request.get_json(force=True) or {}
+    role = data.get("role", "user")
+    ok = set_user_role(uid, role)
+    if ok:
+        log_activity(current_user.id, current_user.email,
+                     "admin_set_role", f"uid={uid} role={role}", request.remote_addr)
+    return jsonify({"ok": ok})
+
+
+@app.route("/api/admin/users/<int:uid>", methods=["DELETE"])
+@admin_required
+def api_admin_delete_user(uid):
+    from models import delete_user as _delete_user, log_activity
+    if uid == current_user.id:
+        return jsonify({"ok": False, "error": "Cannot delete yourself"}), 400
+    ok = _delete_user(uid)
+    if ok:
+        log_activity(current_user.id, current_user.email,
+                     "admin_delete_user", f"uid={uid}", request.remote_addr)
+    return jsonify({"ok": ok})
+
+
+@app.route("/api/admin/logs")
+@admin_required
+def api_admin_logs():
+    from models import get_activity_logs
+    logs = get_activity_logs(limit=500)
+    for l in logs:
+        for k, v in l.items():
+            if hasattr(v, 'isoformat'):
+                l[k] = v.isoformat()
+    return jsonify({"logs": logs})
+
+
+@app.route("/api/admin/jobs")
+@admin_required
+def api_admin_jobs():
+    with _jobs_lock:
+        jobs = [{"id": jid, **{k: v for k, v in data.items() if k != "logs"}}
+                for jid, data in _jobs.items()]
+    jobs.sort(key=lambda j: j.get("started_at", ""), reverse=True)
+    return jsonify({"jobs": jobs[:100]})
+
+
+@app.route("/api/admin/restaurants")
+@admin_required
+def api_admin_restaurants():
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("""
+            SELECT r.id, r.name, r.url,
+                   COUNT(p.id) AS total_promos,
+                   SUM(CASE WHEN p.is_active=1 THEN 1 ELSE 0 END) AS active_promos,
+                   SUM(CASE WHEN p.grade IN ('A+','A') AND p.is_active=1 THEN 1 ELSE 0 END) AS top_promos,
+                   MAX(p.last_seen) AS last_scraped
+            FROM restaurants r
+            LEFT JOIN promotions_table p ON p.restaurant = r.name
+            GROUP BY r.id, r.name, r.url
+            ORDER BY r.name
+        """)
+        rests = cur.fetchall()
+        cur.close(); db.close()
+        for r in rests:
+            for k, v in r.items():
+                if hasattr(v, 'isoformat'):
+                    r[k] = v.isoformat()
+        return jsonify({"restaurants": rests})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/admin/subscribers")
+@admin_required
+def api_admin_subscribers():
+    from models import get_subscribers, get_user_count
+    subs = get_subscribers()
+    for s in subs:
+        for k, v in s.items():
+            if hasattr(v, 'isoformat'):
+                s[k] = v.isoformat()
+    return jsonify({"subscribers": subs, "stats": get_user_count()})
 
 
 _DEFAULT_RESTAURANTS = [
@@ -2175,6 +2410,48 @@ def _init_db():
                     last_seen        DATETIME
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id                   INT AUTO_INCREMENT PRIMARY KEY,
+                    email                VARCHAR(255) NOT NULL UNIQUE,
+                    password_hash        VARCHAR(255) NOT NULL,
+                    first_name           VARCHAR(100),
+                    last_name            VARCHAR(100),
+                    role                 ENUM('user','admin') DEFAULT 'user',
+                    is_verified          TINYINT(1) DEFAULT 0,
+                    newsletter_subscribed TINYINT(1) DEFAULT 1,
+                    unsubscribe_token    VARCHAR(100),
+                    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_login           DATETIME,
+                    email_verified_at    DATETIME
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id          INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id     INT,
+                    user_email  VARCHAR(255),
+                    action      VARCHAR(100) NOT NULL,
+                    details     TEXT,
+                    ip_address  VARCHAR(50),
+                    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            # Migrations: add OAuth columns if not present
+            for col, ddl in [
+                ("oauth_provider", "ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50)"),
+                ("oauth_id",       "ALTER TABLE users ADD COLUMN oauth_id VARCHAR(255)"),
+            ]:
+                try:
+                    cur.execute(ddl)
+                except mysql.connector.Error:
+                    pass  # column already exists
+            try:
+                cur.execute("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255) NULL")
+            except mysql.connector.Error:
+                pass
+
             for name, url in _DEFAULT_RESTAURANTS:
                 cur.execute(
                     "INSERT IGNORE INTO restaurants (name, url, scraper_type) "
@@ -2206,6 +2483,7 @@ if __name__ == "__main__":
     _scheduler = _start_scheduler()
     cfg = hypercorn.config.Config()
     cfg.bind = ["0.0.0.0:5000"]
+    cfg.trusted_hosts = ["*"]
     logging.info("Starting Promo Dashboard on http://0.0.0.0:5000")
     try:
         asyncio.run(hypercorn.asyncio.serve(app, cfg))
