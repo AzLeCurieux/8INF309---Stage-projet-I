@@ -12,6 +12,20 @@ services:
       DB_USER: root
       DB_PASSWORD: "${DB_PASSWORD:-1234}"
       DB_NAME: promotions_db
+      # Flask secret key (CHANGE THIS in production — use a long random string)
+      SECRET_KEY: "${SECRET_KEY:-change-me-in-production-use-a-long-random-string}"
+      # Email / SMTP config (optional — auth works without it, tokens logged to console)
+      MAIL_SERVER: "${MAIL_SERVER:-}"
+      MAIL_PORT: "${MAIL_PORT:-587}"
+      MAIL_USE_TLS: "${MAIL_USE_TLS:-true}"
+      MAIL_USERNAME: "${MAIL_USERNAME:-}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+      MAIL_DEFAULT_SENDER: "${MAIL_DEFAULT_SENDER:-noreply@chickenwings.local}"
+      # OAuth SSO (optional — SSO buttons hidden if not set)
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-}"
     depends_on:
       db:
         condition: service_healthy
