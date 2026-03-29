@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm your account</title>
+</head>
+<body style="background:#07070c;color:#e2e2f0;font-family:'Helvetica Neue',Arial,sans-serif;margin:0;padding:40px 20px;">
+  <div style="max-width:520px;margin:0 auto;background:#0e0e18;border:1px solid #1e1e32;border-radius:12px;overflow:hidden;">
+    <div style="background:#f5a623;padding:24px 32px;">
+      <span style="font-size:22px;font-weight:800;letter-spacing:0.05em;color:#000;">🍗 CHICKEN.WINGS</span>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#e2e2f0;">Confirm your email address</h2>
+      <p style="margin:0 0 8px;color:#8888aa;font-size:14px;">Hi {{ user.display_name }},</p>
+      <p style="margin:0 0 24px;color:#8888aa;font-size:14px;">
+        Thanks for signing up! Click the button below to verify your email address and activate your account.
+      </p>
+      <a href="{{ link }}"
+         style="display:inline-block;background:#f5a623;color:#000;font-weight:700;font-size:14px;
+                text-decoration:none;padding:12px 28px;border-radius:7px;letter-spacing:0.03em;">
+        Verify my email
+      </a>
+      <p style="margin:24px 0 0;font-size:12px;color:#5a5a7a;">
+        This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.
+      </p>
+      <p style="margin:12px 0 0;font-size:11px;color:#3a3a5a;word-break:break-all;">
+        Or copy this link: {{ link }}
+      </p>
+    </div>
+  </div>
+</body>
+</html>

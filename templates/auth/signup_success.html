@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Check your email — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#07070c; --surface:#0e0e18; --border:#1e1e32; --text:#e2e2f0; --muted:#5a5a7a; --muted-hi:#8888aa; --accent:#f5a623; --green:#10b981; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 3rem 2.5rem; max-width: 420px; width: 90%; text-align: center; }
+    .icon { font-size: 3rem; margin-bottom: 1.25rem; }
+    h1 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 0.75rem; }
+    p { color: var(--muted-hi); font-size: 14px; line-height: 1.6; margin-bottom: 0.75rem; }
+    .email-tag { font-weight: 700; color: var(--accent); }
+    .btn { display: inline-block; margin-top: 1.5rem; background: var(--accent); color: #000; font-weight: 700; font-size: 13px; text-decoration: none; padding: 0.65rem 1.5rem; border-radius: 7px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✉️</div>
+    <h1>Check your inbox</h1>
+    <p>We sent a verification link to <span class="email-tag">{{ email }}</span>.</p>
+    <p>Click the link in the email to activate your account. It expires in 24 hours.</p>
+    <p style="font-size:12px;color:var(--muted);">Didn't receive it? Check your spam folder, or log in to resend.</p>
+    <a href="/auth/login" class="btn">Go to login</a>
+  </div>
+</body>
+</html>

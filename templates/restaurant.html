@@ -379,15 +379,23 @@
   <button class="nav-btn" onclick="toggleLang()">
     <span class="fr">FR</span><span class="en">EN</span>
   </button>
-  <a href="/verify/{{ restaurant.id }}" class="nav-btn" title="Vérifier la précision / Verify accuracy">
-    <span class="fr">Vérifier</span><span class="en">Verify</span>
-  </a>
   <a href="/analytics" class="nav-btn">
     <span class="fr">Analyse</span><span class="en">Analytics</span>
+  </a>
+  {% if current_user.is_admin %}
+  <a href="/verify/{{ restaurant.id }}" class="nav-btn" title="Vérifier la précision / Verify accuracy">
+    <span class="fr">Vérifier</span><span class="en">Verify</span>
   </a>
   <button class="nav-btn nav-btn-clean" id="cleanBtn" onclick="triggerClean({{ restaurant.id }})">
     <span class="fr">Nettoyer</span><span class="en">Clean</span>
   </button>
+  <a href="/admin/" class="nav-btn" style="color:var(--accent);border-color:var(--accent);">⚙ Admin</a>
+  {% endif %}
+  <div style="width:1px;height:20px;background:var(--border);"></div>
+  <span style="font-size:12px;color:var(--muted-hi)">{{ current_user.display_name }}</span>
+  <a href="/auth/logout" class="nav-btn">
+    <span class="fr">Déconnexion</span><span class="en">Sign out</span>
+  </a>
 </nav>
 
 <div class="hero">
@@ -506,6 +514,12 @@
               <span class="fr">Voir ↗</span><span class="en">View ↗</span>
             </a>
           </div>
+          {% if p.last_seen %}
+          <div style="padding:0.3rem 0.875rem 0.6rem;font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;">
+            <span class="fr">Récupéré le</span><span class="en">Retrieved</span>
+            {{ p.last_seen.strftime('%b %d, %Y') if p.last_seen else '' }}
+          </div>
+          {% endif %}
         </div>
       </div>
       {% endfor %}

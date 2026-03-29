@@ -611,9 +611,17 @@
   <a href="/about" class="nav-btn">
     <span class="fr">Docs</span><span class="en">Docs</span>
   </a>
+  {% if current_user.is_admin %}
   <button class="nav-btn" onclick="crawlAll()">
     <span class="fr">Tout scanner</span><span class="en">Scan all</span>
   </button>
+  <a href="/admin/" class="nav-btn" style="color:var(--accent);border-color:var(--accent);">⚙ Admin</a>
+  {% endif %}
+  <div class="nav-divider"></div>
+  <span style="font-size:12px;color:var(--muted-hi)">{{ current_user.display_name }}</span>
+  <a href="/auth/logout" class="nav-btn">
+    <span class="fr">Déconnexion</span><span class="en">Sign out</span>
+  </a>
 </nav>
 
 <div class="layout">
@@ -638,6 +646,7 @@
     </div>
   </div>
 
+  {% if current_user.is_admin %}
   <form action="/add_restaurant" method="POST" class="add-section">
     <span class="add-label">+ <span class="fr">Ajouter</span><span class="en">Add</span></span>
     <input type="text" name="name" class="input-field" placeholder="Nom (ex: KFC)" style="max-width:200px" required>
@@ -646,6 +655,7 @@
       <span class="fr">Ajouter source</span><span class="en">Add source</span>
     </button>
   </form>
+  {% endif %}
 
   <div class="section-head">
     <span class="section-title">
@@ -706,6 +716,7 @@
           <a href="/restaurant/{{ r.id }}" class="btn-row">
             <span class="fr">Voir</span><span class="en">View</span>
           </a>
+          {% if current_user.is_admin %}
           <a href="/verify/{{ r.id }}" class="btn-row" title="Vérifier la précision du scraper / Verify scraper accuracy">
             <span class="fr">Vérifier</span><span class="en">Verify</span>
           </a>
@@ -715,6 +726,7 @@
           <form action="/delete_restaurant/{{ r.id }}" method="POST" style="display:inline" onsubmit="return confirm('Supprimer {{ r.name }} ?')">
             <button type="submit" class="btn-row btn-del">✕</button>
           </form>
+          {% endif %}
         </div>
       </div>
       {% endfor %}

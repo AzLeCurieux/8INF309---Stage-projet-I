@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="{{ 'fr' if lang == 'fr' else 'en' }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Dashboard — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#07070c; --surface:#0e0e18; --card:#121220; --card-hover:#16162a;
+      --border:#1e1e32; --border-hi:#2e2e48;
+      --text:#e2e2f0; --muted:#5a5a7a; --muted-hi:#8888aa;
+      --accent:#f5a623; --accent-dim:rgba(245,166,35,0.12); --accent-glow:rgba(245,166,35,0.25);
+      --green:#10b981; --green-dim:rgba(16,185,129,0.12);
+      --red:#ef4444; --red-dim:rgba(239,68,68,0.12);
+      --blue:#6366f1;
+    }
+    [data-theme="light"] { --bg:#f4f4f8; --surface:#ffffff; --card:#ffffff; --card-hover:#f8f8fc; --border:#e0e0ec; --border-hi:#c8c8e0; --text:#0f0f1e; --muted:#8080a0; --muted-hi:#505070; --accent:#d4850a; --accent-dim:rgba(212,133,10,0.1); --accent-glow:rgba(212,133,10,0.2); }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; line-height:1.5; min-height:100vh; transition:background 0.3s,color 0.3s; }
+    body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); pointer-events:none; z-index:9997; }
+    body::after { content:''; position:fixed; top:-200px; right:-200px; width:500px; height:500px; background:radial-gradient(circle,rgba(245,166,35,0.06) 0%,transparent 70%); pointer-events:none; z-index:0; }
+
+    /* Navbar */
+    .navbar { position:sticky; top:0; z-index:100; background:rgba(7,7,12,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 2rem; height:56px; display:flex; align-items:center; gap:1.5rem; }
+    [data-theme="light"] .navbar { background:rgba(244,244,248,0.92); }
+    .logo { display:flex; align-items:center; gap:0.6rem; text-decoration:none; }
+    .logo-icon { width:28px; height:28px; background:var(--accent); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; letter-spacing:0.05em; color:var(--text); }
+    .logo-text span { color:var(--accent); }
+    .nav-divider { width:1px; height:20px; background:var(--border); }
+    .nav-label { font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+    .nav-spacer { flex:1; }
+    .nav-btn { background:transparent; border:1px solid var(--border); color:var(--muted-hi); padding:0 0.75rem; height:30px; border-radius:5px; font-size:12px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
+    .nav-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+    .nav-btn-primary { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+    .nav-btn-primary:hover { background:#fbbf24; color:#000; border-color:#fbbf24; }
+    .user-badge { display:flex; align-items:center; gap:0.5rem; font-size:12px; color:var(--muted-hi); }
+    .role-tag { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; background:var(--accent-dim); color:var(--accent); text-transform:uppercase; letter-spacing:0.05em; }
+
+    /* Layout */
+    .layout { max-width:1100px; margin:0 auto; padding:2.5rem 1.5rem; position:relative; z-index:1; }
+
+    /* Tabs */
+    .tab-bar { display:flex; gap:0.25rem; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+    .tab-btn { background:none; border:none; color:var(--muted-hi); font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; padding:0.6rem 1rem; border-bottom:2px solid transparent; transition:all 0.15s; margin-bottom:-1px; }
+    .tab-btn:hover { color:var(--text); }
+    .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* Section headers */
+    .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+    .section-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; }
+    .section-sub { font-size:13px; color:var(--muted-hi); margin-top:0.25rem; }
+
+    /* Alert banner */
+    .alert { display:flex; align-items:center; gap:0.75rem; padding:0.85rem 1.1rem; border-radius:8px; margin-bottom:1.5rem; font-size:13px; }
+    .alert-warn { background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); }
+    .alert-success { background:var(--green-dim); border:1px solid var(--green); color:var(--green); }
+    .alert-btn { background:var(--accent); color:#000; border:none; border-radius:5px; padding:0.3rem 0.7rem; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+    /* Promo grid */
+    .promo-filters { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem; align-items:center; }
+    .filter-select { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:0 0.7rem; height:32px; border-radius:6px; font-size:12px; outline:none; cursor:pointer; }
+    .filter-select:focus { border-color:var(--accent); }
+    .filter-label { font-size:12px; color:var(--muted-hi); font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.07em; }
+    .promo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
+    .promo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; transition:all 0.2s; }
+    .promo-card:hover { border-color:var(--border-hi); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+    .card-img-wrap { height:140px; background:var(--surface); border-bottom:1px solid var(--border); position:relative; overflow:hidden; }
+    .card-img { width:100%; height:100%; object-fit:cover; }
+    .card-img-placeholder { height:100%; display:flex; align-items:center; justify-content:center; font-size:2rem; opacity:0.1; }
+    .grade-badge { position:absolute; top:8px; right:8px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:0.2rem 0.45rem; border-radius:4px; backdrop-filter:blur(8px); }
+    .g-Ap { background:rgba(16,185,129,0.85); color:#fff; }
+    .g-A  { background:rgba(52,211,153,0.85); color:#000; }
+    .g-B  { background:rgba(99,102,241,0.85);  color:#fff; }
+    .g-C  { background:rgba(245,166,35,0.85);  color:#000; }
+    .g-D  { background:rgba(239,68,68,0.85);   color:#fff; }
+    .rest-tag { position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); padding:0.2rem 0.5rem; border-radius:5px; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:0.04em; }
+    .card-body { padding:0.875rem; flex:1; display:flex; flex-direction:column; gap:0.4rem; }
+    .card-price { font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700; color:var(--accent); }
+    .card-type { font-size:9px; font-weight:700; color:var(--muted-hi); text-transform:uppercase; letter-spacing:0.05em; border:1px solid var(--border); padding:1px 4px; border-radius:3px; }
+    .card-details { font-size:12px; color:var(--text); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .card-footer { margin-top:auto; padding:0.6rem 0.875rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .scraped-at { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+    .card-link { font-size:11px; font-weight:600; color:var(--muted-hi); text-decoration:none; transition:color 0.15s; }
+    .card-link:hover { color:var(--accent); }
+    .no-results { text-align:center; padding:3rem; color:var(--muted-hi); font-size:14px; }
+
+    /* Account settings */
+    .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    @media(max-width:700px){ .settings-grid{grid-template-columns:1fr;} }
+    .settings-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.5rem; }
+    .settings-card h3 { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:1.25rem; }
+    .field { margin-bottom:1rem; }
+    .field label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted-hi); margin-bottom:0.35rem; font-family:'JetBrains Mono',monospace; }
+    .field input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:0 0.75rem; height:36px; border-radius:6px; font-size:13px; outline:none; transition:border-color 0.15s; }
+    .field input:focus { border-color:var(--accent); }
+    .field input::placeholder { color:var(--muted); }
+    .field input[disabled] { opacity:0.5; cursor:not-allowed; }
+    .btn-save { background:var(--accent); color:#000; border:none; border-radius:6px; padding:0 1rem; height:34px; font-weight:700; font-size:13px; cursor:pointer; transition:background 0.15s; }
+    .btn-save:hover { background:#fbbf24; }
+    .inline-msg { font-size:12px; color:var(--green); margin-left:0.5rem; opacity:0; transition:opacity 0.3s; }
+    .inline-msg.show { opacity:1; }
+    .newsletter-row { display:flex; align-items:center; justify-content:space-between; }
+    .toggle-switch { position:relative; display:inline-block; width:42px; height:22px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border); border-radius:22px; transition:background 0.2s; }
+    .toggle-slider:before { content:""; position:absolute; height:16px; width:16px; left:3px; bottom:3px; background:var(--muted-hi); border-radius:50%; transition:transform 0.2s,background 0.2s; }
+    input:checked + .toggle-slider { background:var(--accent); }
+    input:checked + .toggle-slider:before { transform:translateX(20px); background:#000; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label">Dashboard</span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <a href="/calendar" class="nav-btn">Calendar</a>
+  <a href="/analytics" class="nav-btn">Analytics</a>
+  <a href="/about" class="nav-btn">Docs</a>
+  {% if current_user.is_admin %}
+  <a href="/admin/" class="nav-btn" style="color:var(--accent);border-color:var(--accent);">⚙ Admin</a>
+  {% endif %}
+  <div class="nav-divider"></div>
+  <div class="user-badge">
+    <span>{{ current_user.display_name }}</span>
+    {% if current_user.is_admin %}<span class="role-tag">Admin</span>{% endif %}
+  </div>
+  <a href="/auth/logout" class="nav-btn">Sign out</a>
+</nav>
+
+<div class="layout">
+  {% if not current_user.is_verified %}
+  <div class="alert alert-warn">
+    <span>⚠ Your email is not verified.</span>
+    <form method="POST" action="/auth/resend-verification" style="margin:0">
+      <button type="submit" class="alert-btn">Resend verification email</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('promos', this)">All Promotions</button>
+    <button class="tab-btn" onclick="switchTab('account', this)">My Account</button>
+  </div>
+
+  <!-- PROMOTIONS TAB -->
+  <div id="tab-promos" class="tab-pane active">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Active Promotions</div>
+        <div class="section-sub">All restaurants · <span id="promo-count">–</span> promos</div>
+      </div>
+    </div>
+    <div class="promo-filters">
+      <span class="filter-label">Filter:</span>
+      <select class="filter-select" id="f-restaurant" onchange="filterPromos()">
+        <option value="">All restaurants</option>
+      </select>
+      <select class="filter-select" id="f-grade" onchange="filterPromos()">
+        <option value="">All grades</option>
+        <option value="A+">A+</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="N/A">N/A</option>
+      </select>
+      <select class="filter-select" id="f-category" onchange="filterPromos()">
+        <option value="">All categories</option>
+      </select>
+      <select class="filter-select" id="f-active" onchange="filterPromos()">
+        <option value="1">Active only</option>
+        <option value="">All (incl. inactive)</option>
+      </select>
+    </div>
+    <div class="promo-grid" id="promo-grid">
+      <div class="no-results">Loading promotions…</div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT TAB -->
+  <div id="tab-account" class="tab-pane">
+    <div class="section-head">
+      <div>
+        <div class="section-title">My Account</div>
+        <div class="section-sub">{{ current_user.email }}</div>
+      </div>
+    </div>
+    <div class="settings-grid">
+      <!-- Profile -->
+      <div class="settings-card">
+        <h3>Profile</h3>
+        <form id="profile-form">
+          <div class="field">
+            <label>First name</label>
+            <input type="text" name="first_name" value="{{ current_user.first_name }}" placeholder="Jane">
+          </div>
+          <div class="field">
+            <label>Last name</label>
+            <input type="text" name="last_name" value="{{ current_user.last_name }}" placeholder="Doe">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" value="{{ current_user.email }}" disabled>
+          </div>
+          <button type="button" class="btn-save" onclick="saveProfile()">Save</button>
+          <span class="inline-msg" id="profile-msg">Saved!</span>
+        </form>
+      </div>
+      <!-- Password -->
+      <div class="settings-card">
+        <h3>Change Password</h3>
+        <form id="pw-form">
+          <div class="field">
+            <label>Current password</label>
+            <input type="password" name="current_password" placeholder="••••••••">
+          </div>
+          <div class="field">
+            <label>New password</label>
+            <input type="password" name="new_password" placeholder="At least 8 characters">
+          </div>
+          <div class="field">
+            <label>Confirm new password</label>
+            <input type="password" name="new_password2" placeholder="Repeat new password">
+          </div>
+          <button type="button" class="btn-save" onclick="changePassword()">Update password</button>
+          <span class="inline-msg" id="pw-msg" style="color:var(--green)">Updated!</span>
+        </form>
+      </div>
+      <!-- Newsletter -->
+      <div class="settings-card">
+        <h3>Newsletter</h3>
+        <p style="color:var(--muted-hi);font-size:13px;margin-bottom:1.25rem;">
+          Receive curated promotions and weekly digests by email.
+        </p>
+        <div class="newsletter-row">
+          <span style="font-size:13px;">Email newsletter</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="newsletter-toggle"
+                   {% if current_user.newsletter_subscribed %}checked{% endif %}
+                   onchange="toggleNewsletter(this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <span class="inline-msg" id="nl-msg" style="margin-left:0;display:block;margin-top:0.5rem;">Saved!</span>
+      </div>
+      <!-- Account info -->
+      <div class="settings-card">
+        <h3>Account Info</h3>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--muted-hi)">Email status</span>
+            <span style="color:{% if current_user.is_verified %}var(--green){% else %}var(--accent){% endif %}">
+              {% if current_user.is_verified %}Verified{% else %}Unverified{% endif %}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--muted-hi)">Role</span>
+            <span>{{ current_user.role | capitalize }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--muted-hi)">Member since</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+              {{ current_user.created_at.strftime('%b %d, %Y') if current_user.created_at else '—' }}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--muted-hi)">Last login</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+              {{ current_user.last_login.strftime('%b %d, %Y') if current_user.last_login else '—' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Theme
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('theme', next);
+}
+(function(){ const t = localStorage.getItem('theme'); if(t) document.documentElement.dataset.theme = t; })();
+
+// Tabs
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// Promos
+let _allPromos = [];
+async function loadPromos() {
+  const res = await fetch('/api/promotions');
+  const data = await res.json();
+  _allPromos = Array.isArray(data) ? data : (data.promotions || []);
+  // Populate filter options
+  const restaurants = [...new Set(_allPromos.map(p => p.restaurant))].sort();
+  const categories  = [...new Set(_allPromos.map(p => p.category).filter(Boolean))].sort();
+  const restSel = document.getElementById('f-restaurant');
+  restaurants.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; restSel.appendChild(o); });
+  const catSel  = document.getElementById('f-category');
+  categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+  filterPromos();
+}
+
+function filterPromos() {
+  const rest   = document.getElementById('f-restaurant').value;
+  const grade  = document.getElementById('f-grade').value;
+  const cat    = document.getElementById('f-category').value;
+  const active = document.getElementById('f-active').value;
+  let promos = _allPromos;
+  if (rest)   promos = promos.filter(p => p.restaurant === rest);
+  if (grade)  promos = promos.filter(p => p.grade === grade);
+  if (cat)    promos = promos.filter(p => p.category === cat);
+  if (active) promos = promos.filter(p => p.is_active == active);
+  document.getElementById('promo-count').textContent = promos.length;
+  renderPromos(promos);
+}
+
+function gradeClass(g) {
+  if (g === 'A+') return 'g-Ap';
+  if (g === 'A')  return 'g-A';
+  if (g === 'B')  return 'g-B';
+  if (g === 'C')  return 'g-C';
+  if (g === 'D')  return 'g-D';
+  return '';
+}
+
+function renderPromos(promos) {
+  const grid = document.getElementById('promo-grid');
+  if (!promos.length) { grid.innerHTML = '<div class="no-results">No promotions match your filters.</div>'; return; }
+  grid.innerHTML = promos.map(p => {
+    const img = p.image_url && !p.image_url.includes('placehold')
+      ? `<img class="card-img" src="${p.image_url}" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="card-img-placeholder">🍗</div>`;
+    const gc = gradeClass(p.grade);
+    const scrapedAt = p.last_seen
+      ? 'Retrieved ' + new Date(p.last_seen).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+      : '';
+    const viewLink = p.link ? `<a href="${p.link}" target="_blank" rel="noopener" class="card-link">View offer →</a>` : '<span></span>';
+    return `<div class="promo-card">
+      <div class="card-img-wrap">
+        ${img}
+        ${p.grade && gc ? `<span class="grade-badge ${gc}">${p.grade}</span>` : ''}
+        <span class="rest-tag">${p.restaurant}</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          ${p.price ? `<span class="card-price">${p.price}</span>` : ''}
+          ${p.promo_type ? `<span class="card-type">${p.promo_type}</span>` : ''}
+        </div>
+        <div class="card-details">${p.promo_details || ''}</div>
+      </div>
+      <div class="card-footer">
+        <span class="scraped-at">${scrapedAt}</span>
+        ${viewLink}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+loadPromos();
+
+// Account
+async function saveProfile() {
+  const form = document.getElementById('profile-form');
+  const fd = new FormData(form);
+  const res = await fetch('/auth/account/profile', { method:'POST', body:fd });
+  const data = await res.json();
+  const msg = document.getElementById('profile-msg');
+  msg.textContent = data.ok ? 'Saved!' : 'Error saving.';
+  msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2500);
+}
+
+async function changePassword() {
+  const form = document.getElementById('pw-form');
+  const fd = new FormData(form);
+  const res = await fetch('/auth/account/password', { method:'POST', body:fd });
+  const data = await res.json();
+  const msg = document.getElementById('pw-msg');
+  msg.textContent = data.ok ? 'Updated!' : (data.error || 'Error.');
+  msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2500);
+  if (data.ok) form.reset();
+}
+
+async function toggleNewsletter(el) {
+  const fd = new FormData();
+  fd.append('subscribed', el.checked ? '1' : '0');
+  const res = await fetch('/auth/account/newsletter', { method:'POST', body:fd });
+  const data = await res.json();
+  const msg = document.getElementById('nl-msg');
+  msg.textContent = data.ok ? (data.subscribed ? 'Subscribed!' : 'Unsubscribed.') : 'Error.';
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
