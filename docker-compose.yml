@@ -36,11 +36,8 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-    environment:
-      BUNKER_PASSWORD: "${BUNKER_PASSWORD:-sx0y58n0ufm5}"
     volumes:
       - ./nginx_bunker.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./htpasswd:/etc/nginx/.htpasswd:ro
     depends_on:
       - app
 

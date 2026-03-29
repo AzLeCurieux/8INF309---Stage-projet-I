@@ -20,8 +20,7 @@ function show_help() {
     echo "  pull        : Récupère le code depuis GitHub (Git pull)"
     echo "  update      : Reconstruit et redémarre l'application (sans Git pull)"
     echo "  logs        : Affiche les logs en temps réel"
-    echo "  setpass     : Change le mot de passe du Bunker (Nginx Auth)"
-    echo "  funnel      : Active l'exposition publique via Tailscale Funnel"
+      echo "  funnel      : Active l'exposition publique via Tailscale Funnel"
     echo "  status      : Affiche l'état des services et du tunnel"
     echo "  backup      : Sauvegarde la base de données MySQL
   clearpromos : Vide les promotions uniquement (conserve les restaurants)
@@ -58,17 +57,6 @@ case "$1" in
         sudo docker compose ps
         echo -e "\n${BLUE}--- État de Tailscale ---${NC}"
         tailscale serve status
-        ;;
-    setpass)
-        read -p "Entrez le nouveau mot de passe pour 'admin' : " newpass
-        if [ -n "$newpass" ]; then
-            HASH=$(openssl passwd -1 "$newpass")
-            echo "admin:$HASH" > htpasswd
-            sudo docker compose restart gatekeeper
-            echo -e "${GREEN}Mot de passe mis à jour avec succès !${NC}"
-        else
-            echo -e "${RED}Erreur : Mot de passe vide.${NC}"
-        fi
         ;;
     funnel)
         echo -e "${GREEN}Activation de Tailscale Funnel sur le port 8080...${NC}"
