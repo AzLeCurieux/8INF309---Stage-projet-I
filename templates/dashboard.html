@@ -21,6 +21,7 @@
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     body { background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; line-height:1.5; min-height:100vh; transition:background 0.3s,color 0.3s; }
     body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); pointer-events:none; z-index:9997; }
+    [data-theme="light"] body::before { display:none; }
     body::after { content:''; position:fixed; top:-200px; right:-200px; width:500px; height:500px; background:radial-gradient(circle,rgba(245,166,35,0.06) 0%,transparent 70%); pointer-events:none; z-index:0; }
 
     /* Navbar */
@@ -112,6 +113,15 @@
     .toggle-slider:before { content:""; position:absolute; height:16px; width:16px; left:3px; bottom:3px; background:var(--muted-hi); border-radius:50%; transition:transform 0.2s,background 0.2s; }
     input:checked + .toggle-slider { background:var(--accent); }
     input:checked + .toggle-slider:before { transform:translateX(20px); background:#000; }
+
+    /* Restaurant subscriptions */
+    .rest-sub-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.875rem; }
+    .rest-sub-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1rem 1.1rem; display:flex; flex-direction:column; gap:0.6rem; }
+    .rest-sub-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; }
+    .rest-sub-row { display:flex; align-items:center; justify-content:space-between; }
+    .freq-select { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:0 0.5rem; height:26px; border-radius:5px; font-size:11px; outline:none; cursor:pointer; }
+    .freq-select:focus { border-color:var(--accent); }
+    .sub-hint { font-size:11px; color:var(--muted); line-height:1.4; }
   </style>
 </head>
 <body>
@@ -151,6 +161,7 @@
 
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('promos', this)">All Promotions</button>
+    <button class="tab-btn" onclick="switchTab('subscriptions', this)">Subscriptions</button>
     <button class="tab-btn" onclick="switchTab('account', this)">My Account</button>
   </div>
 
@@ -186,6 +197,44 @@
     </div>
     <div class="promo-grid" id="promo-grid">
       <div class="no-results">Loading promotions…</div>
+    </div>
+  </div>
+
+  <!-- SUBSCRIPTIONS TAB -->
+  <div id="tab-subscriptions" class="tab-pane">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Restaurant Subscriptions</div>
+        <div class="section-sub">Get notified by email when new promotions are found.</div>
+      </div>
+    </div>
+    <div class="rest-sub-list">
+      {% for r in restaurants %}
+      {% set freq = user_subs.get(r.id, '') %}
+      <div class="rest-sub-card" id="sub-card-{{ r.id }}">
+        <div class="rest-sub-row">
+          <span class="rest-sub-name">{{ r.name }}</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sub-toggle-{{ r.id }}"
+                   {% if freq %}checked{% endif %}
+                   onchange="toggleSub({{ r.id }}, this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="rest-sub-row" id="sub-freq-row-{{ r.id }}" style="{% if not freq %}display:none{% endif %}">
+          <span class="sub-hint">Notification frequency</span>
+          <select class="freq-select" id="sub-freq-{{ r.id }}"
+                  onchange="updateFreq({{ r.id }}, this.value)">
+            <option value="instant" {% if freq == 'instant' %}selected{% endif %}>Instant</option>
+            <option value="weekly"  {% if freq == 'weekly' or not freq %}selected{% endif %}>Weekly digest</option>
+            <option value="monthly" {% if freq == 'monthly' %}selected{% endif %}>Monthly digest</option>
+          </select>
+        </div>
+        <span class="inline-msg" id="sub-msg-{{ r.id }}" style="margin-left:0;display:block;"></span>
+      </div>
+      {% else %}
+      <p style="color:var(--muted-hi);font-size:13px;">No restaurants configured.</p>
+      {% endfor %}
     </div>
   </div>
 
@@ -414,6 +463,44 @@ async function toggleNewsletter(el) {
   msg.textContent = data.ok ? (data.subscribed ? 'Subscribed!' : 'Unsubscribed.') : 'Error.';
   msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 2500);
+}
+
+// Subscriptions
+async function toggleSub(rid, el) {
+  const freq = document.getElementById('sub-freq-' + rid)?.value || 'weekly';
+  const freqRow = document.getElementById('sub-freq-row-' + rid);
+  if (freqRow) freqRow.style.display = el.checked ? '' : 'none';
+  const res = await fetch('/api/subscriptions/' + rid, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ subscribed: el.checked, frequency: freq })
+  });
+  const data = await res.json();
+  const msg = document.getElementById('sub-msg-' + rid);
+  if (msg) {
+    msg.textContent = data.ok ? (el.checked ? 'Subscribed!' : 'Unsubscribed.') : 'Error.';
+    msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
+    msg.classList.add('show');
+    setTimeout(() => { msg.classList.remove('show'); msg.textContent = ''; }, 2500);
+  }
+}
+
+async function updateFreq(rid, freq) {
+  const checked = document.getElementById('sub-toggle-' + rid)?.checked;
+  if (!checked) return;
+  const res = await fetch('/api/subscriptions/' + rid, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ subscribed: true, frequency: freq })
+  });
+  const data = await res.json();
+  const msg = document.getElementById('sub-msg-' + rid);
+  if (msg) {
+    msg.textContent = data.ok ? 'Saved!' : 'Error.';
+    msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
+    msg.classList.add('show');
+    setTimeout(() => { msg.classList.remove('show'); msg.textContent = ''; }, 2000);
+  }
 }
 </script>
 </body>

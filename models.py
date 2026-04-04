@@ -317,3 +317,208 @@ def get_activity_logs(limit: int = 200, user_email: str | None = None) -> list[d
         return rows
     except Exception:
         return []
+
+
+# ---------------------------------------------------------------------------
+# App settings (key-value store)
+# ---------------------------------------------------------------------------
+
+def get_setting(key: str, default: str = "") -> str:
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute("SELECT value FROM app_settings WHERE `key` = %s", (key,))
+        row = cur.fetchone()
+        cur.close(); db.close()
+        return row["value"] if row else default
+    except Exception:
+        return default
+
+
+def set_setting(key: str, value: str) -> bool:
+    try:
+        db = _get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO app_settings (`key`, value, updated_at) VALUES (%s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE value = %s, updated_at = %s",
+            (key, value, datetime.now(), value, datetime.now()),
+        )
+        db.commit(); cur.close(); db.close()
+        return True
+    except Exception:
+        return False
+
+
+def get_all_settings() -> dict:
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute("SELECT `key`, value FROM app_settings")
+        rows = cur.fetchall()
+        cur.close(); db.close()
+        return {r["key"]: r["value"] for r in rows}
+    except Exception:
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Restaurant subscriptions
+# ---------------------------------------------------------------------------
+
+def subscribe_restaurant(user_id: int, restaurant_id: int, frequency: str = "weekly") -> bool:
+    if frequency not in ("instant", "weekly", "monthly"):
+        frequency = "weekly"
+    try:
+        db = _get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO restaurant_subscriptions (user_id, restaurant_id, frequency, created_at) "
+            "VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE frequency = %s",
+            (user_id, restaurant_id, frequency, datetime.now(), frequency),
+        )
+        db.commit(); cur.close(); db.close()
+        return True
+    except Exception:
+        return False
+
+
+def unsubscribe_restaurant(user_id: int, restaurant_id: int) -> bool:
+    try:
+        db = _get_db()
+        cur = db.cursor()
+        cur.execute(
+            "DELETE FROM restaurant_subscriptions WHERE user_id = %s AND restaurant_id = %s",
+            (user_id, restaurant_id),
+        )
+        db.commit(); cur.close(); db.close()
+        return True
+    except Exception:
+        return False
+
+
+def get_user_subscriptions(user_id: int) -> list[dict]:
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT rs.restaurant_id, rs.frequency, r.name, r.url "
+            "FROM restaurant_subscriptions rs "
+            "JOIN restaurants r ON r.id = rs.restaurant_id "
+            "WHERE rs.user_id = %s",
+            (user_id,),
+        )
+        rows = cur.fetchall()
+        cur.close(); db.close()
+        return rows
+    except Exception:
+        return []
+
+
+def get_restaurant_subscribers(restaurant_id: int) -> list[dict]:
+    """Return all verified users subscribed to a given restaurant."""
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT u.id, u.email, u.first_name, u.last_name, u.unsubscribe_token, rs.frequency "
+            "FROM restaurant_subscriptions rs "
+            "JOIN users u ON u.id = rs.user_id "
+            "WHERE rs.restaurant_id = %s AND u.is_verified = 1",
+            (restaurant_id,),
+        )
+        rows = cur.fetchall()
+        cur.close(); db.close()
+        return rows
+    except Exception:
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Notification queue
+# ---------------------------------------------------------------------------
+
+def queue_notification(restaurant_id: int, restaurant_name: str, subject: str,
+                       html_content: str, promo_count: int, status: str = "pending") -> int | None:
+    try:
+        db = _get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO notification_queue "
+            "(restaurant_id, restaurant_name, subject, html_content, promo_count, status, created_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (restaurant_id, restaurant_name, subject, html_content, promo_count, status, datetime.now()),
+        )
+        db.commit()
+        nid = cur.lastrowid
+        cur.close(); db.close()
+        return nid
+    except Exception:
+        return None
+
+
+def get_notifications(limit: int = 100) -> list[dict]:
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, restaurant_id, restaurant_name, subject, promo_count, status, created_at, sent_at "
+            "FROM notification_queue ORDER BY created_at DESC LIMIT %s",
+            (limit,),
+        )
+        rows = cur.fetchall()
+        cur.close(); db.close()
+        for r in rows:
+            for k, v in r.items():
+                if hasattr(v, "isoformat"):
+                    r[k] = v.isoformat()
+        return rows
+    except Exception:
+        return []
+
+
+def get_approved_notifications() -> list[dict]:
+    """Return all approved notifications not yet sent."""
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT * FROM notification_queue WHERE status = 'approved' ORDER BY created_at ASC"
+        )
+        rows = cur.fetchall()
+        cur.close(); db.close()
+        return rows
+    except Exception:
+        return []
+
+
+def update_notification_status(notif_id: int, status: str) -> bool:
+    try:
+        db = _get_db()
+        cur = db.cursor()
+        if status == "sent":
+            cur.execute(
+                "UPDATE notification_queue SET status = %s, sent_at = %s WHERE id = %s",
+                (status, datetime.now(), notif_id),
+            )
+        else:
+            cur.execute(
+                "UPDATE notification_queue SET status = %s WHERE id = %s",
+                (status, notif_id),
+            )
+        db.commit(); cur.close(); db.close()
+        return True
+    except Exception:
+        return False
+
+
+def get_notification_by_id(notif_id: int) -> dict | None:
+    try:
+        db = _get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM notification_queue WHERE id = %s", (notif_id,))
+        row = cur.fetchone()
+        cur.close(); db.close()
+        return row
+    except Exception:
+        return None

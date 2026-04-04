@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New promotions — {{ restaurant_name }}</title>
+</head>
+<body style="background:#07070c;color:#e2e2f0;font-family:'Helvetica Neue',Arial,sans-serif;margin:0;padding:40px 20px;">
+  <div style="max-width:560px;margin:0 auto;background:#0e0e18;border:1px solid #1e1e32;border-radius:12px;overflow:hidden;">
+
+    <div style="background:#f5a623;padding:20px 32px;">
+      <span style="font-size:20px;font-weight:800;letter-spacing:0.05em;color:#000;">🍗 CHICKEN.WINGS</span>
+    </div>
+
+    <div style="padding:28px 32px;">
+      <p style="margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#5a5a7a;font-family:monospace;">New promotions</p>
+      <h2 style="margin:0 0 10px;font-size:20px;font-weight:800;color:#e2e2f0;">{{ restaurant_name }}</h2>
+      <p style="margin:0 0 24px;color:#8888aa;font-size:14px;line-height:1.5;">
+        We found <strong style="color:#f5a623;">{{ promo_count }} new promotion{{ 's' if promo_count != 1 else '' }}</strong>
+        that may interest you.
+      </p>
+
+      {% for promo in promos %}
+      <div style="background:#121220;border:1px solid #1e1e32;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          {% if promo.price and promo.price not in ('Not provided', 'N/A', '') %}
+          <span style="font-family:monospace;font-size:17px;font-weight:700;color:#f5a623;">{{ promo.price }}</span>
+          {% endif %}
+          {% if promo.grade %}
+          <span style="font-family:monospace;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;
+            background:{% if promo.grade == 'A+' %}rgba(16,185,129,0.2){% elif promo.grade == 'A' %}rgba(52,211,153,0.2){% elif promo.grade == 'B' %}rgba(99,102,241,0.2){% else %}rgba(245,166,35,0.2){% endif %};
+            color:{% if promo.grade in ('A+','A') %}#10b981{% elif promo.grade == 'B' %}#6366f1{% else %}#f5a623{% endif %};">
+            {{ promo.grade }}
+          </span>
+          {% endif %}
+        </div>
+        {% if promo.promo_type and promo.promo_type not in ('Not provided', 'N/A', '') %}
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#5a5a7a;margin-bottom:6px;">{{ promo.promo_type }}</div>
+        {% endif %}
+        {% if promo.promo_details %}
+        <div style="font-size:13px;color:#c8c8e0;line-height:1.5;">{{ promo.promo_details[:200] }}{% if promo.promo_details|length > 200 %}…{% endif %}</div>
+        {% endif %}
+        {% if promo.link %}
+        <a href="{{ promo.link }}" style="display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:#f5a623;text-decoration:none;">
+          View offer →
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% if promo_count > promos|length %}
+      <p style="margin:8px 0 20px;font-size:12px;color:#5a5a7a;text-align:center;">
+        + {{ promo_count - promos|length }} more promotions
+      </p>
+      {% endif %}
+
+      <a href="{{ url_for('user_dashboard', _external=True) }}"
+         style="display:inline-block;background:#f5a623;color:#000;font-weight:700;font-size:13px;
+                text-decoration:none;padding:11px 26px;border-radius:7px;margin-top:8px;letter-spacing:0.03em;">
+        View all promotions
+      </a>
+
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid #1e1e32;">
+        <p style="margin:0;font-size:11px;color:#3a3a5a;line-height:1.6;">
+          You received this because you subscribed to <strong>{{ restaurant_name }}</strong> on Chicken Wings.<br>
+          To manage your subscriptions, visit your
+          <a href="{{ url_for('user_dashboard', _external=True) }}" style="color:#5a5a7a;">dashboard</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

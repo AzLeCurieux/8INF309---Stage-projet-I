@@ -537,6 +537,29 @@ def _content_looks_static(text: str) -> bool:
     has_kw = any(k in text.lower() for k in promo_kws)
     return has_price or has_kw
 
+def _robots_txt_allows(url: str, user_agent: str = "*") -> bool:
+    """Check robots.txt for the given URL.
+    Returns True (allow) when the check is disabled (default) or when permitted.
+    Fails open: any exception → allow."""
+    from models import get_setting
+    if get_setting("robots_txt_check_enabled", "0") != "1":
+        return True
+    try:
+        from urllib.robotparser import RobotFileParser
+        parsed = urlparse(url)
+        robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+        rp = RobotFileParser()
+        rp.set_url(robots_url)
+        rp.read()
+        allowed = rp.can_fetch(user_agent, url)
+        if not allowed:
+            logging.info(f"[robots.txt] Disallowed by policy: {url}")
+        return allowed
+    except Exception as exc:
+        logging.warning(f"[robots.txt] Check failed for {url}: {exc}")
+        return True  # fail open
+
+
 async def _scroll_and_wait(page):
     """Scroll progressif pour déclencher tout le lazy-load."""
     try:
@@ -602,6 +625,10 @@ async def _fetch_single_page(url: str) -> tuple[str, str]:
     Retourne (text, html).
     """
     from scrapling.fetchers import DynamicFetcher
+
+    # Respect robots.txt when the check is enabled (default: OFF)
+    if not _robots_txt_allows(url):
+        return "", ""
 
     html = text = ""
     loop = asyncio.get_running_loop()
@@ -1480,6 +1507,73 @@ def _run_scrape_blocking(restaurant_name: str, url: str, jid: str = None) -> dic
         stats["auto_cleaned"] = clean_promos_sync(restaurant_name)
     return stats
 
+def _queue_promo_notification(rid: int, restaurant_name: str, new_promos: list):
+    """Build an email notification for new promos and add it to the queue."""
+    try:
+        from models import get_setting, queue_notification
+        if not new_promos:
+            return
+        count = len(new_promos)
+        subject = f"🍗 {count} new promo{'s' if count != 1 else ''} at {restaurant_name}"
+        html = render_template(
+            "email/promo_notification.html",
+            restaurant_name=restaurant_name,
+            promos=new_promos[:8],  # cap at 8 in email
+            promo_count=count,
+        )
+        # Auto-approve when admin approval is not required
+        status = "pending" if get_setting("admin_approval_required", "0") == "1" else "approved"
+        queue_notification(rid, restaurant_name, subject, html, count, status)
+        logging.info(f"[Notifications] Queued notification for {restaurant_name} ({count} new promos, status={status})")
+    except Exception as exc:
+        logging.warning(f"[Notifications] Failed to queue notification for {restaurant_name}: {exc}")
+
+
+def _send_approved_notifications():
+    """Send all approved notification queue entries to eligible subscribers."""
+    from models import get_approved_notifications, update_notification_status, get_restaurant_subscribers
+    import requests as _req
+    notifications = get_approved_notifications()
+    if not notifications:
+        return
+    api_key = os.environ.get("MAIL_PASSWORD", "")
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@chickenwings.local")
+    if not api_key:
+        logging.warning("[Notifications] MAIL_PASSWORD not set — skipping notification send")
+        return
+    for notif in notifications:
+        rid = notif["restaurant_id"]
+        if not rid:
+            update_notification_status(notif["id"], "sent")
+            continue
+        subscribers = get_restaurant_subscribers(rid)
+        if not subscribers:
+            update_notification_status(notif["id"], "sent")
+            continue
+        sent_count = 0
+        for sub in subscribers:
+            try:
+                resp = _req.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "from": sender,
+                        "to": [sub["email"]],
+                        "subject": notif["subject"],
+                        "html": notif["html_content"],
+                    },
+                    timeout=15,
+                )
+                if resp.status_code in (200, 201):
+                    sent_count += 1
+                else:
+                    logging.warning(f"[Notifications] Resend error {resp.status_code} for {sub['email']}")
+            except Exception as exc:
+                logging.warning(f"[Notifications] Failed to send to {sub['email']}: {exc}")
+        update_notification_status(notif["id"], "sent")
+        logging.info(f"[Notifications] Sent notification '{notif['subject']}' to {sent_count}/{len(subscribers)} subscribers")
+
+
 def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None):
     _thread_context.job_id = jid  # Lie ce thread au JID pour capturer les logs
     _set_job(jid, "running")
@@ -1496,6 +1590,14 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
             stats["auto_cleaned"] = cleaned
             removed = cleaned.get("non_promo_removed", 0) + cleaned.get("deduped", 0)
             stats["inserted"] = max(0, stats["inserted"] - removed)
+        # Queue email notifications if new promos were found
+        new_count = stats.get("inserted", 0)
+        if new_count > 0 and rid is not None:
+            threading.Thread(
+                target=_queue_promo_notification,
+                args=(rid, restaurant_name, promos[:new_count]),
+                daemon=True,
+            ).start()
         _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
@@ -1596,8 +1698,13 @@ def _start_scheduler():
         scheduler = BackgroundScheduler(timezone="America/Montreal")
         scheduler.add_job(_auto_scrape_job, "interval",
                           hours=SCRAPE_INTERVAL_HOURS, id="auto_scrape", replace_existing=True)
+        # Send approved notifications every Monday at 9:00 AM
+        scheduler.add_job(_send_approved_notifications, "cron",
+                          day_of_week="mon", hour=9, minute=0,
+                          id="send_notifications", replace_existing=True)
         scheduler.start()
         logging.info(f"[Scheduler] Auto-scrape every {SCRAPE_INTERVAL_HOURS}h – started.")
+        logging.info("[Scheduler] Notification digest every Monday 09:00 – started.")
         return scheduler
     except Exception as exc:
         logging.warning(f"[Scheduler] Could not start: {exc}"); return None
@@ -2225,7 +2332,16 @@ def handle_error(err):
 @app.route("/dashboard")
 @login_required
 def user_dashboard():
-    return render_template("dashboard.html")
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT id, name FROM restaurants ORDER BY name")
+        restaurants = cur.fetchall()
+        cur.close(); db.close()
+    except Exception:
+        restaurants = []
+    from models import get_user_subscriptions
+    user_subs = {s["restaurant_id"]: s["frequency"] for s in get_user_subscriptions(current_user.id)}
+    return render_template("dashboard.html", restaurants=restaurants, user_subs=user_subs)
 
 
 # ---------------------------------------------------------------------------
@@ -2366,6 +2482,112 @@ def api_admin_subscribers():
     return jsonify({"subscribers": subs, "stats": get_user_count()})
 
 
+# ---------------------------------------------------------------------------
+# Admin – Notifications
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/notifications")
+@admin_required
+def api_admin_notifications():
+    from models import get_notifications
+    return jsonify({"notifications": get_notifications(limit=200)})
+
+
+@app.route("/api/admin/notifications/<int:nid>/approve", methods=["POST"])
+@admin_required
+def api_approve_notification(nid: int):
+    from models import update_notification_status
+    ok = update_notification_status(nid, "approved")
+    if ok:
+        log_activity(current_user.id, current_user.email, "notification_approved",
+                     f"nid={nid}", request.remote_addr)
+    return jsonify({"ok": ok})
+
+
+@app.route("/api/admin/notifications/<int:nid>/reject", methods=["POST"])
+@admin_required
+def api_reject_notification(nid: int):
+    from models import update_notification_status
+    ok = update_notification_status(nid, "rejected")
+    if ok:
+        log_activity(current_user.id, current_user.email, "notification_rejected",
+                     f"nid={nid}", request.remote_addr)
+    return jsonify({"ok": ok})
+
+
+@app.route("/api/admin/notifications/send-now", methods=["POST"])
+@admin_required
+def api_send_notifications_now():
+    """Immediately process all approved notifications."""
+    threading.Thread(target=_send_approved_notifications, daemon=True).start()
+    log_activity(current_user.id, current_user.email, "notifications_sent_now", "", request.remote_addr)
+    return jsonify({"ok": True, "message": "Sending in background…"})
+
+
+# ---------------------------------------------------------------------------
+# Admin – Settings (robots.txt toggle, approval mode)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/settings", methods=["GET"])
+@admin_required
+def api_get_settings():
+    from models import get_all_settings
+    defaults = {"robots_txt_check_enabled": "0", "admin_approval_required": "0"}
+    settings = get_all_settings()
+    defaults.update(settings)
+    return jsonify({"settings": defaults})
+
+
+@app.route("/api/admin/settings", methods=["POST"])
+@admin_required
+def api_update_settings():
+    from models import set_setting
+    data = request.get_json(force=True) or {}
+    allowed_keys = {"robots_txt_check_enabled", "admin_approval_required"}
+    updated = {}
+    for key in allowed_keys:
+        if key in data:
+            val = "1" if data[key] in (True, "1", 1) else "0"
+            set_setting(key, val)
+            updated[key] = val
+    log_activity(current_user.id, current_user.email, "settings_updated",
+                 str(updated), request.remote_addr)
+    return jsonify({"ok": True, "updated": updated})
+
+
+# ---------------------------------------------------------------------------
+# Restaurant subscriptions (user-facing API)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/subscriptions")
+@login_required
+def api_get_subscriptions():
+    from models import get_user_subscriptions
+    subs = get_user_subscriptions(current_user.id)
+    return jsonify({"subscriptions": {s["restaurant_id"]: s["frequency"] for s in subs}})
+
+
+@app.route("/api/subscriptions/<int:rid>", methods=["POST"])
+@login_required
+def api_toggle_subscription(rid: int):
+    from models import subscribe_restaurant, unsubscribe_restaurant, log_activity as _log
+    data = request.get_json(force=True) or {}
+    subscribed = bool(data.get("subscribed", False))
+    frequency = data.get("frequency", "weekly")
+    if frequency not in ("instant", "weekly", "monthly"):
+        frequency = "weekly"
+    if subscribed:
+        subscribe_restaurant(current_user.id, rid, frequency)
+        action = "restaurant_subscribed"
+    else:
+        unsubscribe_restaurant(current_user.id, rid)
+        action = "restaurant_unsubscribed"
+    from models import log_activity
+    log_activity(current_user.id, current_user.email, action,
+                 f"rid={rid},freq={frequency}", request.remote_addr)
+    return jsonify({"ok": True})
+
+
 _DEFAULT_RESTAURANTS = [
     ("Benny and Co", "https://bennyandco.ca/en/promotions"),
     ("Boston Pizza",  "https://www.bostonpizza.com/en/specials"),
@@ -2436,6 +2658,39 @@ def _init_db():
                     ip_address  VARCHAR(50),
                     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    `key`       VARCHAR(100) PRIMARY KEY,
+                    value       TEXT,
+                    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS restaurant_subscriptions (
+                    id            INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id       INT NOT NULL,
+                    restaurant_id INT NOT NULL,
+                    frequency     ENUM('instant','weekly','monthly') DEFAULT 'weekly',
+                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_user_rest (user_id, restaurant_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS notification_queue (
+                    id              INT AUTO_INCREMENT PRIMARY KEY,
+                    restaurant_id   INT,
+                    restaurant_name VARCHAR(255),
+                    subject         VARCHAR(500),
+                    html_content    LONGTEXT,
+                    promo_count     INT DEFAULT 0,
+                    status          ENUM('pending','approved','rejected','sent') DEFAULT 'pending',
+                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    sent_at         DATETIME,
+                    FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
             # Migrations: add OAuth columns if not present
