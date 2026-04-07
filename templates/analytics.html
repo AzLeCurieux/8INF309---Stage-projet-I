@@ -38,6 +38,8 @@
       pointer-events: none; z-index: 9997;
     }
     [data-theme="light"] body::before { display: none; }
+
+    /* Navbar */
     .navbar {
       position: sticky; top: 0; z-index: 100;
       background: rgba(7,7,12,0.92); backdrop-filter: blur(16px);
@@ -61,17 +63,40 @@
       transition: all 0.15s; text-decoration: none; white-space: nowrap;
     }
     .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .layout { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+    .nav-badge { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+    .layout { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* Cache badge */
+    .cache-badge {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 20px; cursor: pointer;
+    }
+    .cache-badge:hover { border-color: var(--accent); color: var(--accent); }
+    .cache-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 
     /* KPI row */
-    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
     .kpi-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
       padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;
+      transition: border-color 0.2s;
     }
-    .kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
-    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    .kpi-sub { font-size: 12px; color: var(--muted-hi); margin-top: 0.25rem; }
+    .kpi-card:hover { border-color: var(--border-hi); }
+    .kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; line-height: 1.1; }
+    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+    .kpi-sub { font-size: 11px; color: var(--muted-hi); margin-top: 0.2rem; }
+    .kpi-trend { font-size: 11px; margin-top: 0.35rem; font-family: 'JetBrains Mono', monospace; }
+    .trend-up { color: var(--green); }
+    .trend-dn { color: var(--red); }
+
+    /* Skeleton loading */
+    .skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--border) 25%, var(--border-hi) 50%, var(--border) 75%); background-size: 200% 100%; border-radius: 4px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-text { height: 14px; width: 80%; margin-bottom: 8px; }
+    .skeleton-val { height: 32px; width: 60%; margin-bottom: 6px; }
 
     /* Section */
     .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
@@ -79,8 +104,8 @@
     .section-muted { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
 
     /* Chart grid */
-    .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
-    .charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
     .chart-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
@@ -90,28 +115,45 @@
     .chart-sub { font-size: 11px; color: var(--muted); }
     .chart-wrap { position: relative; height: 220px; }
     .chart-wrap.tall { height: 300px; }
+    .chart-wrap.sm { height: 160px; }
 
-    /* Bars (custom) */
+    /* Custom bars */
     .bar-list { display: flex; flex-direction: column; gap: 0.6rem; }
     .bar-item { display: flex; flex-direction: column; gap: 0.25rem; }
     .bar-meta { display: flex; justify-content: space-between; font-size: 12px; }
     .bar-name { color: var(--text); font-weight: 500; }
     .bar-count { color: var(--muted-hi); font-family: 'JetBrains Mono', monospace; }
     .bar-track { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.5s ease; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.6s cubic-bezier(.25,.8,.25,1); }
 
     /* Table */
     .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .data-table th { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-    .data-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: var(--card-hover); }
+
     .grade-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
     .g-Ap { background: rgba(16,185,129,0.15); color: #10b981; }
     .g-A  { background: rgba(245,166,35,0.15); color: #f5a623; }
     .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
     .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
     .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+    /* Activity feed */
+    .activity-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.65rem 0.875rem; background: var(--card);
+      border: 1px solid var(--border); border-radius: 8px;
+      transition: border-color 0.15s;
+    }
+    .activity-item:hover { border-color: var(--border-hi); }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; }
+    .activity-body { flex: 1; min-width: 0; }
+    .activity-rest { font-weight: 600; font-size: 13px; }
+    .activity-detail { font-size: 12px; color: var(--muted-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .activity-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; }
 
     /* Loading */
     .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); gap: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
@@ -125,6 +167,7 @@
     body.lang-fr .fr.block { display: block; }
     body.lang-en .en.block { display: block; }
 
+    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 900px) {
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
       .charts-2col { grid-template-columns: 1fr; }
@@ -132,7 +175,7 @@
     }
     @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } }
 
-    /* Persistent job panel */
+    /* Job panel */
     #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
     .job-card { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
     .job-card-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
@@ -152,20 +195,23 @@
     <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
   </a>
   <div class="nav-divider"></div>
-  <span class="nav-label">
-    <span class="fr">Analyse</span><span class="en">Analytics</span>
-  </span>
+  <span class="nav-label"><span class="fr">Analyse</span><span class="en">Analytics</span></span>
   <div class="nav-spacer"></div>
+  <span class="cache-badge" onclick="refreshData()" title="Click to refresh">
+    <span class="cache-dot" id="cacheDot"></span>
+    <span id="cacheLabel">cache</span>
+  </span>
   <button class="nav-btn" onclick="toggleTheme()">◑</button>
   <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <a href="/marketing" class="nav-btn"><span class="fr">Marketing</span><span class="en">Marketing</span></a>
   <a href="/calendar" class="nav-btn"><span class="fr">Calendrier</span><span class="en">Calendar</span></a>
-  <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+  <a href="/dashboard" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
 </nav>
 
 <div id="jobPanel"></div>
 <div class="layout">
 
-  <div id="loadingState" class="loading"><span class="spin">⟳</span> Chargement des données…</div>
+  <div id="loadingState" class="loading"><span class="spin">⟳</span> <span class="fr">Chargement des données…</span><span class="en">Loading data…</span></div>
   <div id="mainContent" style="display:none">
 
     <!-- KPI Row -->
@@ -177,7 +223,7 @@
       </div>
       <div class="kpi-card">
         <span class="kpi-val" id="kpi-total" style="color:var(--accent)">—</span>
-        <span class="kpi-label"><span class="fr">Total historique</span><span class="en">Total historical</span></span>
+        <span class="kpi-label"><span class="fr">Total historique</span><span class="en">Historical total</span></span>
         <span class="kpi-sub" id="kpi-total-sub"></span>
       </div>
       <div class="kpi-card">
@@ -188,18 +234,23 @@
       <div class="kpi-card">
         <span class="kpi-val" id="kpi-savings" style="color:var(--purple)">—</span>
         <span class="kpi-label"><span class="fr">Économies moy.</span><span class="en">Avg. savings</span></span>
-        <span class="kpi-sub"><span class="fr">Par promotion A+/A</span><span class="en">Per A+/A promo</span></span>
+        <span class="kpi-sub"><span class="fr">Par promo active</span><span class="en">Per active promo</span></span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val" id="kpi-restaurants" style="color:var(--accent)">—</span>
+        <span class="kpi-label"><span class="fr">Restaurants</span><span class="en">Restaurants</span></span>
+        <span class="kpi-sub"><span class="fr">Sources actives</span><span class="en">Active sources</span></span>
       </div>
     </div>
 
-    <!-- Row 1: timeline + grade donut -->
+    <!-- Row 1: timeline (weekly) + grade donut -->
     <div class="charts-2col">
       <div class="chart-card">
         <div>
-          <div class="chart-title"><span class="fr">Promotions découvertes (12 mois)</span><span class="en">Promotions discovered (12 months)</span></div>
-          <div class="chart-sub"><span class="fr">Nouvelles promos sauvegardées par mois</span><span class="en">New promos saved per month</span></div>
+          <div class="chart-title"><span class="fr">Tendance hebdomadaire (8 semaines)</span><span class="en">Weekly trend (8 weeks)</span></div>
+          <div class="chart-sub"><span class="fr">Nouvelles promos découvertes par semaine</span><span class="en">New promos discovered per week</span></div>
         </div>
-        <div class="chart-wrap tall"><canvas id="chartTimeline"></canvas></div>
+        <div class="chart-wrap tall"><canvas id="chartWeekly"></canvas></div>
       </div>
       <div class="chart-card">
         <div>
@@ -210,7 +261,25 @@
       </div>
     </div>
 
-    <!-- Row 2: categories bar + savings by category -->
+    <!-- Row 2: monthly timeline (12m) + price distribution -->
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Historique mensuel (12 mois)</span><span class="en">Monthly history (12 months)</span></div>
+          <div class="chart-sub"><span class="fr">Promos découvertes par mois</span><span class="en">Promos discovered per month</span></div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartTimeline"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Distribution des prix</span><span class="en">Price distribution</span></div>
+          <div class="chart-sub"><span class="fr">Promos actives par tranche de prix</span><span class="en">Active promos by price range</span></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartPriceDist"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 3: categories bar + savings by category -->
     <div class="charts-2col">
       <div class="chart-card">
         <div>
@@ -228,34 +297,46 @@
       </div>
     </div>
 
-    <!-- Row 3: restaurant comparison -->
-    <div class="chart-card" style="margin-bottom:2rem">
+    <!-- Row 4: restaurant comparison -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
       <div>
-        <div class="chart-title"><span class="fr">Comparaison des sources</span><span class="en">Source comparison</span></div>
-        <div class="chart-sub"><span class="fr">Promos actives, A+, et économies moyennes par restaurant</span><span class="en">Active promos, A+, and avg savings per restaurant</span></div>
+        <div class="chart-title"><span class="fr">Comparaison des restaurants</span><span class="en">Restaurant comparison</span></div>
+        <div class="chart-sub"><span class="fr">Promos actives, A+ et économies moyennes par source</span><span class="en">Active promos, A+ and avg savings per source</span></div>
       </div>
       <div class="chart-wrap tall"><canvas id="chartRestaurants"></canvas></div>
     </div>
 
-    <!-- Top savings table -->
-    <div class="chart-card" style="margin-bottom:2rem">
-      <div>
-        <div class="chart-title"><span class="fr">Meilleures économies du moment</span><span class="en">Best current savings</span></div>
-        <div class="chart-sub"><span class="fr">Top 5 promotions actives par économie estimée</span><span class="en">Top 5 active promos by estimated savings</span></div>
+    <!-- Row 5: Top deals table + Recent Activity (side by side) -->
+    <div class="charts-2col" style="margin-bottom:0">
+      <!-- Top savings table -->
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Meilleures offres du moment</span><span class="en">Best current deals</span></div>
+          <div class="chart-sub"><span class="fr">Top 10 promos actives par économie estimée</span><span class="en">Top 10 active promos by estimated savings</span></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
+                <th><span class="fr">Détails</span><span class="en">Details</span></th>
+                <th><span class="fr">Prix</span><span class="en">Price</span></th>
+                <th><span class="fr">Grade</span><span class="en">Grade</span></th>
+                <th><span class="fr">Écon.</span><span class="en">Saved</span></th>
+              </tr>
+            </thead>
+            <tbody id="topSavingsBody"></tbody>
+          </table>
+        </div>
       </div>
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
-              <th><span class="fr">Promotion</span><span class="en">Promotion</span></th>
-              <th><span class="fr">Prix</span><span class="en">Price</span></th>
-              <th><span class="fr">Grade</span><span class="en">Grade</span></th>
-              <th><span class="fr">Économie est.</span><span class="en">Est. savings</span></th>
-            </tr>
-          </thead>
-          <tbody id="topSavingsBody"></tbody>
-        </table>
+
+      <!-- Recent activity feed -->
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Activité récente</span><span class="en">Recent activity</span></div>
+          <div class="chart-sub"><span class="fr">Dernières promotions indexées</span><span class="en">Latest indexed promotions</span></div>
+        </div>
+        <div class="activity-list" id="activityFeed"></div>
       </div>
     </div>
 
@@ -277,23 +358,32 @@ function toggleLang() {
 }
 if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
 
-const GRADE_COLORS = {
-  'A+': '#10b981', 'A': '#f5a623', 'B': '#6366f1', 'C': '#a855f7', 'D': '#ef4444', 'N/A': '#5a5a7a'
-};
+const GRADE_COLORS = { 'A+': '#10b981', 'A': '#f5a623', 'B': '#6366f1', 'C': '#a855f7', 'D': '#ef4444', 'N/A': '#5a5a7a' };
 const CAT_PALETTE = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399','#818cf8','#c084fc'];
 
 function gradeClass(g) {
-  if (g === 'A+') return 'g-Ap';
-  if (g === 'A')  return 'g-A';
-  if (g === 'B')  return 'g-B';
-  if (g === 'C')  return 'g-C';
-  if (g === 'D')  return 'g-D';
-  return '';
+  if (g === 'A+') return 'g-Ap'; if (g === 'A') return 'g-A';
+  if (g === 'B') return 'g-B'; if (g === 'C') return 'g-C';
+  if (g === 'D') return 'g-D'; return '';
 }
 
 Chart.defaults.color = '#5a5a7a';
 Chart.defaults.borderColor = '#1e1e32';
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+let _charts = {};
+function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
+
+async function refreshData() {
+  await fetch('/api/analytics/cache/invalidate', { method: 'POST' });
+  document.getElementById('cacheLabel').textContent = 'refreshing…';
+  document.getElementById('cacheDot').style.background = 'var(--accent)';
+  Object.keys(_charts).forEach(id => destroyChart(id));
+  document.getElementById('catBars').innerHTML = '';
+  document.getElementById('topSavingsBody').innerHTML = '';
+  document.getElementById('activityFeed').innerHTML = '';
+  await loadData();
+}
 
 async function loadData() {
   const resp = await fetch('/api/analytics/stats');
@@ -303,35 +393,72 @@ async function loadData() {
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display = '';
 
+  // Cache label
+  if (d.cached_at) {
+    const dt = new Date(d.cached_at);
+    document.getElementById('cacheLabel').textContent = dt.toLocaleTimeString();
+    document.getElementById('cacheDot').style.background = 'var(--green)';
+  }
+
   // KPIs
   const ar = d.active_ratio || {};
   document.getElementById('kpi-active').textContent = ar.active || 0;
   document.getElementById('kpi-active-sub').textContent = (ar.inactive || 0) + ' inactives';
   document.getElementById('kpi-total').textContent = ar.total || 0;
-  document.getElementById('kpi-total-sub').textContent = 'dont ' + (ar.active || 0) + ' actives';
+  document.getElementById('kpi-total-sub').textContent = (ar.active || 0) + ' actives';
   const aplus = (d.grade_dist || []).find(g => g.grade === 'A+');
   document.getElementById('kpi-aplus').textContent = aplus ? aplus.count : 0;
 
-  // Avg savings (from savings_by_cat)
-  let totalWeightedSavings = 0, totalPromos = 0;
-  (d.savings_by_cat || []).forEach(s => {
-    totalWeightedSavings += (s.avg_savings || 0) * (s.count || 0);
-    totalPromos += s.count || 0;
-  });
-  const avgSavings = totalPromos > 0 ? (totalWeightedSavings / totalPromos).toFixed(2) : '—';
-  document.getElementById('kpi-savings').textContent = avgSavings !== '—' ? '$' + avgSavings : '—';
+  let totalW = 0, totalC = 0;
+  (d.savings_by_cat || []).forEach(s => { totalW += (s.avg_savings||0)*(s.count||0); totalC += s.count||0; });
+  const avgSav = totalC > 0 ? (totalW/totalC).toFixed(2) : null;
+  document.getElementById('kpi-savings').textContent = avgSav ? '$'+avgSav : '—';
 
-  // Timeline chart
+  const restCount = new Set((d.rest_comparison||[]).filter(r => r.active > 0).map(r => r.restaurant)).size;
+  document.getElementById('kpi-restaurants').textContent = restCount || '—';
+
+  // Weekly trend chart
+  const wLabels = (d.weekly_trend || []).map(w => w.week_start || w.week);
+  const wData   = (d.weekly_trend || []).map(w => w.count);
+  destroyChart('weekly');
+  _charts['weekly'] = new Chart(document.getElementById('chartWeekly'), {
+    type: 'line',
+    data: {
+      labels: wLabels,
+      datasets: [{
+        label: 'Promos',
+        data: wData,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.08)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#10b981',
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+
+  // Monthly timeline
   const tlLabels = (d.timeline || []).map(t => t.month);
   const tlData   = (d.timeline || []).map(t => t.count);
-  new Chart(document.getElementById('chartTimeline'), {
+  destroyChart('timeline');
+  _charts['timeline'] = new Chart(document.getElementById('chartTimeline'), {
     type: 'bar',
     data: {
       labels: tlLabels,
       datasets: [{
         label: 'Promos',
         data: tlData,
-        backgroundColor: 'rgba(245,166,35,0.6)',
+        backgroundColor: 'rgba(245,166,35,0.55)',
         borderColor: '#f5a623',
         borderWidth: 1,
         borderRadius: 4,
@@ -351,7 +478,8 @@ async function loadData() {
   const gradeLabels = (d.grade_dist || []).map(g => g.grade);
   const gradeData   = (d.grade_dist || []).map(g => g.count);
   const gradeColors = gradeLabels.map(g => GRADE_COLORS[g] || '#5a5a7a');
-  new Chart(document.getElementById('chartGrade'), {
+  destroyChart('grade');
+  _charts['grade'] = new Chart(document.getElementById('chartGrade'), {
     type: 'doughnut',
     data: {
       labels: gradeLabels,
@@ -359,8 +487,32 @@ async function loadData() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } }
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } } }
+    }
+  });
+
+  // Price distribution
+  const pLabels = (d.price_dist || []).map(p => p.bucket);
+  const pData   = (d.price_dist || []).map(p => p.count);
+  destroyChart('pricedist');
+  _charts['pricedist'] = new Chart(document.getElementById('chartPriceDist'), {
+    type: 'bar',
+    data: {
+      labels: pLabels,
+      datasets: [{
+        label: 'Promos',
+        data: pData,
+        backgroundColor: pLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length] + 'bb'),
+        borderColor: pLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length]),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
       }
     }
   });
@@ -368,6 +520,7 @@ async function loadData() {
   // Category bars
   const maxCat = Math.max(1, ...(d.cat_dist || []).map(c => c.count));
   const catBarsEl = document.getElementById('catBars');
+  catBarsEl.innerHTML = '';
   (d.cat_dist || []).forEach((c, i) => {
     const pct = Math.round(c.count / maxCat * 100);
     const el = document.createElement('div');
@@ -384,7 +537,8 @@ async function loadData() {
   // Savings by category
   const sLabels = (d.savings_by_cat || []).map(s => s.category);
   const sData   = (d.savings_by_cat || []).map(s => s.avg_savings);
-  new Chart(document.getElementById('chartSavings'), {
+  destroyChart('savings');
+  _charts['savings'] = new Chart(document.getElementById('chartSavings'), {
     type: 'bar',
     data: {
       labels: sLabels,
@@ -392,7 +546,7 @@ async function loadData() {
         label: 'Avg savings ($)',
         data: sData,
         backgroundColor: sLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length] + 'aa'),
-        borderColor:     sLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length]),
+        borderColor: sLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length]),
         borderWidth: 1, borderRadius: 4,
       }]
     },
@@ -409,13 +563,15 @@ async function loadData() {
 
   // Restaurant comparison
   const rests = d.rest_comparison || [];
-  new Chart(document.getElementById('chartRestaurants'), {
+  destroyChart('restaurants');
+  _charts['restaurants'] = new Chart(document.getElementById('chartRestaurants'), {
     type: 'bar',
     data: {
       labels: rests.map(r => r.restaurant),
       datasets: [
         { label: 'Active', data: rests.map(r => r.active), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
         { label: 'A+',     data: rests.map(r => r.a_plus), backgroundColor: 'rgba(245,166,35,0.7)', borderRadius: 4 },
+        { label: 'Avg $savings', data: rests.map(r => r.avg_savings || 0), backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 4, yAxisID: 'y2' },
       ]
     },
     options: {
@@ -423,23 +579,45 @@ async function loadData() {
       plugins: { legend: { position: 'top' } },
       scales: {
         x: { grid: { color: '#1e1e32' } },
-        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } },
+        y2: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { callback: v => '$'+v } }
       }
     }
   });
 
   // Top savings table
   const tbody = document.getElementById('topSavingsBody');
+  tbody.innerHTML = '';
   (d.top_savings || []).forEach(p => {
     const gc = gradeClass(p.grade);
+    const link = p.link ? `<a href="${p.link}" target="_blank" style="color:var(--muted-hi);font-size:11px;margin-left:4px" title="View promo">↗</a>` : '';
     tbody.innerHTML += `
       <tr>
-        <td style="font-weight:600">${p.restaurant}</td>
-        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.promo_details}">${p.promo_details}</td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${p.price ? '$'+p.price : '—'}</td>
+        <td style="font-weight:600;font-size:12px">${p.restaurant}</td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${p.promo_details}">${p.promo_details}${link}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:12px">${p.price ? '$'+p.price : '—'}</td>
         <td><span class="grade-badge ${gc}">${p.grade}</span></td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--green)">$${p.savings_estimate ? p.savings_estimate.toFixed(2) : '0.00'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--green);font-size:12px">$${p.savings_estimate ? p.savings_estimate.toFixed(2) : '0.00'}</td>
       </tr>`;
+  });
+
+  // Recent activity feed
+  const feed = document.getElementById('activityFeed');
+  feed.innerHTML = '';
+  (d.recent_activity || []).forEach(r => {
+    const dt = r.saved_date_time ? new Date(r.saved_date_time).toLocaleString() : '';
+    const gc = gradeClass(r.grade || '');
+    const gradeHtml = r.grade ? `<span class="grade-badge ${gc}" style="font-size:10px">${r.grade}</span>` : '';
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    item.innerHTML = `
+      <div class="activity-dot" style="background:${GRADE_COLORS[r.grade]||'var(--accent)'}"></div>
+      <div class="activity-body">
+        <div class="activity-rest">${r.restaurant} ${gradeHtml}</div>
+        <div class="activity-detail">${r.promo_type ? '['+r.promo_type+'] ' : ''}${r.promo_details||'—'}</div>
+      </div>
+      <div class="activity-meta">${dt}</div>`;
+    feed.appendChild(item);
   });
 }
 
