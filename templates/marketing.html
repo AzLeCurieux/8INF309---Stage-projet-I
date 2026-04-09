@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing Study — Chicken Wings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#07070c; --surface:#0e0e18; --card:#121220; --card-hover:#16162a;
+      --border:#1e1e32; --border-hi:#2e2e48;
+      --text:#e2e2f0; --muted:#5a5a7a; --muted-hi:#8888aa;
+      --accent:#f5a623; --accent-dim:rgba(245,166,35,0.12); --accent-glow:rgba(245,166,35,0.25);
+      --green:#10b981; --green-dim:rgba(16,185,129,0.12);
+      --red:#ef4444; --red-dim:rgba(239,68,68,0.12);
+      --blue:#6366f1; --blue-dim:rgba(99,102,241,0.12);
+      --purple:#a855f7;
+    }
+    [data-theme="light"] {
+      --bg:#f4f4f8; --surface:#ffffff; --card:#ffffff; --card-hover:#f8f8fc;
+      --border:#e0e0ec; --border-hi:#c8c8e0;
+      --text:#0f0f1e; --muted:#8080a0; --muted-hi:#505070;
+      --accent:#d4850a; --accent-dim:rgba(212,133,10,0.1); --accent-glow:rgba(212,133,10,0.2);
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; line-height:1.5; min-height:100vh; transition:background 0.3s,color 0.3s; }
+    body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); pointer-events:none; z-index:9997; }
+    [data-theme="light"] body::before { display:none; }
+
+    .navbar { position:sticky; top:0; z-index:100; background:rgba(7,7,12,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 2rem; height:56px; display:flex; align-items:center; gap:1.5rem; }
+    [data-theme="light"] .navbar { background:rgba(244,244,248,0.92); }
+    .logo { display:flex; align-items:center; gap:0.6rem; text-decoration:none; }
+    .logo-icon { width:28px; height:28px; background:var(--accent); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+    .logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; letter-spacing:0.05em; color:var(--text); }
+    .logo-text span { color:var(--accent); }
+    .nav-divider { width:1px; height:20px; background:var(--border); }
+    .nav-label { font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+    .nav-spacer { flex:1; }
+    .nav-btn { background:transparent; border:1px solid var(--border); color:var(--muted-hi); padding:0 0.75rem; height:30px; border-radius:5px; font-size:12px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
+    .nav-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+    .nav-btn-primary { background:var(--accent); color:#000 !important; border-color:var(--accent) !important; font-weight:700; }
+    .nav-btn-primary:hover { background:#fbbf24 !important; }
+
+    .layout { max-width:1280px; margin:0 auto; padding:2rem 1.5rem; }
+    .page-header { margin-bottom:2rem; }
+    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; margin-bottom:0.25rem; }
+    .page-sub { color:var(--muted-hi); font-size:13px; }
+
+    /* Grid layouts */
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+    .card.full { grid-column:1/-1; }
+    .card-title { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; margin-bottom:0.25rem; }
+    .card-sub { font-size:11px; color:var(--muted); margin-bottom:1rem; }
+
+    /* KPI row */
+    .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+    .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.25rem 1.5rem; }
+    .kpi-val { font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; }
+    .kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.2rem; }
+    .kpi-sub { font-size:11px; color:var(--muted-hi); margin-top:0.2rem; }
+
+    /* Restaurant price cards */
+    .rest-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+    .rest-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:1.1rem; transition:all 0.2s; position:relative; overflow:hidden; }
+    .rest-card:hover { border-color:var(--border-hi); transform:translateY(-2px); }
+    .rest-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent); opacity:0; transition:opacity 0.2s; }
+    .rest-card:hover::before { opacity:1; }
+    .rest-name { font-weight:700; font-size:13px; margin-bottom:0.5rem; }
+    .rest-price { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); }
+    .rest-price-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+    .rest-meta { display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap; }
+    .rest-tag { font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 6px; border-radius:3px; }
+    .tag-active { background:var(--green-dim); color:var(--green); }
+    .tag-aplus  { background:var(--accent-dim); color:var(--accent); }
+    .tag-savings { background:var(--blue-dim); color:var(--blue); }
+    .price-bar { margin-top:0.75rem; }
+    .price-bar-label { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:3px; }
+    .price-bar-track { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .price-bar-fill { height:100%; border-radius:2px; background:var(--accent); transition:width 0.6s ease; }
+
+    /* Best deals table */
+    .data-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .data-table th { font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); padding:0.5rem 0.75rem; text-align:left; border-bottom:1px solid var(--border); }
+    .data-table td { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .data-table tr:last-child td { border-bottom:none; }
+    .data-table tr:hover td { background:var(--card-hover); }
+    .grade-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; }
+    .g-Ap { background:rgba(16,185,129,0.15); color:#10b981; }
+    .g-A  { background:rgba(245,166,35,0.15); color:#f5a623; }
+    .g-B  { background:rgba(99,102,241,0.15); color:#6366f1; }
+    .g-C  { background:rgba(168,85,247,0.15); color:#a855f7; }
+    .g-D  { background:rgba(239,68,68,0.15); color:#ef4444; }
+
+    /* LLM Analysis panel */
+    .analyze-btn {
+      display:inline-flex; align-items:center; gap:0.5rem;
+      background:var(--accent); color:#000; border:none; border-radius:7px;
+      padding:0.6rem 1.25rem; font-weight:700; font-size:13px; cursor:pointer;
+      transition:background 0.15s; font-family:'Plus Jakarta Sans',sans-serif;
+    }
+    .analyze-btn:hover { background:#fbbf24; }
+    .analyze-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .spin { display:inline-block; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .analysis-panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+    .analysis-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+    .market-leader-badge {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      background:var(--green-dim); border:1px solid var(--green);
+      color:var(--green); padding:4px 10px; border-radius:20px;
+      font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    }
+    .insight-list { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem; }
+    .insight-item { display:flex; align-items:flex-start; gap:0.6rem; font-size:13px; line-height:1.5; }
+    .insight-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+
+    .rec-list { display:flex; flex-direction:column; gap:0.75rem; }
+    .rec-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem; }
+    .rec-card:hover { border-color:var(--border-hi); }
+    .rec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; }
+    .rec-rest { font-weight:700; font-size:13px; }
+    .rec-price { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--green); }
+    .rec-issue { font-size:12px; color:var(--red); margin-bottom:0.35rem; }
+    .rec-action { font-size:12px; color:var(--text); margin-bottom:0.35rem; }
+    .rec-impact { font-size:11px; color:var(--muted-hi); font-style:italic; }
+
+    .quick-wins-list { display:flex; flex-direction:column; gap:0.4rem; }
+    .qw-item { display:flex; align-items:flex-start; gap:0.5rem; font-size:13px; }
+    .qw-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); font-weight:700; flex-shrink:0; }
+
+    .gap-summary { font-size:13px; color:var(--muted-hi); line-height:1.6; padding:1rem; background:var(--surface); border:1px solid var(--border); border-radius:8px; border-left:3px solid var(--accent); }
+
+    .chart-wrap { position:relative; height:260px; }
+    .section-sep { border:none; border-top:1px solid var(--border); margin:1.5rem 0; }
+
+    .loading-inline { display:flex; align-items:center; gap:0.5rem; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:2rem 0; justify-content:center; }
+    .empty-state { text-align:center; padding:2.5rem; color:var(--muted); font-size:13px; }
+
+    /* lang */
+    .fr,.en { display:none; }
+    body.lang-fr .fr { display:inline; }
+    body.lang-en .en { display:inline; }
+    body.lang-fr .fr.block { display:block; }
+    body.lang-en .en.block { display:block; }
+
+    @media (max-width:900px) { .grid-2,.grid-3,.kpi-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body class="lang-fr">
+
+<nav class="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">🍗</div>
+    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-label"><span class="fr">Étude Marketing</span><span class="en">Marketing Study</span></span>
+  <div class="nav-spacer"></div>
+  <button class="nav-btn" onclick="toggleTheme()">◑</button>
+  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
+  <a href="/analytics" class="nav-btn"><span class="fr">Analytics</span><span class="en">Analytics</span></a>
+  <a href="/reviews" class="nav-btn"><span class="fr">Avis Google</span><span class="en">Google Reviews</span></a>
+  <a href="/dashboard" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+</nav>
+
+<div class="layout">
+  <div class="page-header">
+    <h1 class="page-title"><span class="fr">Étude de marché & Prix concurrents</span><span class="en">Market Study & Competitor Pricing</span></h1>
+    <p class="page-sub"><span class="fr">Analyse comparative des prix et recommandations promotionnelles générées par IA</span><span class="en">Cross-restaurant price analysis and AI-powered promotion recommendations</span></p>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row" id="kpiRow">
+    <div class="kpi-card">
+      <div class="kpi-val" id="kpiRestCount" style="color:var(--accent)">—</div>
+      <div class="kpi-label"><span class="fr">Restaurants comparés</span><span class="en">Restaurants compared</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="kpiLowest" style="color:var(--green)">—</div>
+      <div class="kpi-label"><span class="fr">Prix min. actif</span><span class="en">Lowest active price</span></div>
+      <div class="kpi-sub" id="kpiLowestSub"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="kpiHighest" style="color:var(--red)">—</div>
+      <div class="kpi-label"><span class="fr">Prix max. actif</span><span class="en">Highest active price</span></div>
+      <div class="kpi-sub" id="kpiHighestSub"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val" id="kpiGap" style="color:var(--purple)">—</div>
+      <div class="kpi-label"><span class="fr">Écart max. de prix</span><span class="en">Max price gap</span></div>
+      <div class="kpi-sub"><span class="fr">Entre concurrents</span><span class="en">Between competitors</span></div>
+    </div>
+  </div>
+
+  <!-- Restaurant price cards -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-title"><span class="fr">Prix moyens par restaurant</span><span class="en">Average prices by restaurant</span></div>
+    <div class="card-sub"><span class="fr">Classé par prix moyen croissant — le plus bas = meilleure valeur</span><span class="en">Sorted by ascending avg price — lowest = best value</span></div>
+    <div id="restCards" class="rest-grid">
+      <div class="loading-inline"><span class="spin">⟳</span> <span class="fr">Chargement…</span><span class="en">Loading…</span></div>
+    </div>
+  </div>
+
+  <!-- Price comparison chart -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="fr">Comparaison des prix moyens</span><span class="en">Average price comparison</span></div>
+      <div class="card-sub"><span class="fr">Prix min / moyen / max par restaurant</span><span class="en">Min / avg / max price per restaurant</span></div>
+      <div class="chart-wrap"><canvas id="chartPrices"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="fr">Volume de promos actives</span><span class="en">Active promo volume</span></div>
+      <div class="card-sub"><span class="fr">Nombre de promos actives vs. grade A+</span><span class="en">Active promos count vs. A+ grade</span></div>
+      <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Best deals table -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-title"><span class="fr">Meilleures offres actives (toutes sources)</span><span class="en">Best active deals (all sources)</span></div>
+    <div class="card-sub"><span class="fr">Classé par prix croissant — opportunités immédiates</span><span class="en">Sorted by lowest price — immediate opportunities</span></div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
+            <th><span class="fr">Catégorie</span><span class="en">Category</span></th>
+            <th><span class="fr">Promotion</span><span class="en">Promotion</span></th>
+            <th><span class="fr">Prix</span><span class="en">Price</span></th>
+            <th><span class="fr">Grade</span><span class="en">Grade</span></th>
+            <th><span class="fr">Économie</span><span class="en">Savings</span></th>
+          </tr>
+        </thead>
+        <tbody id="dealsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LLM Analysis Section -->
+  <div class="card" style="margin-bottom:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:gap;gap:1rem">
+      <div>
+        <div class="card-title"><span class="fr">Analyse IA — Écarts de prix & Recommandations</span><span class="en">AI Analysis — Price Gaps & Recommendations</span></div>
+        <div class="card-sub"><span class="fr">GPT-4o-mini analyse les données pour identifier des opportunités promotionnelles</span><span class="en">GPT-4o-mini analyzes data to identify promotional opportunities</span></div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+        <span id="analyzeBtnIcon">✦</span>
+        <span class="fr">Analyser avec IA</span><span class="en">Analyze with AI</span>
+      </button>
+    </div>
+
+    <div id="analysisResult">
+      <div class="empty-state">
+        <div style="font-size:2rem;margin-bottom:0.75rem">✦</div>
+        <div style="font-weight:600;margin-bottom:0.4rem"><span class="fr">Prêt pour l'analyse</span><span class="en">Ready for analysis</span></div>
+        <div style="color:var(--muted)"><span class="fr">Cliquez sur "Analyser avec IA" pour générer des recommandations personnalisées basées sur les données de prix actuelles.</span><span class="en">Click "Analyze with AI" to generate tailored recommendations based on current pricing data.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('pref-theme', t || 'dark');
+}
+if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+function toggleLang() {
+  const isEn = document.body.classList.toggle('lang-en');
+  document.body.classList.toggle('lang-fr', !isEn);
+  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
+}
+if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
+
+Chart.defaults.color = '#5a5a7a';
+Chart.defaults.borderColor = '#1e1e32';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+function gradeClass(g) {
+  if (g === 'A+') return 'g-Ap'; if (g === 'A') return 'g-A';
+  if (g === 'B') return 'g-B'; if (g === 'C') return 'g-C';
+  if (g === 'D') return 'g-D'; return '';
+}
+
+async function loadComparison() {
+  const r = await fetch('/api/marketing/compare');
+  const d = await r.json();
+  if (d.error) { document.getElementById('restCards').innerHTML = `<div class="empty-state">${d.error}</div>`; return; }
+
+  const rests = d.restaurants || [];
+  const deals = d.best_deals || [];
+
+  // KPIs
+  document.getElementById('kpiRestCount').textContent = rests.length;
+  const withPrices = rests.filter(r => r.min_price);
+  if (withPrices.length) {
+    const minRest = withPrices.reduce((a,b) => (a.avg_price||99)<(b.avg_price||99) ? a : b);
+    const maxRest = withPrices.reduce((a,b) => (a.avg_price||0)>(b.avg_price||0) ? a : b);
+    document.getElementById('kpiLowest').textContent = '$' + (minRest.avg_price || '—');
+    document.getElementById('kpiLowestSub').textContent = minRest.restaurant;
+    document.getElementById('kpiHighest').textContent = '$' + (maxRest.avg_price || '—');
+    document.getElementById('kpiHighestSub').textContent = maxRest.restaurant;
+    const gap = ((maxRest.avg_price || 0) - (minRest.avg_price || 0)).toFixed(2);
+    document.getElementById('kpiGap').textContent = '$' + gap;
+  }
+
+  // Restaurant cards
+  const maxAvg = Math.max(1, ...rests.map(r => r.avg_price || 0));
+  document.getElementById('restCards').innerHTML = '';
+  rests.forEach(rest => {
+    const pct = Math.round((rest.avg_price || 0) / maxAvg * 100);
+    const div = document.createElement('div');
+    div.className = 'rest-card';
+    div.innerHTML = `
+      <div class="rest-name">${rest.restaurant}</div>
+      <div class="rest-price">${rest.avg_price ? '$'+rest.avg_price : '—'}</div>
+      <div class="rest-price-label">avg price</div>
+      <div class="rest-meta">
+        <span class="rest-tag tag-active">${rest.active_promos||0} actives</span>
+        ${rest.aplus_count > 0 ? `<span class="rest-tag tag-aplus">${rest.aplus_count} A+</span>` : ''}
+        ${rest.avg_savings ? `<span class="rest-tag tag-savings">~$${rest.avg_savings} saved</span>` : ''}
+      </div>
+      <div class="price-bar">
+        <div class="price-bar-label">
+          <span>$${rest.min_price||'—'}</span>
+          <span>$${rest.max_price||'—'}</span>
+        </div>
+        <div class="price-bar-track"><div class="price-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    document.getElementById('restCards').appendChild(div);
+  });
+
+  // Price comparison chart
+  const PAL = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399'];
+  new Chart(document.getElementById('chartPrices'), {
+    type: 'bar',
+    data: {
+      labels: rests.map(r => r.restaurant),
+      datasets: [
+        { label: 'Min $', data: rests.map(r => r.min_price||0), backgroundColor: 'rgba(16,185,129,0.6)', borderRadius: 3 },
+        { label: 'Avg $', data: rests.map(r => r.avg_price||0), backgroundColor: 'rgba(245,166,35,0.7)', borderRadius: 3 },
+        { label: 'Max $', data: rests.map(r => r.max_price||0), backgroundColor: 'rgba(239,68,68,0.5)', borderRadius: 3 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { callback: v => '$'+v } }
+      }
+    }
+  });
+
+  // Volume chart
+  new Chart(document.getElementById('chartVolume'), {
+    type: 'bar',
+    data: {
+      labels: rests.map(r => r.restaurant),
+      datasets: [
+        { label: 'Active promos', data: rests.map(r => r.active_promos||0), backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 3 },
+        { label: 'A+ promos',     data: rests.map(r => r.aplus_count||0),   backgroundColor: 'rgba(245,166,35,0.8)', borderRadius: 3 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { grid: { color: '#1e1e32' } },
+        y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+
+  // Deals table
+  const tbody = document.getElementById('dealsBody');
+  deals.slice(0,20).forEach((d, i) => {
+    const gc = gradeClass(d.grade);
+    const link = d.link ? `<a href="${d.link}" target="_blank" style="color:var(--muted-hi);margin-left:4px">↗</a>` : '';
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">${i+1}</td>
+        <td style="font-weight:600">${d.restaurant}</td>
+        <td style="color:var(--muted-hi)">${d.category||'—'}</td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.promo_details}">${d.promo_details||'—'}${link}</td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:700">$${d.price_num||d.price||'—'}</td>
+        <td><span class="grade-badge ${gc}">${d.grade||'—'}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--blue)">${d.savings_estimate ? '$'+d.savings_estimate.toFixed(2) : '—'}</td>
+      </tr>`;
+  });
+}
+
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const icon = document.getElementById('analyzeBtnIcon');
+  btn.disabled = true;
+  icon.textContent = '⟳';
+  icon.classList.add('spin');
+  document.getElementById('analysisResult').innerHTML = `<div class="loading-inline"><span class="spin">⟳</span> <span class="fr">Analyse en cours…</span><span class="en">Analyzing…</span></div>`;
+
+  try {
+    const r = await fetch('/api/marketing/analyze', { method: 'POST' });
+    const d = await r.json();
+    if (d.error) {
+      document.getElementById('analysisResult').innerHTML = `<div class="empty-state" style="color:var(--red)">${d.error}</div>`;
+      return;
+    }
+    renderAnalysis(d);
+  } catch(e) {
+    document.getElementById('analysisResult').innerHTML = `<div class="empty-state" style="color:var(--red)">Network error</div>`;
+  } finally {
+    btn.disabled = false;
+    icon.textContent = '✦';
+    icon.classList.remove('spin');
+  }
+}
+
+function renderAnalysis(d) {
+  const isFr = document.body.classList.contains('lang-fr');
+  let html = '';
+
+  // Market leader + summary
+  html += `<div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap">`;
+  if (d.market_leader) {
+    html += `<div class="market-leader-badge">🏆 ${d.market_leader}</div>`;
+  }
+  html += `</div>`;
+
+  if (d.price_gap_summary) {
+    html += `<div class="gap-summary" style="margin-bottom:1.25rem">${d.price_gap_summary}</div>`;
+  }
+
+  // Recommendations
+  if ((d.recommendations||[]).length) {
+    html += `<div style="margin-bottom:1.25rem">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:0.75rem">
+        <span class="fr">Recommandations</span><span class="en">Recommendations</span>
+      </div>
+      <div class="rec-list">`;
+    d.recommendations.forEach(rec => {
+      html += `<div class="rec-card">
+        <div class="rec-header">
+          <span class="rec-rest">${rec.restaurant}</span>
+          ${rec.suggested_price ? `<span class="rec-price">${rec.suggested_price}</span>` : ''}
+        </div>
+        <div class="rec-issue">⚠ ${rec.issue}</div>
+        <div class="rec-action">→ ${rec.action}</div>
+        ${rec.expected_impact ? `<div class="rec-impact">${rec.expected_impact}</div>` : ''}
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  // Quick wins + insights side by side
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:0.5rem">`;
+
+  if ((d.quick_wins||[]).length) {
+    html += `<div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:0.75rem">
+        <span class="fr">Actions rapides</span><span class="en">Quick wins</span>
+      </div>
+      <div class="quick-wins-list">`;
+    d.quick_wins.forEach((qw, i) => {
+      html += `<div class="qw-item"><span class="qw-num">${i+1}.</span><span>${qw}</span></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  if ((d.market_insights||[]).length) {
+    html += `<div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:0.75rem">
+        <span class="fr">Insights marché</span><span class="en">Market insights</span>
+      </div>
+      <div class="insight-list">`;
+    d.market_insights.forEach(ins => {
+      html += `<div class="insight-item"><span class="insight-icon">◈</span><span>${ins}</span></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `</div>`;
+
+  document.getElementById('analysisResult').innerHTML = html;
+  // Re-apply lang class to new elements
+  const isFrNow = document.body.classList.contains('lang-fr');
+  document.querySelectorAll('.fr').forEach(el => { el.style.display = isFrNow ? 'inline' : 'none'; });
+  document.querySelectorAll('.en').forEach(el => { el.style.display = isFrNow ? 'none' : 'inline'; });
+}
+
+loadComparison();
+</script>
+</body>
+</html>
