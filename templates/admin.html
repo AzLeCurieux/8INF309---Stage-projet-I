@@ -200,6 +200,28 @@
 
   <!-- SCRAPING -->
   <div id="tab-scraping" class="tab-pane">
+
+    <!-- ── Deep Clean panel ─────────────────────────────────── -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:0.25rem;">Deep Clean — Déduplication intelligente</div>
+          <div style="font-size:12px;color:var(--muted-hi);max-width:560px;line-height:1.6;">
+            Supprime les doublons que le nettoyage standard rate : même promotion exprimée différemment à des dates différentes.
+            Combine déduplication fuzzy (seuils abaissés) + GPT-4o-mini par groupe de prix.
+            <br><span style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px;">⚠ Coût OpenAI modéré — ~1–3 appels LLM par restaurant</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+          <button class="act-btn act-btn-green" onclick="deepCleanAll()" id="deepCleanAllBtn"
+            style="height:34px;padding:0 1rem;font-size:12px;font-weight:700;">
+            ✦ Deep Clean — Tous
+          </button>
+        </div>
+      </div>
+      <div id="deepCleanResult" style="margin-top:0.75rem;font-size:12px;color:var(--muted-hi);font-family:'JetBrains Mono',monospace;display:none;"></div>
+    </div>
+
     <div class="section-head"><div class="section-title">Scraping Jobs</div></div>
     <div class="table-wrap">
       <table class="data-table">
@@ -208,11 +230,14 @@
       </table>
     </div>
     <div style="margin-top:1.5rem;">
-      <div class="section-head"><div class="section-title">Per-Restaurant Summary</div></div>
+      <div class="section-head">
+        <div class="section-title">Per-Restaurant Summary</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">Click a row to deep-clean that restaurant</div>
+      </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Restaurant</th><th>Total promos</th><th>Active</th><th>A+/A</th><th>Last scraped</th></tr></thead>
-          <tbody id="rest-tbody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Restaurant</th><th>ID</th><th>Total promos</th><th>Active</th><th>A+/A</th><th>Last scraped</th><th>Action</th></tr></thead>
+          <tbody id="rest-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -462,16 +487,79 @@ async function loadScraping() {
   }
 
   const rTbody = document.getElementById('rest-tbody');
-  if (!rests.length) { rTbody.innerHTML = '<tr><td colspan="5" class="empty">No data.</td></tr>'; }
+  if (!rests.length) { rTbody.innerHTML = '<tr><td colspan="7" class="empty">No data.</td></tr>'; }
   else {
     rTbody.innerHTML = rests.map(r => `<tr>
       <td style="font-weight:600">${r.name}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">${r.id}</td>
       <td>${r.total_promos||0}</td>
       <td>${r.active_promos||0}</td>
       <td>${r.top_promos||0}</td>
       <td class="log-time">${fmtDate(r.last_scraped)}</td>
+      <td><button class="act-btn act-btn-green" style="font-size:11px" onclick="deepCleanOne(${r.id},'${r.name.replace(/'/g,"\\'")}')">Deep Clean</button></td>
     </tr>`).join('');
   }
+}
+
+async function deepCleanOne(rid, name) {
+  if (!confirm(`Deep Clean "${name}" ?\nCela va chercher et supprimer les doublons via GPT-4o-mini.`)) return;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⟳';
+  const res = await fetch('/api/admin/deep-clean/' + rid, { method: 'POST' });
+  const d = await res.json();
+  if (d.error) { alert('Erreur: ' + d.error); btn.disabled = false; btn.textContent = 'Deep Clean'; return; }
+  pollDeepCleanJob(d.job_id, btn, name);
+}
+
+async function deepCleanAll() {
+  if (!confirm('Deep Clean de TOUS les restaurants ?\nCela peut prendre plusieurs minutes et utilise GPT-4o-mini pour chaque restaurant.')) return;
+  const btn = document.getElementById('deepCleanAllBtn');
+  const res_el = document.getElementById('deepCleanResult');
+  btn.disabled = true; btn.textContent = '⟳ En cours…';
+  res_el.style.display = 'block'; res_el.textContent = 'Lancement du job…';
+  const res = await fetch('/api/admin/deep-clean-all', { method: 'POST' });
+  const d = await res.json();
+  if (d.error) { alert('Erreur: ' + d.error); btn.disabled = false; btn.textContent = '✦ Deep Clean — Tous'; return; }
+  res_el.textContent = `Job ${d.job_id} démarré pour ${d.restaurants} restaurants…`;
+  const ivl = setInterval(async () => {
+    try {
+      const jr = await fetch('/job/' + d.job_id);
+      const job = await jr.json();
+      if (job.status === 'done') {
+        clearInterval(ivl);
+        btn.disabled = false; btn.textContent = '✦ Deep Clean — Tous';
+        const r = job.result || {};
+        res_el.innerHTML = `<span style="color:var(--green)">✓ Terminé</span> — non-promos: ${r.non_promo_removed||0}, doublons fuzzy: ${r.deduped||0}, doublons LLM: ${r.llm_deduped||0}`;
+        loadScraping();
+      } else if (job.status === 'error') {
+        clearInterval(ivl);
+        btn.disabled = false; btn.textContent = '✦ Deep Clean — Tous';
+        res_el.innerHTML = `<span style="color:var(--red)">✗ Erreur: ${job.error||'unknown'}</span>`;
+      } else {
+        res_el.textContent = `Job ${d.job_id} en cours… (${job.status})`;
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+async function pollDeepCleanJob(jid, btn, name) {
+  const ivl = setInterval(async () => {
+    try {
+      const jr = await fetch('/job/' + jid);
+      const job = await jr.json();
+      if (job.status === 'done') {
+        clearInterval(ivl);
+        btn.disabled = false; btn.textContent = 'Deep Clean';
+        const r = job.result || {};
+        alert(`Deep Clean "${name}" terminé !\nnon-promos: ${r.non_promo_removed||0}\ndoublons fuzzy: ${r.deduped||0}\ndoublons LLM: ${r.llm_deduped||0}`);
+        loadScraping();
+      } else if (job.status === 'error') {
+        clearInterval(ivl);
+        btn.disabled = false; btn.textContent = 'Deep Clean';
+        alert('Erreur: ' + (job.error || 'unknown'));
+      }
+    } catch(e) {}
+  }, 2500);
 }
 
 // === EMAIL ===
