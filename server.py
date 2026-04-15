@@ -21,6 +21,7 @@ from urllib.parse import urljoin, urlparse
 
 import mysql.connector
 import numpy as np
+import requests as _requests_lib
 from bs4 import BeautifulSoup
 from openai import OpenAI as OpenAIClient
 from dotenv import load_dotenv
@@ -44,6 +45,7 @@ DATABASE_USER     = os.environ.get("DB_USER", "root")
 DATABASE_PASSWORD = os.environ.get("DB_PASSWORD", "1234")
 DATABASE_NAME     = os.environ.get("DB_NAME", "promotions_db")
 OPENAI_API_KEY    = os.environ.get("OPENAI_API_KEY", "")
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 # Optional HTTP/SOCKS5 proxy for Cloudflare-protected sites
 # Format: "http://user:pass@host:port"  or  "socks5://host:port"
 SCRAPER_PROXY     = os.environ.get("SCRAPER_PROXY", "")
@@ -1138,9 +1140,10 @@ def mark_inactive_promos(restaurant_name: str) -> int:
 
 
 # Seuils de similarité pour la déduplication fuzzy
-_DEDUP_TEXT_THRESHOLD  = 0.92   # textes très similaires → duplicate
-_DEDUP_PRICE_THRESHOLD = 0.88   # seuil légèrement plus bas si le prix est aussi identique
-_NON_PROMO_VERY_SHORT  = 14     # détails trop courts → clairement pas une promo
+_DEDUP_TEXT_THRESHOLD       = 0.92  # textes très similaires sans égalité de prix
+_DEDUP_PRICE_THRESHOLD      = 0.72  # même prix → seuil plus bas (était 0.88)
+_DEDUP_PRICE_LOOSE_THRESHOLD= 0.50  # même prix + l'un contient l'autre → doublon évident
+_NON_PROMO_VERY_SHORT       = 14    # détails trop courts → clairement pas une promo
 
 # Mots/phrases de navigation fréquemment extraits par erreur
 _NAV_PHRASES = {
@@ -1214,29 +1217,62 @@ def _find_duplicate_ids(promos: list[dict]) -> set[int]:
     """
     Compare toutes les paires de promos (O(n²)).
     Retourne les IDs à désactiver (on garde le plus récemment vu de chaque paire).
+
+    Trois niveaux de détection :
+      1. Textes presque identiques (>= TEXT_THRESHOLD) sans condition de prix
+      2. Même prix ET similarité >= PRICE_THRESHOLD (plus lâche)
+      3. Même prix ET l'un contient l'autre (>= PRICE_LOOSE_THRESHOLD) → évident
     """
     to_remove: set[int] = set()
+
+    def _ts(p):
+        return str(p.get("last_seen") or ""), p["id"]
+
+    def _price_normalized(p) -> str:
+        raw = (p.get("price") or "").strip().lower()
+        if raw in ("", "not provided", "n/a", "none"):
+            return ""
+        # Normalize "$10.95" / "10.95" / "10,95" → "10.95"
+        m = re.search(r"(\d+)[.,](\d{2})", raw)
+        if m:
+            return f"{m.group(1)}.{m.group(2)}"
+        m2 = re.search(r"(\d+)", raw)
+        return m2.group(1) if m2 else raw
+
     for i, a in enumerate(promos):
         if a["id"] in to_remove:
+            continue
+        na = _normalize_for_dedup(a.get("promo_details") or "")[:350]
+        pa = _price_normalized(a)
+        if not na:
             continue
         for b in promos[i + 1:]:
             if b["id"] in to_remove:
                 continue
-            na = _normalize_for_dedup(a.get("promo_details") or "")[:300]
-            nb = _normalize_for_dedup(b.get("promo_details") or "")[:300]
-            if not na or not nb:
+            nb = _normalize_for_dedup(b.get("promo_details") or "")[:350]
+            pb = _price_normalized(b)
+            if not nb:
                 continue
+
+            price_eq = bool(pa and pb and pa == pb)
             sim = SequenceMatcher(None, na, nb).ratio()
-            price_eq = (a.get("price") or "") == (b.get("price") or "")
-            threshold = _DEDUP_PRICE_THRESHOLD if price_eq else _DEDUP_TEXT_THRESHOLD
-            if sim >= threshold:
-                # Garder le plus récemment vu (last_seen), sinon le plus grand id
-                def _ts(p):
-                    return str(p.get("last_seen") or ""), p["id"]
+
+            is_dup = False
+            if sim >= _DEDUP_TEXT_THRESHOLD:
+                is_dup = True
+            elif price_eq and sim >= _DEDUP_PRICE_THRESHOLD:
+                is_dup = True
+            elif price_eq and sim >= _DEDUP_PRICE_LOOSE_THRESHOLD:
+                # Containment check: short form ⊂ long form → same promo, more text
+                shorter, longer = (na, nb) if len(na) <= len(nb) else (nb, na)
+                if shorter and shorter in longer:
+                    is_dup = True
+
+            if is_dup:
                 keep_id   = a["id"] if _ts(a) >= _ts(b) else b["id"]
                 remove_id = b["id"] if keep_id == a["id"] else a["id"]
                 to_remove.add(remove_id)
-                logging.debug(f"[Dedup] sim={sim:.2f} keep={keep_id} drop={remove_id}")
+                logging.debug(f"[Dedup] sim={sim:.2f} price_eq={price_eq} keep={keep_id} drop={remove_id}")
     return to_remove
 
 
@@ -1479,6 +1515,152 @@ def _llm_dedup_restaurant(restaurant_name: str) -> int:
         return 0
 
 
+def _llm_dedup_no_embeddings(restaurant_name: str) -> int:
+    """
+    Déduplication LLM sans embeddings — fonctionne même avec SKIP_EMBEDDING_INIT=1.
+
+    Algorithme :
+      1. Charge toutes les promos actives du restaurant
+      2. Groupe par prix normalisé (ex: "$5", "$6", "$10.95", "" pour sans prix)
+      3. Dans chaque groupe de prix, identifie les sous-groupes de candidats doublons
+         via SequenceMatcher(ratio >= 0.45) — seuil très lâche exprès
+      4. Envoie chaque sous-groupe (≥2) à GPT-4o-mini pour décision finale
+      5. GPT retourne les numéros à SUPPRIMER (en gardant le plus complet)
+    Retourne le nombre de promos désactivées.
+    """
+    if not OPENAI_API_KEY:
+        logging.warning("[LLM-dedup-noemb] OpenAI key manquante — skip")
+        return 0
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id, promo_type, promo_details, price, saved_date_time, last_seen "
+            "FROM promotions_table WHERE restaurant=%s AND is_active=1",
+            (restaurant_name,))
+        rows = cur.fetchall()
+        if len(rows) < 2:
+            cur.close(); db.close(); return 0
+
+        logging.info(f"[LLM-dedup-noemb] {restaurant_name}: {len(rows)} promos actives")
+
+        # ── Normaliser le prix pour regroupement ──────────────────────────────
+        def _norm_price(p):
+            raw = (p.get("price") or "").strip().lower()
+            if raw in ("", "not provided", "n/a", "none"): return "__nopr__"
+            m = re.search(r"(\d+)[.,](\d{2})", raw)
+            if m: return f"{m.group(1)}.{m.group(2)}"
+            m2 = re.search(r"(\d+)", raw)
+            return m2.group(1) if m2 else raw
+
+        # ── Grouper par prix ──────────────────────────────────────────────────
+        by_price: dict[str, list] = {}
+        for r in rows:
+            by_price.setdefault(_norm_price(r), []).append(r)
+
+        # ── Dans chaque groupe de prix, trouver des sous-clusters candidats ───
+        LLM_CANDIDATE_SIM = 0.45   # très lâche — LLM tranche ensuite
+        all_clusters: list[list] = []
+
+        for price_key, group in by_price.items():
+            if len(group) < 2:
+                continue
+            # Union-Find pour clusteriser par similarité de texte
+            ids = [g["id"] for g in group]
+            parent = list(range(len(group)))
+            def _find(x):
+                while parent[x] != x:
+                    parent[x] = parent[parent[x]]; x = parent[x]
+                return x
+            for i in range(len(group)):
+                ni = _normalize_for_dedup(group[i].get("promo_details") or "")[:300]
+                for j in range(i+1, len(group)):
+                    nj = _normalize_for_dedup(group[j].get("promo_details") or "")[:300]
+                    if not ni or not nj: continue
+                    sim = SequenceMatcher(None, ni, nj).ratio()
+                    # Also check containment
+                    shorter, longer = (ni, nj) if len(ni) <= len(nj) else (nj, ni)
+                    contained = bool(shorter and shorter in longer)
+                    if sim >= LLM_CANDIDATE_SIM or contained:
+                        ri, rj = _find(i), _find(j)
+                        if ri != rj: parent[ri] = rj
+            clusters: dict[int, list] = {}
+            for idx in range(len(group)):
+                clusters.setdefault(_find(idx), []).append(group[idx])
+            for cluster in clusters.values():
+                if len(cluster) >= 2:
+                    all_clusters.append(cluster)
+
+        if not all_clusters:
+            logging.info(f"[LLM-dedup-noemb] {restaurant_name}: aucun cluster à analyser")
+            cur.close(); db.close(); return 0
+
+        logging.info(f"[LLM-dedup-noemb] {restaurant_name}: {len(all_clusters)} clusters à analyser via LLM")
+
+        # ── Envoyer chaque cluster au LLM ─────────────────────────────────────
+        client = OpenAIClient(api_key=OPENAI_API_KEY)
+        to_deactivate: list[int] = []
+
+        for cluster in all_clusters:
+            items_text = "\n".join(
+                f"{k+1}. [{r['promo_type'] or 'Other'}] {r['promo_details']} | Prix: {r['price'] or 'N/A'} | Vu le: {str(r.get('saved_date_time',''))[:10]}"
+                for k, r in enumerate(cluster)
+            )
+            try:
+                resp = client.chat.completions.create(
+                    model=EXTRACT_MODEL_PRIMARY,
+                    messages=[{
+                        "role": "system",
+                        "content": (
+                            "Tu es un expert en promotions de restaurant québécois. "
+                            "Ton rôle est d'identifier les doublons dans une liste de promotions."
+                        )
+                    }, {
+                        "role": "user",
+                        "content": (
+                            f"Voici des promotions de '{restaurant_name}' qui semblent similaires :\n\n"
+                            f"{items_text}\n\n"
+                            "Ces promotions décrivent-elles essentiellement la MÊME offre (même deal, même prix, même concept) "
+                            "exprimée différemment à des dates différentes ?\n\n"
+                            "Si OUI : réponds avec les numéros des entrées à SUPPRIMER, séparés par des virgules "
+                            "(garde la plus complète ou la plus récente — si toutes sont identiques, garde la #1). "
+                            "Exemple de réponse : '2,3,4'\n"
+                            "Si NON (promotions distinctes) : réponds exactement 'aucun'.\n\n"
+                            "IMPORTANT : ne supprime PAS si les promotions sont clairement différentes "
+                            "(ex: une pour enfants vs une pour adultes, ou des plats différents)."
+                        )
+                    }],
+                    max_tokens=80,
+                    temperature=0,
+                )
+                answer = resp.choices[0].message.content.strip().lower()
+                if answer in ("aucun", "none", "no", "non"):
+                    continue
+                for part in re.split(r"[,\s]+", answer):
+                    part = part.strip()
+                    if part.isdigit():
+                        k = int(part) - 1
+                        if 0 <= k < len(cluster):
+                            rid = cluster[k]["id"]
+                            if rid not in to_deactivate:
+                                to_deactivate.append(rid)
+            except Exception as e:
+                logging.warning(f"[LLM-dedup-noemb] API error on cluster: {e}")
+
+        if to_deactivate:
+            fmt = ",".join(["%s"] * len(to_deactivate))
+            cur.execute(
+                f"UPDATE promotions_table SET is_active=0 WHERE id IN ({fmt})",
+                to_deactivate)
+            db.commit()
+            logging.info(f"[LLM-dedup-noemb] {restaurant_name}: {len(to_deactivate)} doublons désactivés par LLM")
+
+        cur.close(); db.close()
+        return len(to_deactivate)
+    except Exception as exc:
+        logging.error(f"_llm_dedup_no_embeddings error: {exc}")
+        return 0
+
+
 def _background_clean(jid: str, restaurant_name: str):
     _thread_context.job_id = jid
     _set_job(jid, "running")
@@ -1490,6 +1672,23 @@ def _background_clean(jid: str, restaurant_name: str):
         logging.info(f"[Clean] Job {jid} terminé: {stats}")
     except Exception as exc:
         logging.error(f"[Clean] Job {jid} erreur: {exc}")
+        _set_job(jid, "error", error=str(exc))
+
+
+def _background_deep_clean(jid: str, restaurant_name: str):
+    """Deep clean = nettoyage fuzzy standard + déduplication LLM sans embeddings."""
+    _thread_context.job_id = jid
+    _set_job(jid, "running")
+    try:
+        logging.info(f"[DeepClean] Job {jid} démarré pour {restaurant_name}")
+        stats = clean_promos_sync(restaurant_name)    # Phase 1: fuzzy + non-promos
+        llm_removed = _llm_dedup_no_embeddings(restaurant_name)  # Phase 2: LLM
+        stats["llm_deduped"] = llm_removed
+        stats["deep"] = True
+        _set_job(jid, "done", result=stats)
+        logging.info(f"[DeepClean] Job {jid} terminé: {stats}")
+    except Exception as exc:
+        logging.error(f"[DeepClean] Job {jid} erreur: {exc}")
         _set_job(jid, "error", error=str(exc))
 
 
@@ -1931,6 +2130,59 @@ def analyze_images():
     }), 202
 
 
+@app.route("/api/admin/deep-clean/<int:rid>", methods=["POST"])
+@admin_required
+def deep_clean_restaurant(rid):
+    """Deep clean : nettoyage fuzzy + déduplication LLM sans embeddings."""
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT * FROM restaurants WHERE id=%s", (rid,))
+        rest = cur.fetchone(); cur.close(); db.close()
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    if not rest:
+        return jsonify({"error": "Restaurant not found"}), 404
+    jid = _new_job(f"[DeepClean] {rest['name']}")
+    threading.Thread(target=_background_deep_clean,
+                     args=(jid, rest["name"]), daemon=True).start()
+    return jsonify({"job_id": jid, "name": rest["name"]}), 202
+
+
+@app.route("/api/admin/deep-clean-all", methods=["POST"])
+@admin_required
+def deep_clean_all():
+    """Deep clean de tous les restaurants séquentiellement dans un seul job."""
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("SELECT id, name FROM restaurants ORDER BY name")
+        rests = cur.fetchall(); cur.close(); db.close()
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+    jid = _new_job("[DeepClean-ALL]")
+
+    def _run_all(jid, rests):
+        _thread_context.job_id = jid
+        _set_job(jid, "running")
+        total = {"non_promo_removed": 0, "deduped": 0, "llm_deduped": 0}
+        try:
+            for rest in rests:
+                logging.info(f"[DeepClean-ALL] Traitement de {rest['name']}")
+                stats = clean_promos_sync(rest["name"])
+                llm_n = _llm_dedup_no_embeddings(rest["name"])
+                total["non_promo_removed"] += stats.get("non_promo_removed", 0)
+                total["deduped"]           += stats.get("deduped", 0)
+                total["llm_deduped"]       += llm_n
+            _set_job(jid, "done", result=total)
+            logging.info(f"[DeepClean-ALL] Terminé: {total}")
+        except Exception as exc:
+            logging.error(f"[DeepClean-ALL] Erreur: {exc}")
+            _set_job(jid, "error", error=str(exc))
+
+    threading.Thread(target=_run_all, args=(jid, rests), daemon=True).start()
+    return jsonify({"job_id": jid, "restaurants": len(rests)}), 202
+
+
 @app.route("/clean/<int:rid>", methods=["POST"])
 @admin_required
 def clean_restaurant(rid):
@@ -2061,13 +2313,30 @@ def scheduler_status():
 
 # ─── Analytics ────────────────────────────────────────────────────────────────
 
+# Simple in-memory cache for analytics (5-minute TTL)
+import time as _time_mod
+_analytics_cache: dict = {"data": None, "expires": 0.0}
+_analytics_cache_lock = threading.Lock()
+
+
 @app.route("/analytics")
 def analytics():
     return render_template("analytics.html")
 
 
+@app.route("/api/analytics/cache/invalidate", methods=["POST"])
+def api_analytics_invalidate():
+    with _analytics_cache_lock:
+        _analytics_cache["expires"] = 0.0
+    return jsonify({"ok": True})
+
+
 @app.route("/api/analytics/stats")
 def api_analytics_stats():
+    now = _time_mod.time()
+    with _analytics_cache_lock:
+        if _analytics_cache["data"] and now < _analytics_cache["expires"]:
+            return jsonify(_analytics_cache["data"])
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
 
@@ -2096,6 +2365,17 @@ def api_analytics_stats():
             GROUP BY month ORDER BY month ASC""")
         timeline = cur.fetchall()
 
+        # Weekly trend (last 8 weeks) for finer granularity
+        cur.execute("""SELECT DATE_FORMAT(saved_date_time,'%Y-%u') as week,
+            MIN(DATE(saved_date_time)) as week_start, COUNT(*) as count
+            FROM promotions_table
+            WHERE saved_date_time >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+            GROUP BY week ORDER BY week ASC""")
+        weekly_trend = cur.fetchall()
+        for w in weekly_trend:
+            if w.get("week_start"):
+                w["week_start"] = str(w["week_start"])
+
         cur.execute("""SELECT COALESCE(category,'Other') as category,
             ROUND(AVG(savings_estimate),2) as avg_savings,
             ROUND(MAX(savings_estimate),2) as max_savings, COUNT(*) as count
@@ -2108,21 +2388,333 @@ def api_analytics_stats():
         active_ratio = cur.fetchone()
 
         cur.execute("""SELECT restaurant, promo_type, promo_details, price, grade,
-            savings_estimate, category
+            savings_estimate, category, link
             FROM promotions_table WHERE is_active=1 AND savings_estimate IS NOT NULL
-            ORDER BY savings_estimate DESC LIMIT 5""")
+            ORDER BY savings_estimate DESC LIMIT 10""")
         top_savings = cur.fetchall()
 
+        # Price range distribution (bucketed)
+        cur.execute("""SELECT
+            CASE
+                WHEN CAST(REGEXP_REPLACE(price, '[^0-9.]','') AS DECIMAL(10,2)) < 5  THEN 'Under $5'
+                WHEN CAST(REGEXP_REPLACE(price, '[^0-9.]','') AS DECIMAL(10,2)) < 10 THEN '$5–$10'
+                WHEN CAST(REGEXP_REPLACE(price, '[^0-9.]','') AS DECIMAL(10,2)) < 15 THEN '$10–$15'
+                WHEN CAST(REGEXP_REPLACE(price, '[^0-9.]','') AS DECIMAL(10,2)) < 20 THEN '$15–$20'
+                ELSE '$20+'
+            END as bucket, COUNT(*) as count
+            FROM promotions_table WHERE is_active=1 AND price IS NOT NULL AND price != ''
+              AND price NOT IN ('not provided','N/A')
+            GROUP BY bucket ORDER BY MIN(CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)))""")
+        price_dist = cur.fetchall()
+
+        # Recent activity: last 5 scrape events (newest promos)
+        cur.execute("""SELECT restaurant, promo_type, promo_details, grade, price,
+            saved_date_time, link
+            FROM promotions_table
+            ORDER BY saved_date_time DESC LIMIT 8""")
+        recent_activity = cur.fetchall()
+        for r in recent_activity:
+            if r.get("saved_date_time"):
+                r["saved_date_time"] = str(r["saved_date_time"])
+
         cur.close(); db.close()
-        return jsonify({
+        payload = {
             "grade_dist": grade_dist,
             "cat_dist": cat_dist,
             "rest_comparison": rest_comparison,
             "timeline": timeline,
+            "weekly_trend": weekly_trend,
             "savings_by_cat": savings_by_cat,
             "active_ratio": active_ratio,
             "top_savings": top_savings,
+            "price_dist": price_dist,
+            "recent_activity": recent_activity,
+            "cached_at": datetime.now().isoformat(),
+        }
+        with _analytics_cache_lock:
+            _analytics_cache["data"] = payload
+            _analytics_cache["expires"] = _time_mod.time() + 300  # 5-minute TTL
+        return jsonify(payload)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# ─── Marketing Study Module ───────────────────────────────────────────────────
+
+@app.route("/marketing")
+@login_required
+def marketing():
+    return render_template("marketing.html")
+
+
+@app.route("/api/marketing/compare")
+@login_required
+def api_marketing_compare():
+    """Return per-restaurant price data for cross-restaurant comparison."""
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("""
+            SELECT restaurant,
+                ROUND(AVG(CASE WHEN price IS NOT NULL AND price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END), 2) as avg_price,
+                ROUND(MIN(CASE WHEN price IS NOT NULL AND price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END), 2) as min_price,
+                ROUND(MAX(CASE WHEN price IS NOT NULL AND price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END), 2) as max_price,
+                COUNT(*) as total_promos,
+                SUM(is_active=1) as active_promos,
+                SUM(CASE WHEN grade='A+' THEN 1 ELSE 0 END) as aplus_count,
+                SUM(CASE WHEN grade IN ('A+','A') THEN 1 ELSE 0 END) as top_grade_count,
+                ROUND(AVG(savings_estimate),2) as avg_savings
+            FROM promotions_table
+            WHERE price IS NOT NULL AND price NOT IN ('','not provided','N/A')
+            GROUP BY restaurant ORDER BY avg_price ASC""")
+        restaurants = cur.fetchall()
+
+        # Per-category breakdown per restaurant
+        cur.execute("""
+            SELECT restaurant, COALESCE(category,'Autre') as category,
+                COUNT(*) as count,
+                ROUND(AVG(CASE WHEN price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END),2) as avg_price,
+                ROUND(AVG(savings_estimate),2) as avg_savings
+            FROM promotions_table WHERE is_active=1
+            GROUP BY restaurant, category ORDER BY restaurant, count DESC""")
+        by_category = cur.fetchall()
+
+        # Lowest price active promos per restaurant (top value deals)
+        cur.execute("""
+            SELECT p.restaurant, p.promo_type, p.promo_details, p.price, p.grade,
+                p.savings_estimate, p.category, p.link,
+                CAST(REGEXP_REPLACE(p.price,'[^0-9.]','') AS DECIMAL(10,2)) as price_num
+            FROM promotions_table p
+            WHERE p.is_active=1 AND p.price NOT IN ('','not provided','N/A')
+              AND p.price IS NOT NULL
+            ORDER BY price_num ASC LIMIT 30""")
+        best_deals = cur.fetchall()
+
+        cur.close(); db.close()
+        return jsonify({
+            "restaurants": restaurants,
+            "by_category": by_category,
+            "best_deals": best_deals,
         })
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/marketing/analyze", methods=["POST"])
+@login_required
+def api_marketing_analyze():
+    """Use LLM to analyze price gaps and generate promotion recommendations."""
+    if not OPENAI_API_KEY:
+        return jsonify({"error": "OpenAI API key not configured"}), 503
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("""
+            SELECT restaurant,
+                ROUND(AVG(CASE WHEN price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END),2) as avg_price,
+                ROUND(MIN(CASE WHEN price NOT IN ('','not provided','N/A')
+                    THEN CAST(REGEXP_REPLACE(price,'[^0-9.]','') AS DECIMAL(10,2)) END),2) as min_price,
+                COUNT(*) as total_promos, SUM(is_active=1) as active_promos
+            FROM promotions_table
+            WHERE price IS NOT NULL AND price NOT IN ('','not provided','N/A')
+            GROUP BY restaurant ORDER BY avg_price ASC""")
+        rest_data = cur.fetchall()
+
+        cur.execute("""
+            SELECT restaurant, promo_type, promo_details, price, grade, savings_estimate, category
+            FROM promotions_table WHERE is_active=1 AND grade IN ('A+','A')
+            ORDER BY savings_estimate DESC LIMIT 20""")
+        top_promos = cur.fetchall()
+        cur.close(); db.close()
+
+        data_summary = json.dumps({
+            "restaurants": rest_data,
+            "top_active_promos": top_promos,
+        }, ensure_ascii=False, default=str)
+
+        client = OpenAIClient(api_key=OPENAI_API_KEY)
+        resp = client.chat.completions.create(
+            model=EXTRACT_MODEL_PRIMARY,
+            response_format={"type": "json_object"},
+            messages=[{
+                "role": "system",
+                "content": (
+                    "You are a restaurant marketing analyst. "
+                    "Analyze competitive pricing data and return actionable JSON recommendations."
+                )
+            }, {
+                "role": "user",
+                "content": f"""Analyze this restaurant promotion data and identify price gaps.
+
+DATA:
+{data_summary}
+
+Return a JSON object with these exact keys:
+{{
+  "market_leader": "restaurant with lowest avg price",
+  "price_gap_summary": "2-3 sentence summary of price landscape",
+  "recommendations": [
+    {{
+      "restaurant": "restaurant name",
+      "issue": "brief description of pricing weakness",
+      "action": "specific promotion or discount to implement",
+      "suggested_price": "$X.XX",
+      "expected_impact": "brief expected outcome"
+    }}
+  ],
+  "quick_wins": ["list of 3-5 specific immediate actions"],
+  "market_insights": ["list of 3-5 key insights about the competitive landscape"]
+}}
+
+Provide 3-5 concrete recommendations targeting restaurants with higher prices than competitors."""
+            }],
+            max_tokens=1200,
+            temperature=0.4,
+        )
+        result = json.loads(resp.choices[0].message.content)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# ─── Google Reviews Module ────────────────────────────────────────────────────
+
+@app.route("/reviews")
+@login_required
+def reviews():
+    return render_template("reviews.html", google_maps_api_key=GOOGLE_MAPS_API_KEY)
+
+
+@app.route("/api/reviews/search")
+@login_required
+def api_reviews_search():
+    """Search for restaurant locations using Google Places Text Search API."""
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"error": "Query required"}), 400
+    if not GOOGLE_MAPS_API_KEY:
+        return jsonify({"error": "Google Maps API key not configured"}), 503
+    try:
+        resp = _requests_lib.get(
+            "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            params={"query": query, "type": "restaurant", "key": GOOGLE_MAPS_API_KEY},
+            timeout=10,
+        )
+        data = resp.json()
+        if data.get("status") not in ("OK", "ZERO_RESULTS"):
+            return jsonify({"error": f"Places API error: {data.get('status')}"}), 502
+        results = []
+        for p in data.get("results", [])[:10]:
+            results.append({
+                "place_id": p.get("place_id"),
+                "name": p.get("name"),
+                "address": p.get("formatted_address"),
+                "rating": p.get("rating"),
+                "user_ratings_total": p.get("user_ratings_total"),
+                "lat": p["geometry"]["location"]["lat"],
+                "lng": p["geometry"]["location"]["lng"],
+                "types": p.get("types", []),
+            })
+        return jsonify({"results": results})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/reviews/details")
+@login_required
+def api_reviews_details():
+    """Fetch reviews for a place and generate an LLM summary."""
+    place_id = request.args.get("place_id", "").strip()
+    if not place_id:
+        return jsonify({"error": "place_id required"}), 400
+    if not GOOGLE_MAPS_API_KEY:
+        return jsonify({"error": "Google Maps API key not configured"}), 503
+    try:
+        resp = _requests_lib.get(
+            "https://maps.googleapis.com/maps/api/place/details/json",
+            params={
+                "place_id": place_id,
+                "fields": "name,rating,user_ratings_total,reviews,formatted_address,url,opening_hours,price_level",
+                "key": GOOGLE_MAPS_API_KEY,
+                "language": "fr",
+            },
+            timeout=10,
+        )
+        data = resp.json()
+        if data.get("status") != "OK":
+            return jsonify({"error": f"Places API error: {data.get('status')}"}), 502
+
+        result = data.get("result", {})
+        reviews_raw = result.get("reviews", [])
+        reviews = []
+        for r in reviews_raw:
+            reviews.append({
+                "author": r.get("author_name"),
+                "rating": r.get("rating"),
+                "text": r.get("text", ""),
+                "time": r.get("relative_time_description"),
+                "profile_photo": r.get("profile_photo_url"),
+            })
+
+        place_info = {
+            "name": result.get("name"),
+            "address": result.get("formatted_address"),
+            "rating": result.get("rating"),
+            "user_ratings_total": result.get("user_ratings_total"),
+            "url": result.get("url"),
+            "price_level": result.get("price_level"),
+            "opening_hours": result.get("opening_hours", {}).get("weekday_text", []),
+            "reviews": reviews,
+        }
+
+        # LLM summary if we have reviews and OpenAI key
+        llm_summary = None
+        if reviews and OPENAI_API_KEY:
+            try:
+                reviews_text = "\n".join([
+                    f"[{r['rating']}/5] {r['author']}: {r['text'][:400]}"
+                    for r in reviews if r.get("text")
+                ])
+                client = OpenAIClient(api_key=OPENAI_API_KEY)
+                llm_resp = client.chat.completions.create(
+                    model=EXTRACT_MODEL_PRIMARY,
+                    response_format={"type": "json_object"},
+                    messages=[{
+                        "role": "system",
+                        "content": "You are a restaurant review analyst. Summarize customer feedback concisely."
+                    }, {
+                        "role": "user",
+                        "content": f"""Analyze these Google reviews for {result.get('name')} and return JSON:
+
+REVIEWS:
+{reviews_text}
+
+Return JSON with these exact keys:
+{{
+  "overall_sentiment": "Positif / Mitigé / Négatif",
+  "best_aspects": ["list of 3 top praised aspects"],
+  "worst_aspects": ["list of 3 most criticized aspects"],
+  "summary_fr": "2-3 sentence summary in French",
+  "summary_en": "2-3 sentence summary in English",
+  "highlights": [
+    {{"type": "positive", "text": "specific positive quote or paraphrase"}},
+    {{"type": "negative", "text": "specific negative quote or paraphrase"}}
+  ],
+  "recommendation": "One-sentence recommendation for the restaurant owner"
+}}"""
+                    }],
+                    max_tokens=700,
+                    temperature=0.3,
+                )
+                llm_summary = json.loads(llm_resp.choices[0].message.content)
+            except Exception as llm_exc:
+                logging.warning(f"LLM review summary failed: {llm_exc}")
+
+        place_info["llm_summary"] = llm_summary
+        return jsonify(place_info)
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -2693,6 +3285,20 @@ def _init_db():
                     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            # Performance indexes (CREATE INDEX IF NOT EXISTS requires MySQL 8.0+)
+            _indexes = [
+                ("idx_promos_active",     "promotions_table", "is_active"),
+                ("idx_promos_saved",      "promotions_table", "saved_date_time"),
+                ("idx_promos_restaurant", "promotions_table", "restaurant(100)"),
+                ("idx_promos_grade",      "promotions_table", "grade"),
+                ("idx_promos_category",   "promotions_table", "category(50)"),
+            ]
+            for idx_name, tbl, cols in _indexes:
+                try:
+                    cur.execute(f"CREATE INDEX {idx_name} ON {tbl}({cols})")
+                except mysql.connector.Error:
+                    pass  # index already exists
+
             # Migrations: add OAuth columns if not present
             for col, ddl in [
                 ("oauth_provider", "ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50)"),
