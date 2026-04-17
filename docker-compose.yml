@@ -1,9 +1,9 @@
-version: '3.8'
-
 services:
 
   app:
     build: .
+    ports:
+      - "8500:5000"
     env_file:
       - .env
     environment:
@@ -12,34 +12,23 @@ services:
       DB_USER: root
       DB_PASSWORD: "${DB_PASSWORD:-1234}"
       DB_NAME: promotions_db
-      # Flask secret key (CHANGE THIS in production — use a long random string)
       SECRET_KEY: "${SECRET_KEY:-change-me-in-production-use-a-long-random-string}"
-      # Email / SMTP config (optional — auth works without it, tokens logged to console)
       MAIL_SERVER: "${MAIL_SERVER:-}"
       MAIL_PORT: "${MAIL_PORT:-587}"
       MAIL_USE_TLS: "${MAIL_USE_TLS:-true}"
       MAIL_USERNAME: "${MAIL_USERNAME:-}"
       MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
       MAIL_DEFAULT_SENDER: "${MAIL_DEFAULT_SENDER:-noreply@chickenwings.local}"
-      # OAuth SSO (optional — SSO buttons hidden if not set)
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
       GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
       GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
       GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-}"
+      GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     shm_size: '256mb'
-
-  gatekeeper:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx_bunker.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - app
 
   db:
     image: mysql:8.0
