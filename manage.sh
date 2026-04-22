@@ -8,6 +8,9 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+BACKUP_DIR="backups"
+BACKUP_RETENTION_DAYS=30
+
 function show_help() {
     echo -e "${BLUE}=== Promo Dashboard Toolkit ===${NC}"
     echo "Usage: ./manage.sh [option]"
@@ -20,7 +23,8 @@ function show_help() {
     echo "  update      : Reconstruit et redémarre l'application (sans Git pull)"
     echo "  logs        : Affiche les logs en temps réel"
     echo "  status      : Affiche l'état des services"
-    echo "  backup      : Sauvegarde la base de données MySQL"
+    echo "  backup      : Sauvegarde la base de données MySQL (compressée, rotation 30j)"
+    echo "  restore     : Restaure un backup  ex: ./manage.sh restore backups/backup_XXX.sql.gz"
     echo "  clearpromos : Vide les promotions uniquement (conserve les restaurants)"
     echo "  cleardb     : Vide toute la base de données (promotions + restaurants)"
     echo "  makeadmin   : Donne le rôle admin à un utilisateur par email"
@@ -55,12 +59,39 @@ case "$1" in
         docker compose ps
         ;;
     backup)
+        mkdir -p "$BACKUP_DIR"
         DATE=$(date +%Y%m%d_%H%M%S)
-        FILE="backup_promos_$DATE.sql"
+        FILE="$BACKUP_DIR/backup_promos_$DATE.sql.gz"
         echo -e "${GREEN}Sauvegarde vers $FILE...${NC}"
         DB_CONTAINER=$(docker compose ps -q db)
-        docker exec $DB_CONTAINER /usr/bin/mysqldump -u root -p1234 promotions_db > "$FILE"
-        echo "Terminé : $FILE"
+        docker exec $DB_CONTAINER /usr/bin/mysqldump -u root -p1234 promotions_db | gzip > "$FILE"
+        echo -e "${GREEN}Terminé : $FILE ($(du -sh "$FILE" | cut -f1))${NC}"
+        # Rotation : supprime les backups de plus de $BACKUP_RETENTION_DAYS jours
+        DELETED=$(find "$BACKUP_DIR" -name "backup_promos_*.sql.gz" -mtime +$BACKUP_RETENTION_DAYS -print -delete | wc -l)
+        [ "$DELETED" -gt 0 ] && echo -e "${BLUE}Rotation : $DELETED ancien(s) backup(s) supprimé(s).${NC}"
+        ;;
+    restore)
+        FILE="$2"
+        if [ -z "$FILE" ]; then
+            echo -e "${RED}Usage : ./manage.sh restore <fichier.sql.gz>${NC}"
+            echo "Backups disponibles :"
+            ls -lh "$BACKUP_DIR"/backup_promos_*.sql.gz 2>/dev/null || echo "  Aucun backup trouvé."
+            exit 1
+        fi
+        if [ ! -f "$FILE" ]; then
+            echo -e "${RED}Fichier introuvable : $FILE${NC}"
+            exit 1
+        fi
+        echo -e "${RED}Attention : restauration de $FILE dans promotions_db.${NC}"
+        read -p "Confirmer ? (oui/non) : " confirm
+        if [ "$confirm" = "oui" ]; then
+            DB_CONTAINER=$(docker compose ps -q db)
+            echo -e "${BLUE}Restauration en cours...${NC}"
+            gunzip -c "$FILE" | docker exec -i $DB_CONTAINER /usr/bin/mysql -u root -p1234 promotions_db
+            echo -e "${GREEN}Restauration terminée.${NC}"
+        else
+            echo "Annulé."
+        fi
         ;;
     clearpromos)
         echo -e "${RED}Attention : suppression de toutes les promotions (restaurants conservés).${NC}"
