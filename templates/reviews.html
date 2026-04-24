@@ -124,7 +124,7 @@
     .review-text { font-size:12px; color:var(--muted-hi); line-height:1.5; }
 
     /* Map */
-    #map { flex:1; z-index:1; }
+    #map { flex:1; z-index:1; min-height:300px; }
     .leaflet-container { background:#07070c; }
 
     /* Loading */
@@ -154,7 +154,7 @@
     .leaflet-popup-content { font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; margin:0.75rem 1rem; }
   </style>
 </head>
-<body class="lang-fr">
+<body class="lang-fr" data-has-key="{{ '1' if google_maps_api_key else '' }}">
 
 <nav class="navbar">
   <a href="/" class="logo">
@@ -235,6 +235,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
   maxZoom: 19,
 }).addTo(_map);
+// Force re-layout after flex container is computed — common Leaflet/flex bug
+requestAnimationFrame(() => requestAnimationFrame(() => _map.invalidateSize()));
 
 const _markerIcon = L.divIcon({
   className: '',
@@ -449,12 +451,10 @@ function renderDetail(d) {
   document.querySelectorAll('#detailInner .en').forEach(el => { el.style.display = isFrNow ? 'none' : 'inline'; });
 }
 
-// Check if API key is configured
-fetch('/api/reviews/search?q=test').then(r => r.json()).then(d => {
-  if (d.error && d.error.includes('API key')) {
-    document.getElementById('apiKeyNotice').style.display = 'block';
-  }
-}).catch(() => {});
+// Show API key notice based on server-rendered flag — avoids quota-consuming test request
+if (!document.body.dataset.hasKey) {
+  document.getElementById('apiKeyNotice').style.display = 'block';
+}
 </script>
 </body>
 </html>
