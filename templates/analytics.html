@@ -40,70 +40,88 @@
     }
     [data-theme="light"] body::before { display: none; }
 
-    /* Navbar */
-    .navbar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(7,7,12,0.94); backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 1.75rem; height: 54px;
-      display: flex; align-items: center; gap: 1rem;
+    /* ── App shell ─────────────────────────────────────────────── */
+    .app-shell { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ────────────────────────────────────────────────── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      position: fixed; left: 0; top: 0; bottom: 0;
+      background: #09090f; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto; z-index: 100;
     }
-    [data-theme="light"] .navbar { background: rgba(244,244,248,0.94); }
-    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-    .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
-    .logo-text span { color: var(--accent); }
-    .nav-divider { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
-    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
-    .nav-spacer { flex: 1; }
+    [data-theme="light"] .sidebar { background: #f0f0f8; }
 
-    /* Nav groups */
-    .nav-group { display: flex; align-items: center; gap: 0.25rem; }
+    .sb-logo { padding: 1.1rem 1.1rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .sb-logo-link { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+    .sb-logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .sb-logo-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.05em; color: var(--text); }
+    .sb-logo-name span { color: var(--accent); }
+    .sb-logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px; }
 
-    /* Cache pill + refresh */
-    .cache-pill {
-      display: inline-flex; align-items: center; gap: 0.35rem;
+    .sb-nav { flex: 1; padding: 0.4rem 0 0.5rem; overflow-y: auto; }
+
+    .sb-section-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 9px;
+      text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
+      padding: 1rem 1.1rem 0.3rem; margin-top: 0.25rem;
+    }
+    .sb-link {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.45rem 1.1rem; font-size: 12.5px; color: var(--muted-hi);
+      text-decoration: none; border-left: 2px solid transparent;
+      transition: all 0.12s; white-space: nowrap; line-height: 1.4;
+    }
+    .sb-link:hover { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--border-hi); }
+    .sb-link.sb-active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); font-weight: 600; }
+    .sb-link svg { flex-shrink: 0; opacity: 0.75; }
+    .sb-link:hover svg, .sb-link.sb-active svg { opacity: 1; }
+
+    /* Sidebar bottom */
+    .sb-bottom { padding: 0.75rem; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .sb-excel-btn {
+      display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+      width: 100%; background: rgba(33,115,70,0.1); border: 1px solid #2a7a50;
+      color: #4ade80; padding: 0.6rem 0.75rem; border-radius: 8px;
+      font-size: 12.5px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .sb-excel-btn:hover { background: #217346; color: #fff; border-color: #217346; box-shadow: 0 0 14px rgba(33,115,70,0.4); }
+    .sb-excel-btn:active { transform: scale(0.98); }
+    .sb-controls { display: flex; align-items: center; gap: 0.3rem; }
+    .sb-ctrl-btn {
+      flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
+      height: 28px; border-radius: 5px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; gap: 0.3rem;
+    }
+    .sb-ctrl-btn:hover { border-color: var(--border-hi); color: var(--text); }
+    .sb-cache-btn {
+      display: flex; align-items: center; gap: 0.3rem;
       background: transparent; border: 1px solid var(--border); color: var(--muted);
-      padding: 0 0.6rem; height: 28px; border-radius: 6px; cursor: pointer;
-      font-family: 'JetBrains Mono', monospace; transition: all 0.15s;
+      height: 28px; padding: 0 0.5rem; border-radius: 5px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 9px; transition: all 0.15s;
     }
-    .cache-pill:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .sb-cache-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
     .cache-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
     .cache-time { font-size: 9px; letter-spacing: 0.04em; }
 
-    /* Icon buttons */
-    .nav-icon-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
-      width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-      flex-shrink: 0;
+    /* ── Main area ───────────────────────────────────────────────── */
+    .main-area { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(7,7,12,0.94); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 50px;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
     }
-    .nav-icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .nav-icon-btn.nav-lang { width: auto; padding: 0 0.55rem; font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 0.06em; }
-
-    /* Nav page links */
-    .nav-link-item {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0 0.6rem; height: 30px; border-radius: 6px;
-      font-size: 12px; color: var(--muted-hi); text-decoration: none;
-      border: 1px solid transparent; transition: all 0.15s; white-space: nowrap;
-    }
-    .nav-link-item:hover { border-color: var(--border-hi); color: var(--text); background: var(--surface); }
-    .nav-link-item svg { flex-shrink: 0; }
-
-    /* Excel export button */
-    .btn-excel {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: var(--surface); border: 1px solid #2a7a50;
-      color: #4ade80; padding: 0 1rem; height: 32px; border-radius: 7px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 700; cursor: pointer; transition: all 0.2s;
-      white-space: nowrap; letter-spacing: 0.03em; flex-shrink: 0;
-    }
-    .btn-excel:hover { background: #217346; color: #fff; border-color: #217346; box-shadow: 0 0 12px rgba(33,115,70,0.35); }
-    .btn-excel:active { transform: scale(0.97); }
+    [data-theme="light"] .top-bar { background: rgba(244,244,248,0.94); }
+    .top-bar-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-hi); }
 
     .layout { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    @media (max-width: 900px) { .sidebar { display: none; } .main-area { margin-left: 0; } }
 
     /* KPI row */
     .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
@@ -226,59 +244,93 @@
 </head>
 <body class="lang-fr">
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">🍗</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <span class="nav-label"><span class="fr">Analyse</span><span class="en">Analytics</span></span>
-  <div class="nav-spacer"></div>
+<div class="app-shell">
 
-  <!-- Utility controls -->
-  <div class="nav-group">
-    <button class="cache-pill" onclick="refreshData()">
-      <span class="cache-dot" id="cacheDot"></span>
-      <span id="cacheLabel" class="cache-time">cache</span>
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-    </button>
-    <button class="nav-icon-btn" onclick="toggleTheme()" title="Thème">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-    </button>
-    <button class="nav-icon-btn nav-lang" onclick="toggleLang()">
-      <span class="fr">FR</span><span class="en">EN</span>
-    </button>
+<!-- ─── Sidebar ──────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+
+  <div class="sb-logo">
+    <a href="/" class="sb-logo-link">
+      <div class="sb-logo-icon">🍗</div>
+      <div>
+        <div class="sb-logo-name">CHICKEN<span>.</span>WINGS</div>
+        <div class="sb-logo-sub">Promo Dashboard</div>
+      </div>
+    </a>
   </div>
 
-  <div class="nav-divider"></div>
+  <nav class="sb-nav">
 
-  <!-- Navigation links -->
-  <div class="nav-group">
-    <a href="/marketing" class="nav-link-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span class="fr">Marketing</span><span class="en">Marketing</span>
+    <div class="sb-section-label"><span class="fr">Données</span><span class="en">Data</span></div>
+    <a href="/" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="fr">Restaurants</span><span class="en">Restaurants</span>
     </a>
-    <a href="/calendar" class="nav-link-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <a href="/analytics" class="sb-link sb-active">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analytics
+    </a>
+    <a href="/calendar" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="fr">Calendrier</span><span class="en">Calendar</span>
     </a>
-    <a href="/dashboard" class="nav-link-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      <span class="fr">Dashboard</span><span class="en">Dashboard</span>
+
+    <div class="sb-section-label"><span class="fr">Marché</span><span class="en">Market</span></div>
+    <a href="/marketing" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      Marketing
     </a>
+    <a href="/reviews" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="fr">Avis Google</span><span class="en">Google Reviews</span>
+    </a>
+
+    <div class="sb-section-label"><span class="fr">Gestion</span><span class="en">Admin</span></div>
+    <a href="/dashboard" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="fr">Mon compte</span><span class="en">My account</span>
+    </a>
+    <a href="/admin/" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Admin
+    </a>
+    <a href="/about" class="sb-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span class="fr">À propos</span><span class="en">About</span>
+    </a>
+
+  </nav>
+
+  <div class="sb-bottom">
+    <button class="sb-excel-btn" onclick="exportToExcel()">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+        <rect width="20" height="20" rx="3.5" fill="#217346"/>
+        <path d="M5.5 5.5L10 10L5.5 14.5M10 10L14.5 5.5M10 10L14.5 14.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="fr">Exporter Excel</span><span class="en">Export Excel</span>
+    </button>
+    <div class="sb-controls">
+      <button class="sb-ctrl-btn" onclick="toggleTheme()" title="Thème">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button class="sb-ctrl-btn" onclick="toggleLang()">
+        <span class="fr">FR</span><span class="en">EN</span>
+      </button>
+      <button class="sb-cache-btn" onclick="refreshData()">
+        <span class="cache-dot" id="cacheDot"></span>
+        <span id="cacheLabel" class="cache-time">cache</span>
+      </button>
+    </div>
   </div>
 
-  <div class="nav-divider"></div>
+</aside>
 
-  <!-- Excel export — prominent -->
-  <button class="btn-excel" onclick="exportToExcel()">
-    <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-      <rect width="20" height="20" rx="3.5" fill="#217346"/>
-      <path d="M5.5 5.5L10 10L5.5 14.5M10 10L14.5 5.5M10 10L14.5 14.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span class="fr">Exporter</span><span class="en">Export</span>
-  </button>
-</nav>
+<!-- ─── Main area ─────────────────────────────────────────────────────────── -->
+<div class="main-area">
+
+<div class="top-bar">
+  <span class="top-bar-title"><span class="fr">Analyse</span><span class="en">Analytics</span></span>
+</div>
 
 <div id="jobPanel"></div>
 <div class="layout">
@@ -895,5 +947,7 @@ loadData();
   });
 })();
 </script>
+</div><!-- /main-area -->
+</div><!-- /app-shell -->
 </body>
 </html>
