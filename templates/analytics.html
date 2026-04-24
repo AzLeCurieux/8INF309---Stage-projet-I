@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --bg: #07070c; --surface: #0e0e18; --card: #121220; --card-hover: #16162a;
@@ -167,6 +168,15 @@
     body.lang-fr .fr.block { display: block; }
     body.lang-en .en.block { display: block; }
 
+    /* Pivot table */
+    .pivot-table { width:100%; border-collapse:collapse; font-size:11px; white-space:nowrap; }
+    .pivot-table th { font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); background:var(--surface); padding:0.45rem 0.65rem; border:1px solid var(--border); position:sticky; top:0; z-index:2; }
+    .pivot-table td { padding:0.4rem 0.65rem; border:1px solid var(--border); text-align:center; font-family:'JetBrains Mono',monospace; }
+    .pt-month { text-align:left !important; color:var(--muted-hi); background:var(--surface); position:sticky; left:0; z-index:1; font-weight:600; min-width:80px; }
+    .pt-grand { font-weight:700; color:var(--accent); text-align:center !important; }
+    .pt-total-row td { background:var(--card-hover) !important; font-weight:700; }
+    .pt-empty { color:var(--border-hi); font-family:'JetBrains Mono',monospace; }
+
     @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 900px) {
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
@@ -206,6 +216,7 @@
   <a href="/marketing" class="nav-btn"><span class="fr">Marketing</span><span class="en">Marketing</span></a>
   <a href="/calendar" class="nav-btn"><span class="fr">Calendrier</span><span class="en">Calendar</span></a>
   <a href="/dashboard" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
+  <button class="nav-btn nav-badge" onclick="exportToExcel()" title="Export to Excel">↓ Excel</button>
 </nav>
 
 <div id="jobPanel"></div>
@@ -306,7 +317,41 @@
       <div class="chart-wrap tall"><canvas id="chartRestaurants"></canvas></div>
     </div>
 
-    <!-- Row 5: Top deals table + Recent Activity (side by side) -->
+    <!-- Row 5: Insights — Price vs Branding + Promos per competitor -->
+    <div class="charts-2col" style="margin-bottom:1.5rem">
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Promos Prix vs Branding</span><span class="en">Price vs Branding Promos</span></div>
+          <div class="chart-sub"><span class="fr">Prix explicite (offre mesurable) vs sans prix (visibilité)</span><span class="en">Explicit price (deal) vs no price (brand awareness)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:1.5rem;margin-top:0.5rem">
+          <div style="position:relative;height:180px;flex:1"><canvas id="chartPriceBranding"></canvas></div>
+          <div id="insightsPills" style="display:flex;flex-direction:column;gap:1rem;min-width:100px"></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div>
+          <div class="chart-title"><span class="fr">Promos actives par concurrent</span><span class="en">Active promos per competitor</span></div>
+          <div class="chart-sub"><span class="fr">Volume total — tri décroissant</span><span class="en">Total volume — descending sort</span></div>
+        </div>
+        <div id="competitorBars" class="bar-list" style="margin-top:0.75rem"></div>
+      </div>
+    </div>
+
+    <!-- Row 6: Comparative monthly view (pivot) -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <div class="section-head">
+        <div>
+          <div class="chart-title"><span class="fr">Vue comparative mensuelle</span><span class="en">Monthly comparative view</span></div>
+          <div class="chart-sub"><span class="fr">Colonnes = Concurrents · Lignes = Mois (12 derniers)</span><span class="en">Columns = Competitors · Rows = Months (last 12)</span></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;margin-top:0.75rem" id="pivotTableWrap">
+        <div class="loading"><span class="spin">⟳</span></div>
+      </div>
+    </div>
+
+    <!-- Row 7: Top deals table + Recent Activity (side by side) -->
     <div class="charts-2col" style="margin-bottom:0">
       <!-- Top savings table -->
       <div class="chart-card">
@@ -382,6 +427,9 @@ async function refreshData() {
   document.getElementById('catBars').innerHTML = '';
   document.getElementById('topSavingsBody').innerHTML = '';
   document.getElementById('activityFeed').innerHTML = '';
+  document.getElementById('insightsPills').innerHTML = '';
+  document.getElementById('competitorBars').innerHTML = '';
+  document.getElementById('pivotTableWrap').innerHTML = '<div class="loading"><span class="spin">⟳</span></div>';
   await loadData();
 }
 
@@ -389,6 +437,7 @@ async function loadData() {
   const resp = await fetch('/api/analytics/stats');
   const d = await resp.json();
   if (d.error) { document.getElementById('loadingState').textContent = 'Error: ' + d.error; return; }
+  window._analyticsData = d;
 
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display = '';
@@ -619,6 +668,136 @@ async function loadData() {
       <div class="activity-meta">${dt}</div>`;
     feed.appendChild(item);
   });
+
+  // ── Insights: Price vs Branding ──────────────────────────────────────────
+  const split = d.insights_split || {};
+  const priceP  = split.price_promos   || 0;
+  const brandP  = split.branding_promos || 0;
+  const splitTot = priceP + brandP || 1;
+  destroyChart('priceBranding');
+  _charts['priceBranding'] = new Chart(document.getElementById('chartPriceBranding'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Prix / Price', 'Branding'],
+      datasets: [{ data: [priceP, brandP], backgroundColor: ['#f5a623','#6366f1'], borderColor: '#0e0e18', borderWidth: 2, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } } },
+      cutout: '65%',
+    }
+  });
+  document.getElementById('insightsPills').innerHTML = `
+    <div style="text-align:center">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#f5a623">${Math.round(priceP/splitTot*100)}%</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em"><span class="fr">Prix</span><span class="en">Price</span></div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#6366f1">${Math.round(brandP/splitTot*100)}%</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Branding</div>
+    </div>`;
+
+  // ── Insights: Promos per competitor bars ─────────────────────────────────
+  const compEl = document.getElementById('competitorBars');
+  compEl.innerHTML = '';
+  const sortedByActive = [...(d.rest_comparison || [])].sort((a,b) => (b.active||0)-(a.active||0));
+  const maxActive = Math.max(1, ...sortedByActive.map(r => r.active||0));
+  sortedByActive.forEach((r, i) => {
+    const pct = Math.round((r.active||0) / maxActive * 100);
+    const el = document.createElement('div');
+    el.className = 'bar-item';
+    el.innerHTML = `
+      <div class="bar-meta">
+        <span class="bar-name">${r.restaurant}</span>
+        <span class="bar-count">${r.active||0}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CAT_PALETTE[i%CAT_PALETTE.length]}"></div></div>`;
+    compEl.appendChild(el);
+  });
+
+  // ── Pivot table ───────────────────────────────────────────────────────────
+  document.getElementById('pivotTableWrap').innerHTML = buildPivotTable(d.pivot_data || [], sortedByActive);
+}
+
+function buildPivotTable(pivotData, rests) {
+  if (!pivotData.length) return '<div style="color:var(--muted);font-size:12px;padding:1rem 0">—</div>';
+  const months = [...new Set(pivotData.map(r => r.month))].sort().reverse();
+  const restaurants = rests.map(r => r.restaurant);
+  const map = {};
+  pivotData.forEach(r => { if (!map[r.month]) map[r.month] = {}; map[r.month][r.restaurant] = r.cnt; });
+  const maxCnt = Math.max(1, ...pivotData.map(r => r.cnt));
+
+  let html = '<table class="pivot-table"><thead><tr>';
+  html += '<th class="pt-month"><span class="fr">Mois</span><span class="en">Month</span></th>';
+  restaurants.forEach(r => { html += `<th title="${r}">${r.length > 12 ? r.slice(0,11)+'…' : r}</th>`; });
+  html += '<th class="pt-grand"><span class="fr">Total</span><span class="en">Total</span></th></tr></thead><tbody>';
+
+  months.forEach(m => {
+    let rowTotal = 0;
+    html += `<tr><td class="pt-month">${m}</td>`;
+    restaurants.forEach(r => {
+      const cnt = map[m]?.[r] || 0;
+      rowTotal += cnt;
+      const alpha = cnt ? (0.1 + (cnt / maxCnt) * 0.75).toFixed(2) : 0;
+      const bg = cnt ? `rgba(245,166,35,${alpha})` : 'transparent';
+      html += `<td class="pt-cell" style="background:${bg}">${cnt || '<span class="pt-empty">—</span>'}</td>`;
+    });
+    html += `<td class="pt-grand">${rowTotal}</td></tr>`;
+  });
+
+  html += '<tr class="pt-total-row"><td class="pt-month">Total</td>';
+  let grand = 0;
+  restaurants.forEach(r => {
+    const colT = months.reduce((s, m) => s + (map[m]?.[r] || 0), 0);
+    grand += colT;
+    html += `<td class="pt-grand">${colT}</td>`;
+  });
+  html += `<td class="pt-grand" style="color:var(--accent)">${grand}</td></tr>`;
+  html += '</tbody></table>';
+  return html;
+}
+
+function exportToExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('SheetJS not loaded yet — please wait a moment and try again.');
+    return;
+  }
+  const d = window._analyticsData || {};
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1 — Monthly pivot
+  const pivotData = d.pivot_data || [];
+  const rests = [...(d.rest_comparison || [])].sort((a,b) => (b.active||0)-(a.active||0));
+  const months = [...new Set(pivotData.map(r => r.month))].sort().reverse();
+  const restaurants = rests.map(r => r.restaurant);
+  const pivMap = {};
+  pivotData.forEach(r => { if (!pivMap[r.month]) pivMap[r.month] = {}; pivMap[r.month][r.restaurant] = r.cnt; });
+  const pivRows = [['Mois', ...restaurants, 'Total']];
+  months.forEach(m => {
+    const row = [m];
+    let rowT = 0;
+    restaurants.forEach(r => { const c = pivMap[m]?.[r] || 0; row.push(c); rowT += c; });
+    row.push(rowT);
+    pivRows.push(row);
+  });
+  const totRow = ['Total'];
+  let grand = 0;
+  restaurants.forEach(r => { const c = months.reduce((s,m) => s+(pivMap[m]?.[r]||0), 0); totRow.push(c); grand += c; });
+  totRow.push(grand);
+  pivRows.push(totRow);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivRows), 'Vue comparative');
+
+  // Sheet 2 — Restaurant comparison
+  const restRows = [['Restaurant','Total promos','Actives','Grade A+','Économie moy. ($)']];
+  (d.rest_comparison||[]).forEach(r => restRows.push([r.restaurant, r.total, r.active, r.a_plus, r.avg_savings||0]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(restRows), 'Concurrents');
+
+  // Sheet 3 — Top deals
+  const dealsRows = [['Restaurant','Type','Détails','Prix','Grade','Économie ($)']];
+  (d.top_savings||[]).forEach(p => dealsRows.push([p.restaurant, p.promo_type, p.promo_details, p.price, p.grade, p.savings_estimate||0]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dealsRows), 'Meilleures offres');
+
+  XLSX.writeFile(wb, `chicken-wings-${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 loadData();
