@@ -58,6 +58,9 @@ SIMILARITY_THRESHOLD  = 0.92
 INACTIVE_AFTER_DAYS   = 7
 SCRAPE_INTERVAL_HOURS = int(os.environ.get("SCRAPE_INTERVAL_HOURS", "6"))
 MAX_DISCOVERY_PAGES   = 8   # extra pages to follow per restaurant
+# Circuit breaker: abort crawl after 8 min, abort full job after 10 min
+SCRAPE_CRAWL_TIMEOUT           = int(os.environ.get("SCRAPE_CRAWL_TIMEOUT", "480"))
+SCRAPE_CIRCUIT_BREAKER_TIMEOUT = int(os.environ.get("SCRAPE_CIRCUIT_BREAKER_TIMEOUT", "600"))
 GENERIC_PROMO_IMAGE   = "https://placehold.co/600x400/121220/f5a623?text=Promo"
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -988,12 +991,21 @@ def _scrape_sync(url: str, restaurant_name: str, jid: str = None) -> tuple[list[
     msg = f"Scraping {restaurant_name} @ {url}"
     logging.info(msg)
 
-    # Phase 1: async web crawl
+    # Phase 1: async web crawl (circuit breaker: abort after SCRAPE_CRAWL_TIMEOUT)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        text, crawled = loop.run_until_complete(_smart_crawl(url))
+        text, crawled = loop.run_until_complete(
+            asyncio.wait_for(_smart_crawl(url), timeout=SCRAPE_CRAWL_TIMEOUT)
+        )
         logging.info(f"Crawl finished. Pages: {len(crawled)}")
+    except asyncio.TimeoutError:
+        logging.error(
+            f"[CircuitBreaker] Crawl for {restaurant_name} timed out after {SCRAPE_CRAWL_TIMEOUT}s"
+        )
+        raise RuntimeError(
+            f"Circuit breaker: crawl exceeded {SCRAPE_CRAWL_TIMEOUT}s for {restaurant_name}"
+        )
     finally:
         loop.close()
         asyncio.set_event_loop(None)   # ← MUST clear before calling OpenAI
@@ -1774,10 +1786,38 @@ def _send_approved_notifications():
 
 
 def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None):
-    _thread_context.job_id = jid  # Lie ce thread au JID pour capturer les logs
+    _thread_context.job_id = jid
     _set_job(jid, "running")
+
+    _result: list = [None]
+    _error:  list = [None]
+    _done = threading.Event()
+
+    def _work():
+        _thread_context.job_id = jid  # propagate job context to inner thread
+        try:
+            _result[0] = _scrape_sync(url, restaurant_name, jid=jid)
+        except Exception as exc:
+            _error[0] = exc
+        finally:
+            _done.set()
+
+    threading.Thread(target=_work, daemon=True).start()
+
+    if not _done.wait(timeout=SCRAPE_CIRCUIT_BREAKER_TIMEOUT):
+        msg = (f"Circuit breaker: scrape for {restaurant_name} exceeded "
+               f"{SCRAPE_CIRCUIT_BREAKER_TIMEOUT}s — aborting")
+        logging.error(f"[CircuitBreaker] {msg}")
+        _set_job(jid, "error", error=msg)
+        return
+
+    if _error[0] is not None:
+        logging.error(f"Job {jid} error: {_error[0]}")
+        _set_job(jid, "error", error=str(_error[0]))
+        return
+
+    promos, crawled, candidate_images = _result[0]
     try:
-        promos, crawled, candidate_images = _scrape_sync(url, restaurant_name, jid=jid)
         stats = save_promos_to_db(restaurant_name, promos)
         stats["marked_inactive"]   = mark_inactive_promos(restaurant_name) if promos else 0
         stats["pages_crawled"]     = crawled
@@ -1789,7 +1829,6 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
             stats["auto_cleaned"] = cleaned
             removed = cleaned.get("non_promo_removed", 0) + cleaned.get("deduped", 0)
             stats["inserted"] = max(0, stats["inserted"] - removed)
-        # Queue email notifications if new promos were found
         new_count = stats.get("inserted", 0)
         if new_count > 0 and rid is not None:
             threading.Thread(
@@ -1800,7 +1839,7 @@ def _background_scrape(jid: str, restaurant_name: str, url: str, rid: int = None
         _set_job(jid, "done", result=stats, pages=crawled)
         logging.info(f"Job {jid} finished for {restaurant_name}")
     except Exception as exc:
-        logging.error(f"Job {jid} error: {exc}")
+        logging.error(f"Job {jid} post-scrape error: {exc}")
         _set_job(jid, "error", error=str(exc))
 
 
@@ -2417,6 +2456,26 @@ def api_analytics_stats():
             if r.get("saved_date_time"):
                 r["saved_date_time"] = str(r["saved_date_time"])
 
+        # Insights: price promo (explicit numeric price) vs branding (no price)
+        cur.execute("""SELECT
+            SUM(CASE WHEN price IS NOT NULL AND price != ''
+                 AND LOWER(price) NOT IN ('not provided','n/a')
+                 AND price REGEXP '^[0-9]' THEN 1 ELSE 0 END) AS price_promos,
+            SUM(CASE WHEN price IS NULL OR price = ''
+                 OR LOWER(price) IN ('not provided','n/a')
+                 OR NOT price REGEXP '^[0-9]' THEN 1 ELSE 0 END) AS branding_promos
+            FROM promotions_table WHERE is_active=1""")
+        insights_split = cur.fetchone()
+
+        # Monthly pivot: promos per restaurant per month (last 12 months)
+        cur.execute("""SELECT restaurant, DATE_FORMAT(saved_date_time,'%Y-%m') AS month,
+            COUNT(*) AS cnt
+            FROM promotions_table
+            WHERE saved_date_time >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY restaurant, month
+            ORDER BY month ASC, restaurant ASC""")
+        pivot_data = cur.fetchall()
+
         cur.close(); db.close()
         payload = {
             "grade_dist": grade_dist,
@@ -2429,6 +2488,8 @@ def api_analytics_stats():
             "top_savings": top_savings,
             "price_dist": price_dist,
             "recent_activity": recent_activity,
+            "insights_split": insights_split,
+            "pivot_data": pivot_data,
             "cached_at": datetime.now().isoformat(),
         }
         with _analytics_cache_lock:
