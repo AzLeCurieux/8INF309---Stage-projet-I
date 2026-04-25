@@ -389,25 +389,6 @@
 <div class="layout">
   <div id="alert-zone"></div>
 
-  <div class="summary-bar">
-    <div class="summary-item">
-      <span class="summary-value sv-amber">{{ restaurants|length }}</span>
-      <span class="summary-label"><span class="fr">Sources</span><span class="en">Sources</span></span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-value sv-green">{{ restaurants|sum(attribute='active_promos') or 0 }}</span>
-      <span class="summary-label"><span class="fr">Promos actives</span><span class="en">Active promos</span></span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-value sv-blue">{{ restaurants|sum(attribute='top_promos') or 0 }}</span>
-      <span class="summary-label"><span class="fr">Grade A+/A</span><span class="en">Grade A+/A</span></span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-value" style="color:var(--muted-hi)">{{ scrape_interval_hours }}h</span>
-      <span class="summary-label"><span class="fr">Intervalle auto</span><span class="en">Auto interval</span></span>
-    </div>
-  </div>
-
   {% if current_user.is_admin %}
   <form action="/add_restaurant" method="POST" class="add-section">
     <span class="add-label">+ <span class="fr">Ajouter</span><span class="en">Add</span></span>
