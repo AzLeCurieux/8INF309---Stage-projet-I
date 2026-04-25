@@ -1,95 +1,8 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ restaurant.name }} — Chicken Wings</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #07070c;
-      --surface: #0e0e18;
-      --card: #121220;
-      --card-hover: #16162a;
-      --border: #1e1e32;
-      --border-hi: #2e2e48;
-      --text: #e2e2f0;
-      --muted: #5a5a7a;
-      --muted-hi: #8888aa;
-      --accent: #f5a623;
-      --accent-dim: rgba(245,166,35,0.12);
-      --accent-glow: rgba(245,166,35,0.25);
-      --green: #10b981;
-      --green-dim: rgba(16,185,129,0.12);
-      --red: #ef4444;
-      --red-dim: rgba(239,68,68,0.12);
-      --blue: #60a5fa;
-      --blue-dim: rgba(96,165,250,0.1);
-      --yellow: #fbbf24;
-      --yellow-dim: rgba(251,191,36,0.1);
-    }
-    [data-theme="light"] {
-      --bg: #f4f4f8; --surface: #ffffff; --card: #ffffff;
-      --card-hover: #f8f8fc; --border: #e0e0ec; --border-hi: #c8c8e0;
-      --text: #0f0f1e; --muted: #8080a0; --muted-hi: #555570;
-      --accent: #d4850a; --accent-dim: rgba(212,133,10,0.1);
-    }
+{% extends "base.html" %}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 14px; line-height: 1.5; min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-      pointer-events: none; z-index: 9997;
-    }
-    [data-theme="light"] body::before { display: none; }
+{% block title %}{{ restaurant.name }}{% endblock %}
 
-    .navbar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(7,7,12,0.92); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 56px;
-      display: flex; align-items: center; gap: 1rem;
-    }
-    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
-
-    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-    .logo-icon { width: 26px; height: 26px; background: var(--accent); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.05em; color: var(--text); }
-    .logo-text span { color: var(--accent); }
-
-    .nav-divider { width: 1px; height: 20px; background: var(--border); }
-
-    .breadcrumb {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 12.5px; color: var(--muted);
-    }
-    .breadcrumb a { color: var(--muted); text-decoration: none; }
-    .breadcrumb a:hover { color: var(--accent); }
-    .breadcrumb-sep { opacity: 0.4; }
-    .breadcrumb-current {
-      font-family: 'Syne', sans-serif; font-weight: 700;
-      font-size: 13px; color: var(--text); letter-spacing: 0.02em;
-    }
-
-    .nav-spacer { flex: 1; }
-    .nav-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
-      padding: 0 0.75rem; height: 30px; border-radius: 5px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
-      transition: all 0.15s; text-decoration: none; white-space: nowrap;
-    }
-    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .nav-btn-clean:hover { border-color: var(--accent); color: var(--accent); }
-
+{% block extra_styles %}
     .hero {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -98,34 +11,25 @@
     .hero-inner { max-width: 1200px; margin: 0 auto; }
     .hero-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
     .hero-favicon { width: 36px; height: 36px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); }
-    .hero-name {
-      font-family: 'Syne', sans-serif; font-weight: 800;
-      font-size: 22px; letter-spacing: 0.01em; color: var(--text);
-    }
+    .hero-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.01em; color: var(--text); }
     .hero-url { font-size: 11px; color: var(--muted); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
     .hero-url a { color: var(--muted); text-decoration: none; }
     .hero-url a:hover { color: var(--accent); }
-
     .hero-stats { display: flex; gap: 2rem; }
     .hero-stat { display: flex; flex-direction: column; gap: 2px; }
-    .hero-stat-val {
-      font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600;
-    }
+    .hero-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; }
     .hero-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .hsa { color: var(--accent); }
     .hsg { color: var(--green); }
-    .hsb { color: var(--blue); }
+    .hsb { color: #60a5fa; }
     .hsr { color: var(--red); }
 
     .filter-wrap {
       background: var(--surface); border-bottom: 1px solid var(--border);
       padding: 0.75rem 2rem;
-      position: sticky; top: 56px; z-index: 50;
+      position: sticky; top: 50px; z-index: 50;
     }
-    .filter-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
-    }
+    .filter-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
     .filter-group { display: flex; gap: 3px; }
     .filter-sep { width: 1px; height: 20px; background: var(--border); margin: 0 0.25rem; }
     .filter-btn {
@@ -136,87 +40,40 @@
       transition: all 0.15s;
     }
     .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .filter-btn.active {
-      background: var(--accent); border-color: var(--accent);
-      color: #000; font-weight: 700;
-    }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
     .filter-btn-grade { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-
     .grade-aplus.active { background: var(--green); border-color: var(--green); }
-    .grade-a.active     { background: #34d399;      border-color: #34d399; }
-    .grade-b.active     { background: var(--blue);  border-color: var(--blue); color: #fff; }
-    .grade-c.active     { background: var(--yellow); border-color: var(--yellow); }
-    .grade-d.active     { background: var(--red);   border-color: var(--red); color: #fff; }
-
+    .grade-a.active     { background: #34d399; border-color: #34d399; }
+    .grade-b.active     { background: #60a5fa; border-color: #60a5fa; color: #fff; }
+    .grade-c.active     { background: #fbbf24; border-color: #fbbf24; }
+    .grade-d.active     { background: var(--red); border-color: var(--red); color: #fff; }
     .filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; }
     .filter-spacer { flex: 1; }
-    .count-badge {
-      font-family: 'JetBrains Mono', monospace; font-size: 11px;
-      color: var(--muted); background: var(--card);
-      border: 1px solid var(--border); border-radius: 4px;
-      padding: 0.2rem 0.5rem;
-    }
+    .count-badge { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.5rem; }
 
-    .main { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem; position: relative; z-index: 1; }
+    .rest-main { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
 
-    .promo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 1.25rem;
-    }
+    .promo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.25rem; }
 
     .promo-card {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; overflow: hidden;
       display: flex; flex-direction: column;
       transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-      animation: cardIn 0.4s ease both;
-      position: relative;
+      animation: cardIn 0.4s ease both; position: relative;
     }
-    .promo-card:hover {
-      border-color: var(--border-hi);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    }
+    .promo-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
     .promo-card.inactive { opacity: 0.5; }
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Card image */
-    .card-img-wrap {
-      position: relative; overflow: hidden;
-      height: 158px; background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .card-img {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform 0.4s ease;
-    }
+    .card-img-wrap { position: relative; overflow: hidden; height: 158px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
     .promo-card:hover .card-img { transform: scale(1.04); }
-    .card-img-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.5rem; opacity: 0.15;
-      background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 16px);
-    }
-    .card-img-favicon {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, var(--surface) 0%, var(--card) 100%);
-    }
+    .card-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; opacity: 0.15; background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 16px); }
+    .card-img-favicon { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--surface) 0%, var(--card) 100%); }
     .card-img-favicon img { width: 52px; height: 52px; border-radius: 10px; opacity: 0.65; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.5)); }
 
-    /* Grade badge on image */
-    .grade-badge {
-      position: absolute; top: 10px; right: 10px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 700;
-      padding: 0.25rem 0.5rem; border-radius: 5px;
-      letter-spacing: 0.05em; backdrop-filter: blur(8px);
-    }
+    .grade-badge { position: absolute; top: 10px; right: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 5px; letter-spacing: 0.05em; backdrop-filter: blur(8px); }
     .g-Ap { background: rgba(16,185,129,0.85); color: #fff; }
     .g-A  { background: rgba(52,211,153,0.85); color: #000; }
     .g-B  { background: rgba(96,165,250,0.85); color: #000; }
@@ -224,181 +81,65 @@
     .g-D  { background: rgba(239,68,68,0.85);  color: #fff; }
     .g-N  { background: rgba(90,90,122,0.85);  color: #fff; }
 
-    /* Card body */
     .card-body { padding: 1.125rem 1.125rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-
     .card-price-row { display: flex; align-items: baseline; gap: 0.75rem; }
-    .card-price {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 22px; font-weight: 600; color: var(--accent);
-      line-height: 1;
-    }
+    .card-price { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; color: var(--accent); line-height: 1; }
     .card-price.no-price { font-size: 14px; color: var(--muted); }
-    .card-type {
-      font-size: 10px; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.08em;
-      padding: 0.15rem 0.45rem; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 3px;
-    }
-
-    .card-details {
-      font-size: 13px; color: var(--text); line-height: 1.55;
-      flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-    }
-
-    .card-footer {
-      display: flex; align-items: center; justify-content: space-between;
-      padding-top: 0.75rem; border-top: 1px solid var(--border);
-      margin-top: auto;
-    }
-    .card-category {
-      font-size: 10.5px; color: var(--muted);
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 3px; padding: 0.15rem 0.45rem;
-    }
-    .card-link {
-      font-size: 11.5px; color: var(--muted); text-decoration: none;
-      font-weight: 500; transition: color 0.15s; letter-spacing: 0.02em;
-    }
+    .card-type { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.15rem 0.45rem; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; }
+    .card-details { font-size: 13px; color: var(--text); line-height: 1.55; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--border); margin-top: auto; }
+    .card-category { font-size: 10.5px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 0.15rem 0.45rem; }
+    .card-link { font-size: 11.5px; color: var(--muted); text-decoration: none; font-weight: 500; transition: color 0.15s; letter-spacing: 0.02em; }
     .card-link:hover { color: var(--accent); }
 
-    /* Inactive overlay label */
-    .inactive-pill {
-      position: absolute; top: 10px; left: 10px;
-      font-family: 'JetBrains Mono', monospace; font-size: 9px;
-      font-weight: 600; letter-spacing: 0.08em;
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--muted); padding: 0.2rem 0.4rem; border-radius: 4px;
-      text-transform: uppercase;
-    }
+    .inactive-pill { position: absolute; top: 10px; left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 0.2rem 0.4rem; border-radius: 4px; text-transform: uppercase; }
 
-    .empty-state {
-      grid-column: 1 / -1; text-align: center; padding: 5rem 2rem; color: var(--muted);
-    }
+    .empty-state { grid-column: 1 / -1; text-align: center; padding: 5rem 2rem; color: var(--muted); }
     .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
 
-    #jobPanel {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      width: 360px; z-index: 9999;
-      display: flex; flex-direction: column; gap: 0.75rem;
-    }
-    .job-card {
-      background: var(--card); border: 1px solid var(--border-hi);
-      border-radius: 10px; overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,166,35,0.05);
-    }
-    .job-card-title {
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      padding: 0.6rem 0.875rem;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .job-card-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 600; color: var(--accent);
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .job-card-close {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: 14px; padding: 2px; border-radius: 3px;
-      transition: color 0.15s;
-    }
-    .job-card-close:hover { color: var(--text); }
-    .job-card-body { padding: 0.75rem 0.875rem; }
-    .job-status { font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem; }
-    .job-logs {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
-      font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
-      padding: 0.5rem 0.625rem; height: 90px; overflow-y: auto; line-height: 1.6;
-      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-    }
-
     .clean-result { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
-    .clean-badge {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; font-weight: 600;
-      padding: 0.2rem 0.5rem; border-radius: 4px;
-      display: flex; align-items: center; gap: 0.25rem;
-    }
+    .clean-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; display: flex; align-items: center; gap: 0.25rem; }
     .cb-ok     { background: var(--green-dim); color: var(--green); }
     .cb-remove { background: var(--red-dim);   color: var(--red); }
     .cb-dedup  { background: var(--blue-dim);  color: var(--blue); }
     .cb-info   { background: var(--accent-dim);color: var(--accent); }
 
-    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    body.lang-en .fr { display: none !important; }
-    body.lang-fr .en { display: none !important; }
-
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 
-    /* ── MOBILE RESPONSIVENESS ── */
     @media (max-width: 768px) {
-      .navbar { padding: 0 0.75rem; gap: 0.5rem; justify-content: space-between; }
-      .breadcrumb, .nav-divider, .nav-spacer { display: none; }
-      .logo-text { font-size: 12px; }
-      .nav-btn { padding: 0 0.4rem; font-size: 10px; height: 28px; }
-
       .hero { padding: 1.25rem 1rem; }
       .hero-stats { gap: 0.75rem; flex-wrap: wrap; }
       .hero-stat { flex: 1 1 calc(50% - 0.75rem); background: var(--surface); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); }
       .hero-stat-val { font-size: 15px; }
-
       .filter-wrap { padding: 0.5rem 0.75rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .filter-inner { flex-wrap: nowrap; width: max-content; gap: 0.5rem; }
-      .filter-label { font-size: 9px; width: auto; margin-bottom: 0; }
-      .filter-sep { display: block; opacity: 0.3; }
       .filter-btn { white-space: nowrap; padding: 0.25rem 0.6rem; }
-
-      .main { padding: 1rem 0.75rem; }
+      .rest-main { padding: 1rem 0.75rem; }
       .promo-grid { grid-template-columns: 1fr; gap: 1rem; }
       .card-img-wrap { height: 160px; }
-
-      #jobPanel { width: calc(100% - 1.5rem); left: 0.75rem; bottom: 0.75rem; }
     }
-  </style>
-</head>
-<body class="lang-fr">
+{% endblock %}
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">🍗</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <div class="breadcrumb">
-    <a href="/">
-      <span class="fr">Accueil</span><span class="en">Home</span>
-    </a>
-    <span class="breadcrumb-sep">/</span>
-    <span class="breadcrumb-current">{{ restaurant.name }}</span>
-  </div>
-  <div class="nav-spacer"></div>
-  <button class="nav-btn" onclick="toggleTheme()">◑</button>
-  <button class="nav-btn" onclick="toggleLang()">
-    <span class="fr">FR</span><span class="en">EN</span>
-  </button>
-  <a href="/analytics" class="nav-btn">
-    <span class="fr">Analyse</span><span class="en">Analytics</span>
-  </a>
-  {% if current_user.is_admin %}
-  <a href="/verify/{{ restaurant.id }}" class="nav-btn" title="Vérifier la précision / Verify accuracy">
+{% block page_title %}{{ restaurant.name }}{% endblock %}
+
+{% block top_bar_right %}
+{% if current_user.is_admin %}
+<div style="display:flex;align-items:center;gap:0.4rem;">
+  <a href="/verify/{{ restaurant.id }}" class="tb-btn">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     <span class="fr">Vérifier</span><span class="en">Verify</span>
   </a>
-  <button class="nav-btn nav-btn-clean" id="cleanBtn" onclick="triggerClean({{ restaurant.id }})">
+  <button class="tb-btn" id="cleanBtn" onclick="triggerClean({{ restaurant.id }})">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     <span class="fr">Nettoyer</span><span class="en">Clean</span>
   </button>
-  <a href="/admin/" class="nav-btn" style="color:var(--accent);border-color:var(--accent);">⚙ Admin</a>
-  {% endif %}
-  <div style="width:1px;height:20px;background:var(--border);"></div>
-  <span style="font-size:12px;color:var(--muted-hi)">{{ current_user.display_name }}</span>
-  <a href="/auth/logout" class="nav-btn">
-    <span class="fr">Déconnexion</span><span class="en">Sign out</span>
-  </a>
-</nav>
+</div>
+{% endif %}
+{% endblock %}
 
+{% block content %}
 <div class="hero">
   <div class="hero-inner">
     <div class="hero-top">
@@ -470,7 +211,7 @@
   </div>
 </div>
 
-<div class="main">
+<div class="rest-main">
   <div class="promo-grid">
     {% if promos %}
       {% for p in promos %}
@@ -481,7 +222,6 @@
         <span class="inactive-pill">INACTIF</span>
         {% endif %}
 
-        <!-- Image or placeholder -->
         <div class="card-img-wrap">
           {% if p.image_url and p.image_url not in ('Not Provided', 'N/A', 'none') %}
           <img src="{{ p.image_url }}" class="card-img" alt="{{ p.promo_type }}" loading="lazy"
@@ -491,7 +231,6 @@
             <img src="https://www.google.com/s2/favicons?domain={{ restaurant.url }}&sz=128" alt="{{ restaurant.name }}">
           </div>
           {% endif %}
-          <!-- Grade badge -->
           <span class="grade-badge {% if p.grade == 'A+' %}g-Ap{% elif p.grade == 'A' %}g-A{% elif p.grade == 'B' %}g-B{% elif p.grade == 'C' %}g-C{% elif p.grade == 'D' %}g-D{% else %}g-N{% endif %}">
             {{ p.grade or 'N/A' }}
           </span>
@@ -532,28 +271,9 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
 
-<div id="jobPanel"></div>
-
-<script>
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  localStorage.setItem('pref-theme', t || 'dark');
-}
-if (localStorage.getItem('pref-theme') === 'light')
-  document.documentElement.setAttribute('data-theme', 'light');
-
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') {
-  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
-}
-
+{% block scripts %}
 function _jobCard(jid, label) {
   const c = document.createElement('div');
   c.className = 'job-card'; c.id = 'job-' + jid;
@@ -632,43 +352,4 @@ async function triggerClean(rid) {
     _pollCleanJob(d.job_id, card);
   } catch(e) { if(btn) btn.disabled=false; }
 }
-
-// ─── Restore scan jobs from other pages (sessionStorage) ──────────────────
-(function _restoreJobs() {
-  const KEY = 'cw_jobs';
-  function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
-  function set(j) { sessionStorage.setItem(KEY, JSON.stringify(j)); }
-  const now = Date.now();
-  const fresh = get().filter(j => now - (j.ts||0) < 30*60*1000);
-  set(fresh);
-  fresh.forEach(j => {
-    if (document.getElementById('job-' + j.jid)) return;
-    const c = _jobCard(j.jid, j.name);
-    const det = document.getElementById('jd-' + j.jid);
-    const ivl = setInterval(async () => {
-      try {
-        const [jr, lr] = await Promise.all([fetch('/job/'+j.jid), fetch('/api/job/'+j.jid+'/logs')]);
-        const [job, logs] = await Promise.all([jr.json(), lr.json()]);
-        const el = document.getElementById('jl-'+j.jid);
-        if (el && logs.logs) { el.textContent = logs.logs.slice(-12).join('\n'); el.scrollTop=el.scrollHeight; }
-        if (job.status === 'done') {
-          clearInterval(ivl);
-          set(get().filter(x => x.jid !== j.jid));
-          const sp = document.getElementById('spin-'+j.jid);
-          if (sp) { sp.textContent='✓'; sp.style.animation='none'; sp.style.color='#10b981'; }
-          const res = job.result || {};
-          if (det) det.innerHTML = `+${res.inserted||0} <span class="fr">nouvelles — terminé</span><span class="en">new — done</span>`;
-        } else if (job.status === 'error') {
-          clearInterval(ivl);
-          set(get().filter(x => x.jid !== j.jid));
-          const sp = document.getElementById('spin-'+j.jid);
-          if (sp) { sp.textContent='✗'; sp.style.animation='none'; sp.style.color='var(--red)'; }
-          if (det) det.innerHTML = `<span style="color:var(--red)">${job.error||'Erreur'}</span>`;
-        }
-      } catch(e) {}
-    }, 2500);
-  });
-})();
-</script>
-</body>
-</html>
+{% endblock %}

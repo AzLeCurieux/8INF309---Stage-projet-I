@@ -1,128 +1,13 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Analytics — Chicken Wings</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block head_scripts %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg: #07070c; --surface: #0e0e18; --card: #121220; --card-hover: #16162a;
-      --border: #1e1e32; --border-hi: #2e2e48;
-      --text: #e2e2f0; --muted: #5a5a7a; --muted-hi: #8888aa;
-      --accent: #f5a623; --accent-dim: rgba(245,166,35,0.12); --accent-glow: rgba(245,166,35,0.25);
-      --green: #10b981; --green-dim: rgba(16,185,129,0.12);
-      --red: #ef4444; --red-dim: rgba(239,68,68,0.12);
-      --blue: #6366f1; --blue-dim: rgba(99,102,241,0.12);
-      --purple: #a855f7;
-    }
-    [data-theme="light"] {
-      --bg: #f4f4f8; --surface: #ffffff; --card: #ffffff; --card-hover: #f8f8fc;
-      --border: #e0e0ec; --border-hi: #c8c8e0;
-      --text: #0f0f1e; --muted: #8080a0; --muted-hi: #505070;
-      --accent: #d4850a; --accent-dim: rgba(212,133,10,0.1); --accent-glow: rgba(212,133,10,0.2);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 14px; line-height: 1.5; min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-      pointer-events: none; z-index: 9997;
-    }
-    [data-theme="light"] body::before { display: none; }
+{% endblock %}
 
-    /* ── App shell ─────────────────────────────────────────────── */
-    .app-shell { display: flex; min-height: 100vh; }
-
-    /* ── Sidebar ────────────────────────────────────────────────── */
-    .sidebar {
-      width: 220px; flex-shrink: 0;
-      position: fixed; left: 0; top: 0; bottom: 0;
-      background: #09090f; border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      overflow-y: auto; z-index: 100;
-    }
-    [data-theme="light"] .sidebar { background: #f0f0f8; }
-
-    .sb-logo { padding: 1.1rem 1.1rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .sb-logo-link { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
-    .sb-logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
-    .sb-logo-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.05em; color: var(--text); }
-    .sb-logo-name span { color: var(--accent); }
-    .sb-logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px; }
-
-    .sb-nav { flex: 1; padding: 0.4rem 0 0.5rem; overflow-y: auto; }
-
-    .sb-section-label {
-      font-family: 'JetBrains Mono', monospace; font-size: 9px;
-      text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
-      padding: 1rem 1.1rem 0.3rem; margin-top: 0.25rem;
-    }
-    .sb-link {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.45rem 1.1rem; font-size: 12.5px; color: var(--muted-hi);
-      text-decoration: none; border-left: 2px solid transparent;
-      transition: all 0.12s; white-space: nowrap; line-height: 1.4;
-    }
-    .sb-link:hover { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--border-hi); }
-    .sb-link.sb-active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); font-weight: 600; }
-    .sb-link svg { flex-shrink: 0; opacity: 0.75; }
-    .sb-link:hover svg, .sb-link.sb-active svg { opacity: 1; }
-
-    /* Sidebar bottom */
-    .sb-bottom { padding: 0.75rem; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-    .sb-excel-btn {
-      display: flex; align-items: center; justify-content: center; gap: 0.55rem;
-      width: 100%; background: rgba(33,115,70,0.1); border: 1px solid #2a7a50;
-      color: #4ade80; padding: 0.6rem 0.75rem; border-radius: 8px;
-      font-size: 12.5px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;
-      cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
-    }
-    .sb-excel-btn:hover { background: #217346; color: #fff; border-color: #217346; box-shadow: 0 0 14px rgba(33,115,70,0.4); }
-    .sb-excel-btn:active { transform: scale(0.98); }
-    .sb-controls { display: flex; align-items: center; gap: 0.3rem; }
-    .sb-ctrl-btn {
-      flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
-      height: 28px; border-radius: 5px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
-      font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; gap: 0.3rem;
-    }
-    .sb-ctrl-btn:hover { border-color: var(--border-hi); color: var(--text); }
-    .sb-cache-btn {
-      display: flex; align-items: center; gap: 0.3rem;
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      height: 28px; padding: 0 0.5rem; border-radius: 5px; cursor: pointer;
-      font-family: 'JetBrains Mono', monospace; font-size: 9px; transition: all 0.15s;
-    }
-    .sb-cache-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .cache-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-    .cache-time { font-size: 9px; letter-spacing: 0.04em; }
-
-    /* ── Main area ───────────────────────────────────────────────── */
-    .main-area { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-    .top-bar {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(7,7,12,0.94); backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 50px;
-      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-    }
-    [data-theme="light"] .top-bar { background: rgba(244,244,248,0.94); }
-    .top-bar-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-hi); }
-
-    .layout { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem; }
-
-    @media (max-width: 900px) { .sidebar { display: none; } .main-area { margin-left: 0; } }
-
+{% block extra_styles %}
     /* KPI row */
     .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
     .kpi-card {
@@ -179,13 +64,6 @@
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: var(--card-hover); }
 
-    .grade-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
-    .g-Ap { background: rgba(16,185,129,0.15); color: #10b981; }
-    .g-A  { background: rgba(245,166,35,0.15); color: #f5a623; }
-    .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
-    .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
-    .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
-
     /* Activity feed */
     .activity-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .activity-item {
@@ -200,18 +78,6 @@
     .activity-rest { font-weight: 600; font-size: 13px; }
     .activity-detail { font-size: 12px; color: var(--muted-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
     .activity-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; }
-
-    /* Loading */
-    .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); gap: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
-    .spin { display: inline-block; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* lang */
-    .fr, .en { display: none; }
-    body.lang-fr .fr { display: inline; }
-    body.lang-en .en { display: inline; }
-    body.lang-fr .fr.block { display: block; }
-    body.lang-en .en.block { display: block; }
 
     /* Pivot table */
     .pivot-table { width:100%; border-collapse:collapse; font-size:11px; white-space:nowrap; }
@@ -229,83 +95,11 @@
       .charts-3col { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } }
+{% endblock %}
 
-    /* Job panel */
-    #jobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
-    .job-card { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
-    .job-card-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
-    .job-card-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
-    .job-card-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 2px; border-radius: 3px; transition: color 0.15s; }
-    .job-card-close:hover { color: var(--text); }
-    .job-card-body { padding: 0.75rem 0.875rem; }
-    .job-status { font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem; }
-    .job-logs { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); padding: 0.5rem; height: 80px; overflow-y: auto; line-height: 1.6; }
-  </style>
-</head>
-<body class="lang-fr">
+{% block page_title %}<span class="fr">Analyse</span><span class="en">Analytics</span>{% endblock %}
 
-<div class="app-shell">
-
-<!-- ─── Sidebar ──────────────────────────────────────────────────────────── -->
-<aside class="sidebar">
-
-  <div class="sb-logo">
-    <a href="/" class="sb-logo-link">
-      <div class="sb-logo-icon">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="6"/><line x1="12" y1="20" x2="12" y2="3"/><line x1="6" y1="20" x2="6" y2="12"/>
-        </svg>
-      </div>
-      <div>
-        <div class="sb-logo-name">CHICKEN<span>.</span>WINGS</div>
-        <div class="sb-logo-sub">Promo Dashboard</div>
-      </div>
-    </a>
-  </div>
-
-  <nav class="sb-nav">
-
-    <div class="sb-section-label"><span class="fr">Données</span><span class="en">Data</span></div>
-    <a href="/" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span class="fr">Restaurants</span><span class="en">Restaurants</span>
-    </a>
-    <a href="/analytics" class="sb-link sb-active">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      Analytics
-    </a>
-    <a href="/calendar" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span class="fr">Calendrier</span><span class="en">Calendar</span>
-    </a>
-
-    <div class="sb-section-label"><span class="fr">Marché</span><span class="en">Market</span></div>
-    <a href="/marketing" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-      Marketing
-    </a>
-    <a href="/reviews" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span class="fr">Avis Google</span><span class="en">Google Reviews</span>
-    </a>
-
-    <div class="sb-section-label"><span class="fr">Gestion</span><span class="en">Admin</span></div>
-    <a href="/dashboard" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span class="fr">Mon compte</span><span class="en">My account</span>
-    </a>
-    <a href="/admin/" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      Admin
-    </a>
-    <a href="/about" class="sb-link">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <span class="fr">À propos</span><span class="en">About</span>
-    </a>
-
-  </nav>
-
-  <div class="sb-bottom">
+{% block sidebar_excel %}
     <button class="sb-excel-btn" onclick="exportToExcel()">
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
         <rect width="20" height="20" rx="3.5" fill="#217346"/>
@@ -313,30 +107,16 @@
       </svg>
       <span class="fr">Exporter Excel</span><span class="en">Export Excel</span>
     </button>
-    <div class="sb-controls">
-      <button class="sb-ctrl-btn" onclick="toggleTheme()" title="Thème">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-      </button>
-      <button class="sb-ctrl-btn" onclick="toggleLang()">
-        <span class="fr">FR</span><span class="en">EN</span>
-      </button>
+{% endblock %}
+
+{% block sidebar_cache %}
       <button class="sb-cache-btn" onclick="refreshData()">
         <span class="cache-dot" id="cacheDot"></span>
         <span id="cacheLabel" class="cache-time">cache</span>
       </button>
-    </div>
-  </div>
+{% endblock %}
 
-</aside>
-
-<!-- ─── Main area ─────────────────────────────────────────────────────────── -->
-<div class="main-area">
-
-<div class="top-bar">
-  <span class="top-bar-title"><span class="fr">Analyse</span><span class="en">Analytics</span></span>
-</div>
-
-<div id="jobPanel"></div>
+{% block content %}
 <div class="layout">
 
   <div id="loadingState" class="loading"><span class="spin">⟳</span> <span class="fr">Chargement des données…</span><span class="en">Loading data…</span></div>
@@ -504,22 +284,9 @@
 
   </div><!-- /mainContent -->
 </div>
+{% endblock %}
 
-<script>
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  localStorage.setItem('pref-theme', t || 'dark');
-}
-if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
-
+{% block scripts %}
 const GRADE_COLORS = { 'A+': '#10b981', 'A': '#f5a623', 'B': '#6366f1', 'C': '#a855f7', 'D': '#ef4444', 'N/A': '#5a5a7a' };
 const CAT_PALETTE = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399','#818cf8','#c084fc'];
 
@@ -918,40 +685,4 @@ function exportToExcel() {
 }
 
 loadData();
-
-// ─── Restore scan jobs from other pages ───────────────────────────────────
-(function() {
-  const KEY = 'cw_jobs';
-  function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
-  function set(j) { sessionStorage.setItem(KEY, JSON.stringify(j)); }
-  const fresh = get().filter(j => Date.now() - (j.ts||0) < 30*60*1000);
-  set(fresh);
-  fresh.forEach(j => {
-    const panel = document.getElementById('jobPanel');
-    const c = document.createElement('div'); c.className='job-card'; c.id='job-'+j.jid;
-    c.innerHTML=`<div class="job-card-title"><span class="job-card-name"><span id="spin-${j.jid}" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> ${j.name}</span><button class="job-card-close" onclick="this.closest('.job-card').remove()">✕</button></div><div class="job-card-body"><div class="job-status" id="jd-${j.jid}">En cours…</div><div class="job-logs" id="jl-${j.jid}"></div></div>`;
-    panel.prepend(c);
-    const ivl = setInterval(async () => {
-      try {
-        const [jr, lr] = await Promise.all([fetch('/job/'+j.jid), fetch('/api/job/'+j.jid+'/logs')]);
-        const [job, logs] = await Promise.all([jr.json(), lr.json()]);
-        const el = document.getElementById('jl-'+j.jid);
-        if (el && logs.logs) { el.textContent=logs.logs.slice(-12).join('\n'); el.scrollTop=el.scrollHeight; }
-        if (job.status==='done') {
-          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
-          const sp=document.getElementById('spin-'+j.jid); if(sp){sp.textContent='✓';sp.style.animation='none';sp.style.color='#10b981';}
-          const det=document.getElementById('jd-'+j.jid); if(det) det.innerHTML=`+${(job.result||{}).inserted||0} nouvelles — terminé`;
-        } else if (job.status==='error') {
-          clearInterval(ivl); set(get().filter(x=>x.jid!==j.jid));
-          const sp=document.getElementById('spin-'+j.jid); if(sp){sp.textContent='✗';sp.style.animation='none';sp.style.color='var(--red)';}
-          const det=document.getElementById('jd-'+j.jid); if(det) det.innerHTML=`<span style="color:var(--red)">${job.error||'Erreur'}</span>`;
-        }
-      } catch(e) {}
-    }, 2500);
-  });
-})();
-</script>
-</div><!-- /main-area -->
-</div><!-- /app-shell -->
-</body>
-</html>
+{% endblock %}

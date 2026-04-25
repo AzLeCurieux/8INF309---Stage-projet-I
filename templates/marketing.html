@@ -1,54 +1,12 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Marketing Study — Chicken Wings</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}Marketing{% endblock %}
+
+{% block head_scripts %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --bg:#07070c; --surface:#0e0e18; --card:#121220; --card-hover:#16162a;
-      --border:#1e1e32; --border-hi:#2e2e48;
-      --text:#e2e2f0; --muted:#5a5a7a; --muted-hi:#8888aa;
-      --accent:#f5a623; --accent-dim:rgba(245,166,35,0.12); --accent-glow:rgba(245,166,35,0.25);
-      --green:#10b981; --green-dim:rgba(16,185,129,0.12);
-      --red:#ef4444; --red-dim:rgba(239,68,68,0.12);
-      --blue:#6366f1; --blue-dim:rgba(99,102,241,0.12);
-      --purple:#a855f7;
-    }
-    [data-theme="light"] {
-      --bg:#f4f4f8; --surface:#ffffff; --card:#ffffff; --card-hover:#f8f8fc;
-      --border:#e0e0ec; --border-hi:#c8c8e0;
-      --text:#0f0f1e; --muted:#8080a0; --muted-hi:#505070;
-      --accent:#d4850a; --accent-dim:rgba(212,133,10,0.1); --accent-glow:rgba(212,133,10,0.2);
-    }
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    body { background:var(--bg); color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; line-height:1.5; min-height:100vh; transition:background 0.3s,color 0.3s; }
-    body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); pointer-events:none; z-index:9997; }
-    [data-theme="light"] body::before { display:none; }
+{% endblock %}
 
-    .navbar { position:sticky; top:0; z-index:100; background:rgba(7,7,12,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 2rem; height:56px; display:flex; align-items:center; gap:1.5rem; }
-    [data-theme="light"] .navbar { background:rgba(244,244,248,0.92); }
-    .logo { display:flex; align-items:center; gap:0.6rem; text-decoration:none; }
-    .logo-icon { width:28px; height:28px; background:var(--accent); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:15px; }
-    .logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:15px; letter-spacing:0.05em; color:var(--text); }
-    .logo-text span { color:var(--accent); }
-    .nav-divider { width:1px; height:20px; background:var(--border); }
-    .nav-label { font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
-    .nav-spacer { flex:1; }
-    .nav-btn { background:transparent; border:1px solid var(--border); color:var(--muted-hi); padding:0 0.75rem; height:30px; border-radius:5px; font-size:12px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
-    .nav-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-    .nav-btn-primary { background:var(--accent); color:#000 !important; border-color:var(--accent) !important; font-weight:700; }
-    .nav-btn-primary:hover { background:#fbbf24 !important; }
-
-    .layout { max-width:1280px; margin:0 auto; padding:2rem 1.5rem; }
-    .page-header { margin-bottom:2rem; }
-    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; margin-bottom:0.25rem; }
-    .page-sub { color:var(--muted-hi); font-size:13px; }
-
+{% block extra_styles %}
     /* Grid layouts */
     .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
     .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
@@ -63,6 +21,11 @@
     .kpi-val { font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; }
     .kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:0.2rem; }
     .kpi-sub { font-size:11px; color:var(--muted-hi); margin-top:0.2rem; }
+
+    /* Page header */
+    .page-header { margin-bottom:2rem; }
+    .page-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; margin-bottom:0.25rem; }
+    .page-sub { color:var(--muted-hi); font-size:13px; }
 
     /* Restaurant price cards */
     .rest-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
@@ -89,12 +52,6 @@
     .data-table td { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border); vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
     .data-table tr:hover td { background:var(--card-hover); }
-    .grade-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; }
-    .g-Ap { background:rgba(16,185,129,0.15); color:#10b981; }
-    .g-A  { background:rgba(245,166,35,0.15); color:#f5a623; }
-    .g-B  { background:rgba(99,102,241,0.15); color:#6366f1; }
-    .g-C  { background:rgba(168,85,247,0.15); color:#a855f7; }
-    .g-D  { background:rgba(239,68,68,0.15); color:#ef4444; }
 
     /* LLM Analysis panel */
     .analyze-btn {
@@ -105,8 +62,6 @@
     }
     .analyze-btn:hover { background:#fbbf24; }
     .analyze-btn:disabled { opacity:0.5; cursor:not-allowed; }
-    .spin { display:inline-block; animation:spin 1s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
 
     .analysis-panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
     .analysis-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
@@ -142,33 +97,12 @@
     .loading-inline { display:flex; align-items:center; gap:0.5rem; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:2rem 0; justify-content:center; }
     .empty-state { text-align:center; padding:2.5rem; color:var(--muted); font-size:13px; }
 
-    /* lang */
-    .fr,.en { display:none; }
-    body.lang-fr .fr { display:inline; }
-    body.lang-en .en { display:inline; }
-    body.lang-fr .fr.block { display:block; }
-    body.lang-en .en.block { display:block; }
-
     @media (max-width:900px) { .grid-2,.grid-3,.kpi-row { grid-template-columns:1fr; } }
-  </style>
-</head>
-<body class="lang-fr">
+{% endblock %}
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">🍗</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <span class="nav-label"><span class="fr">Étude Marketing</span><span class="en">Marketing Study</span></span>
-  <div class="nav-spacer"></div>
-  <button class="nav-btn" onclick="toggleTheme()">◑</button>
-  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
-  <a href="/analytics" class="nav-btn"><span class="fr">Analytics</span><span class="en">Analytics</span></a>
-  <a href="/reviews" class="nav-btn"><span class="fr">Avis Google</span><span class="en">Google Reviews</span></a>
-  <a href="/dashboard" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
-</nav>
+{% block page_title %}<span class="fr">Étude Marketing</span><span class="en">Marketing Study</span>{% endblock %}
 
+{% block content %}
 <div class="layout">
   <div class="page-header">
     <h1 class="page-title"><span class="fr">Étude de marché & Prix concurrents</span><span class="en">Market Study & Competitor Pricing</span></h1>
@@ -265,22 +199,9 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script>
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  localStorage.setItem('pref-theme', t || 'dark');
-}
-if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
-
+{% block scripts %}
 Chart.defaults.color = '#5a5a7a';
 Chart.defaults.borderColor = '#1e1e32';
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
@@ -497,6 +418,4 @@ function renderAnalysis(d) {
 }
 
 loadComparison();
-</script>
-</body>
-</html>
+{% endblock %}

@@ -1,90 +1,17 @@
-<!DOCTYPE html>
-<html lang="fr" data-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Documentation — Chicken Wings</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>CW</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #07070c;
-      --surface: #0e0e18;
-      --surface2: #14141f;
-      --border: #1e1e32;
-      --border-hi: rgba(245,166,35,0.25);
-      --amber: #f5a623;
-      --amber-dim: rgba(245,166,35,0.1);
-      --amber-glow: rgba(245,166,35,0.04);
-      --fg: #e2e2f0;
-      --muted: #5a5a7a;
-      --muted2: #8888aa;
-      --green: #10b981;
-      --green-dim: rgba(16,185,129,0.12);
-      --blue: #60a5fa;
-      --blue-dim: rgba(96,165,250,0.12);
-      --red: #ef4444;
-      --radius: 10px;
-    }
-    [data-theme="light"] {
-      --bg: #f4f4f8; --surface: #ffffff; --surface2: #f0f0f5;
-      --border: #e0e0ec; --border-hi: rgba(212,133,10,0.3);
-      --amber: #d4850a; --amber-dim: rgba(212,133,10,0.1);
-      --amber-glow: rgba(212,133,10,0.04);
-      --fg: #0f0f1e; --muted: #8080a0; --muted2: #555570;
-    }
+{% extends "base.html" %}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+{% block title %}À propos{% endblock %}
 
-    body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 400;
-      line-height: 1.7;
-      min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image: repeating-linear-gradient(
-        0deg, transparent, transparent 3px,
-        rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px
-      );
-    }
-    [data-theme="light"] body::before { display: none; }
-
-    .navbar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(7,7,12,0.92);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 56px;
-      display: flex; align-items: center; gap: 1rem;
-    }
-    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
-
-    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-    .logo-icon { width: 26px; height: 26px; background: var(--amber); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 10px; color: #000; letter-spacing: -0.03em; }
-    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.05em; color: var(--fg); }
-    .logo-text span { color: var(--amber); }
-
-    .nav-divider { width: 1px; height: 20px; background: var(--border); }
-    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
-
-    .nav-spacer { flex: 1; }
-    .nav-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted2);
-      padding: 0 0.75rem; height: 30px; border-radius: 5px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
-      transition: all 0.15s; text-decoration: none; white-space: nowrap;
-    }
-    .nav-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+{% block extra_styles %}
+    --amber: var(--accent);
+    --amber-dim: var(--accent-dim);
+    --amber-glow: rgba(245,166,35,0.04);
+    --fg: var(--text);
+    --muted2: var(--muted-hi);
+    --surface2: #14141f;
+    --radius: 10px;
+    --blue-hi: #60a5fa;
+    --blue-hi-dim: rgba(96,165,250,0.12);
 
     .hero {
       position: relative; z-index: 1;
@@ -104,7 +31,7 @@
     .hero-eyebrow {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--amber); margin-bottom: 1rem; opacity: 0.7;
+      color: var(--accent); margin-bottom: 1rem; opacity: 0.7;
     }
     .hero h1 {
       font-family: 'Syne', sans-serif; font-weight: 800;
@@ -112,8 +39,8 @@
       letter-spacing: -0.04em; line-height: 1.1;
       margin-bottom: 0.875rem;
     }
-    .hero h1 em { color: var(--amber); font-style: normal; }
-    .hero-sub { color: var(--muted2); font-size: 0.95rem; font-weight: 300; max-width: 480px; margin: 0 auto; }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { color: var(--muted-hi); font-size: 0.95rem; font-weight: 300; max-width: 480px; margin: 0 auto; }
 
     .page-wrap {
       position: relative; z-index: 1;
@@ -124,12 +51,12 @@
       display: flex; align-items: center; gap: 0.75rem;
       font-family: 'Syne', sans-serif; font-weight: 700;
       font-size: 1.05rem; letter-spacing: -0.01em;
-      color: var(--amber);
+      color: var(--accent);
       margin: 3rem 0 1.25rem;
     }
     .section-title::before {
       content: ''; width: 3px; height: 18px;
-      background: var(--amber); border-radius: 2px; flex-shrink: 0;
+      background: var(--accent); border-radius: 2px; flex-shrink: 0;
     }
     .section-title .mono {
       font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
@@ -146,22 +73,22 @@
     }
     .step::before {
       content: ''; position: absolute; top: 0; left: 0;
-      width: 2px; height: 0; background: var(--amber);
+      width: 2px; height: 0; background: var(--accent);
       transition: height 0.3s ease;
     }
-    .step:hover { border-color: var(--border-hi); }
+    .step:hover { border-color: rgba(245,166,35,0.25); }
     .step:hover::before { height: 100%; }
 
     .step-num {
       font-family: 'Syne', sans-serif; font-weight: 800;
-      font-size: 1.5rem; color: var(--amber); opacity: 0.2;
+      font-size: 1.5rem; color: var(--accent); opacity: 0.2;
       line-height: 1; flex-shrink: 0; width: 1.75rem; text-align: right;
     }
     .step-body h4 {
       font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
-      font-size: 0.9rem; margin-bottom: 0.375rem; color: var(--fg);
+      font-size: 0.9rem; margin-bottom: 0.375rem; color: var(--text);
     }
-    .step-body p { font-size: 0.85rem; color: var(--muted2); line-height: 1.65; }
+    .step-body p { font-size: 0.85rem; color: var(--muted-hi); line-height: 1.65; }
 
     .card {
       background: var(--surface); border: 1px solid var(--border);
@@ -170,20 +97,20 @@
     }
     .card h3 {
       font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
-      font-size: 0.9rem; margin-bottom: 0.625rem; color: var(--fg);
+      font-size: 0.9rem; margin-bottom: 0.625rem; color: var(--text);
     }
-    .card p, .card li { font-size: 0.85rem; color: var(--muted2); line-height: 1.65; }
+    .card p, .card li { font-size: 0.85rem; color: var(--muted-hi); line-height: 1.65; }
     .card ul { padding-left: 1.125rem; margin-top: 0.4rem; }
     .card li { margin-bottom: 0.3rem; }
 
     .tech-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
     .tech-tag {
       font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600;
-      background: var(--amber-dim); color: var(--amber);
-      border: 1px solid var(--border-hi); padding: 0.2rem 0.6rem;
+      background: var(--accent-dim); color: var(--accent);
+      border: 1px solid rgba(245,166,35,0.25); padding: 0.2rem 0.6rem;
       border-radius: 4px; letter-spacing: 0.04em;
     }
-    .tech-tag.blue { background: var(--blue-dim); color: var(--blue); border-color: rgba(96,165,250,0.25); }
+    .tech-tag.blue { background: var(--blue-hi-dim); color: var(--blue-hi); border-color: rgba(96,165,250,0.25); }
     .tech-tag.green { background: var(--green-dim); color: var(--green); border-color: rgba(16,185,129,0.25); }
 
     .pipeline {
@@ -206,15 +133,15 @@
       padding: 0.2rem 0.5rem; border-radius: 4px; flex-shrink: 0;
       margin-top: 2px; letter-spacing: 0.06em;
     }
-    .pb-1 { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--border-hi); }
-    .pb-2 { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .pb-1 { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(245,166,35,0.25); }
+    .pb-2 { background: var(--blue-hi-dim); color: var(--blue-hi); border: 1px solid rgba(96,165,250,0.2); }
     .pb-3 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
     .pb-fb { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
     .pipeline-step-body h5 {
-      font-size: 0.85rem; font-weight: 600; color: var(--fg);
+      font-size: 0.85rem; font-weight: 600; color: var(--text);
       margin-bottom: 0.2rem;
     }
-    .pipeline-step-body p { font-size: 0.8rem; color: var(--muted2); }
+    .pipeline-step-body p { font-size: 0.8rem; color: var(--muted-hi); }
 
     .sec-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;
@@ -227,9 +154,9 @@
     .sec-label {
       font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
       font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--amber); margin-bottom: 0.35rem;
+      color: var(--accent); margin-bottom: 0.35rem;
     }
-    .sec-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--fg); margin-bottom: 0.25rem; }
+    .sec-item h4 { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
     .sec-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
 
     pre {
@@ -245,14 +172,14 @@
       font-size: 0.62rem; letter-spacing: 0.12em; color: var(--muted);
       text-transform: uppercase;
     }
-    .kw  { color: var(--amber); }
+    .kw  { color: var(--accent); }
     .cm  { color: #3a3a58; font-style: italic; }
     .str { color: #7dd3a8; }
-    .fn  { color: var(--blue); }
+    .fn  { color: var(--blue-hi); }
 
     code {
       font-family: 'JetBrains Mono', monospace; font-size: 0.82em;
-      background: var(--amber-dim); color: var(--amber);
+      background: var(--accent-dim); color: var(--accent);
       padding: 0.1rem 0.35rem; border-radius: 3px;
       border: 1px solid var(--border);
     }
@@ -266,45 +193,26 @@
       background: var(--surface2); padding: 0.65rem 1rem;
       font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
       font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--muted2); text-align: left; border-bottom: 1px solid var(--border);
+      color: var(--muted-hi); text-align: left; border-bottom: 1px solid var(--border);
     }
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--amber-glow); }
-    tbody td { padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted2); }
-    tbody td:first-child { color: var(--amber); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+    tbody tr:hover { background: rgba(245,166,35,0.04); }
+    tbody td { padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted-hi); }
+    tbody td:first-child { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
     .type-badge {
       font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
       background: var(--surface2); border: 1px solid var(--border);
-      color: var(--blue); padding: 0.12rem 0.45rem; border-radius: 3px;
+      color: var(--blue-hi); padding: 0.12rem 0.45rem; border-radius: 3px;
     }
-
-    body.lang-en .fr { display: none !important; }
-    body.lang-fr .en { display: none !important; }
 
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  </style>
-</head>
-<body class="lang-fr">
+{% endblock %}
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">CW</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <span class="nav-label">Docs v2.0</span>
-  <div class="nav-spacer"></div>
-  <a href="/" class="nav-btn">
-    <span class="fr">Dashboard</span><span class="en">Dashboard</span>
-  </a>
-  <button class="nav-btn" onclick="toggleTheme()">◑</button>
-  <button class="nav-btn" onclick="toggleLang()">
-    <span class="fr">FR</span><span class="en">EN</span>
-  </button>
-</nav>
+{% block page_title %}<span class="fr">À propos</span><span class="en">About</span>{% endblock %}
 
+{% block content %}
 <div class="hero">
   <div class="hero-eyebrow">
     <span class="fr">Documentation Technique</span>
@@ -345,8 +253,8 @@
       <div class="step-body">
         <h4><span class="fr">Scraping adaptatif (Scrapling)</span><span class="en">Adaptive Scraping (Scrapling)</span></h4>
         <p>
-          <span class="fr">Le moteur utilise la librairie <strong style="color:var(--fg)">Scrapling</strong> avec un pipeline à trois niveaux : <code>Fetcher</code> HTTP classique, puis <code>curl_cffi</code> avec impersonation TLS Chrome 131 pour contourner les WAF basiques, et enfin <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> pour les sites à rendu JavaScript complexe. Chaque niveau n'est déclenché que si le précédent échoue ou retourne un contenu insuffisant.</span>
-          <span class="en">The engine uses the <strong style="color:var(--fg)">Scrapling</strong> library with a three-tier pipeline: standard HTTP <code>Fetcher</code>, then <code>curl_cffi</code> with Chrome 131 TLS impersonation to bypass basic WAFs, and finally <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> for complex JS-rendered sites. Each tier is only triggered if the previous one fails or returns insufficient content.</span>
+          <span class="fr">Le moteur utilise la librairie <strong style="color:var(--text)">Scrapling</strong> avec un pipeline à trois niveaux : <code>Fetcher</code> HTTP classique, puis <code>curl_cffi</code> avec impersonation TLS Chrome 131 pour contourner les WAF basiques, et enfin <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> pour les sites à rendu JavaScript complexe. Chaque niveau n'est déclenché que si le précédent échoue ou retourne un contenu insuffisant.</span>
+          <span class="en">The engine uses the <strong style="color:var(--text)">Scrapling</strong> library with a three-tier pipeline: standard HTTP <code>Fetcher</code>, then <code>curl_cffi</code> with Chrome 131 TLS impersonation to bypass basic WAFs, and finally <code>PlayWright</code> via <code>AsyncFetcher</code> / <code>StealthyFetcher</code> for complex JS-rendered sites. Each tier is only triggered if the previous one fails or returns insufficient content.</span>
         </p>
       </div>
     </div>
@@ -356,8 +264,8 @@
       <div class="step-body">
         <h4><span class="fr">Analyse par intelligence artificielle</span><span class="en">AI Analysis</span></h4>
         <p>
-          <span class="fr">Le HTML est converti en texte structuré (balises inutiles supprimées, marqueurs <code>[IMAGE:url]</code> préservés). Ce texte est envoyé à <strong style="color:var(--fg)">GPT-4o-mini</strong> (modèle primaire) ou <strong style="color:var(--fg)">GPT-4o</strong> (fallback) qui extrait noms, prix, types et dates sous format JSON. Pour les promotions visuelles (bannières), <strong style="color:var(--fg)">GPT-4o Vision</strong> est utilisé avec <code>detail="low"</code> (~85 tokens/image).</span>
-          <span class="en">HTML is converted to structured text (useless tags removed, <code>[IMAGE:url]</code> markers preserved). This text is sent to <strong style="color:var(--fg)">GPT-4o-mini</strong> (primary model) or <strong style="color:var(--fg)">GPT-4o</strong> (fallback) which extracts names, prices, types, and dates in JSON format. For visual promotions (banners), <strong style="color:var(--fg)">GPT-4o Vision</strong> is used with <code>detail="low"</code> (~85 tokens/image).</span>
+          <span class="fr">Le HTML est converti en texte structuré (balises inutiles supprimées, marqueurs <code>[IMAGE:url]</code> préservés). Ce texte est envoyé à <strong style="color:var(--text)">GPT-4o-mini</strong> (modèle primaire) ou <strong style="color:var(--text)">GPT-4o</strong> (fallback) qui extrait noms, prix, types et dates sous format JSON. Pour les promotions visuelles (bannières), <strong style="color:var(--text)">GPT-4o Vision</strong> est utilisé avec <code>detail="low"</code> (~85 tokens/image).</span>
+          <span class="en">HTML is converted to structured text (useless tags removed, <code>[IMAGE:url]</code> markers preserved). This text is sent to <strong style="color:var(--text)">GPT-4o-mini</strong> (primary model) or <strong style="color:var(--text)">GPT-4o</strong> (fallback) which extracts names, prices, types, and dates in JSON format. For visual promotions (banners), <strong style="color:var(--text)">GPT-4o Vision</strong> is used with <code>detail="low"</code> (~85 tokens/image).</span>
         </p>
       </div>
     </div>
@@ -367,8 +275,8 @@
       <div class="step-body">
         <h4><span class="fr">Nettoyage automatique post-scrape</span><span class="en">Automatic Post-Scrape Cleaning</span></h4>
         <p>
-          <span class="fr">Après chaque cycle, le système de nettoyage se déclenche automatiquement. <strong style="color:var(--fg)">Phase 1</strong> : suppression des entrées non-promotionnelles via règles (textes de navigation, entrées trop courtes, sans prix ni mot-clé promo). <strong style="color:var(--fg)">Phase 2</strong> : déduplication floue via <code>SequenceMatcher</code> (seuil 0.82, réduit à 0.68 si les prix coïncident). Peut aussi être déclenché manuellement depuis la page du restaurant.</span>
-          <span class="en">After each cycle, the cleaning system fires automatically. <strong style="color:var(--fg)">Phase 1</strong>: rule-based removal of non-promotional entries (navigation text, too-short entries, no price and no promo keyword). <strong style="color:var(--fg)">Phase 2</strong>: fuzzy deduplication via <code>SequenceMatcher</code> (threshold 0.82, lowered to 0.68 when prices match). Can also be triggered manually from the restaurant page.</span>
+          <span class="fr">Après chaque cycle, le système de nettoyage se déclenche automatiquement. <strong style="color:var(--text)">Phase 1</strong> : suppression des entrées non-promotionnelles via règles (textes de navigation, entrées trop courtes, sans prix ni mot-clé promo). <strong style="color:var(--text)">Phase 2</strong> : déduplication floue via <code>SequenceMatcher</code> (seuil 0.82, réduit à 0.68 si les prix coïncident). Peut aussi être déclenché manuellement depuis la page du restaurant.</span>
+          <span class="en">After each cycle, the cleaning system fires automatically. <strong style="color:var(--text)">Phase 1</strong>: rule-based removal of non-promotional entries (navigation text, too-short entries, no price and no promo keyword). <strong style="color:var(--text)">Phase 2</strong>: fuzzy deduplication via <code>SequenceMatcher</code> (threshold 0.82, lowered to 0.68 when prices match). Can also be triggered manually from the restaurant page.</span>
         </p>
       </div>
     </div>
@@ -448,7 +356,7 @@
       <span class="tech-tag">APScheduler</span>
       <span class="tech-tag">Tailscale</span>
     </div>
-    <p style="font-size:0.85rem; color:var(--muted2); line-height:1.65;">
+    <p style="font-size:0.85rem; color:var(--muted-hi); line-height:1.65;">
       <span class="fr">L'application est entièrement conteneurisée. La base de données MySQL est isolée sur un réseau Docker interne inaccessible depuis l'extérieur. Le frontend communique avec Flask via une API asynchrone (polling toutes les 2 s) pour afficher les logs en temps réel sans bloquer l'interface. Le scraping automatique se déclenche toutes les <code>{{ scrape_interval_hours }}h</code> via APScheduler, suivi d'un nettoyage automatique.</span>
       <span class="en">The application is fully containerized. The MySQL database is isolated on an internal Docker network inaccessible from outside. The frontend communicates with Flask via an async API (polling every 2 s) to show real-time logs without blocking the UI. Auto-scraping fires every <code>{{ scrape_interval_hours }}h</code> via APScheduler, followed by automatic cleaning.</span>
     </p>
@@ -489,7 +397,7 @@
   </div>
 
   <div class="card">
-    <p style="font-size:0.85rem; color:var(--muted2); margin-bottom:0.75rem;">
+    <p style="font-size:0.85rem; color:var(--muted-hi); margin-bottom:0.75rem;">
       <span class="fr">Toutes les operations se font via le script <code>manage.sh</code> inclus :</span>
       <span class="en">All operations are handled via the included <code>manage.sh</code> script:</span>
     </p>
@@ -612,27 +520,8 @@
   </div>
 
 </div>
+{% endblock %}
 
-<script>
-function toggleTheme() {
-  const html = document.documentElement;
-  const dark = html.getAttribute('data-theme') === 'dark';
-  html.setAttribute('data-theme', dark ? 'light' : 'dark');
-  localStorage.setItem('pref-theme', dark ? 'light' : 'dark');
-}
-
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-
-(function() {
-  const t = localStorage.getItem('pref-theme');
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  const l = localStorage.getItem('pref-lang');
-  if (l === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
-})();
-</script>
-</body>
-</html>
+{% block scripts %}
+// about.html has no page-specific JS
+{% endblock %}

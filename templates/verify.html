@@ -1,69 +1,9 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vérification — {{ restaurant.name }}</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #07070c; --surface: #0e0e18; --card: #121220; --card-hover: #16162a;
-      --border: #1e1e32; --border-hi: #2e2e48;
-      --text: #e2e2f0; --muted: #5a5a7a; --muted-hi: #8888aa;
-      --accent: #f5a623; --accent-dim: rgba(245,166,35,0.12); --accent-glow: rgba(245,166,35,0.25);
-      --green: #10b981; --green-dim: rgba(16,185,129,0.12);
-      --red: #ef4444; --red-dim: rgba(239,68,68,0.12);
-      --blue: #6366f1; --blue-dim: rgba(99,102,241,0.1);
-      --orange: #f97316;
-    }
-    [data-theme="light"] {
-      --bg: #f4f4f8; --surface: #ffffff; --card: #ffffff; --card-hover: #f8f8fc;
-      --border: #e0e0ec; --border-hi: #c8c8e0;
-      --text: #0f0f1e; --muted: #8080a0; --muted-hi: #505070;
-      --accent: #d4850a; --accent-dim: rgba(212,133,10,0.1); --accent-glow: rgba(212,133,10,0.2);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 14px; line-height: 1.5; min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-      pointer-events: none; z-index: 9997;
-    }
-    [data-theme="light"] body::before { display: none; }
-    .navbar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(7,7,12,0.92); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 56px;
-      display: flex; align-items: center; gap: 1.5rem;
-    }
-    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
-    .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-    .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
-    .logo-text span { color: var(--accent); }
-    .nav-divider { width: 1px; height: 20px; background: var(--border); }
-    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
-    .nav-spacer { flex: 1; }
-    .nav-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted-hi);
-      padding: 0 0.75rem; height: 30px; border-radius: 5px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
-      transition: all 0.15s; text-decoration: none; white-space: nowrap;
-    }
-    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .nav-btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-    .nav-btn-primary:hover { background: #fbbf24; border-color: #fbbf24; color: #000; }
-    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+{% extends "base.html" %}
+
+{% block title %}Vérification — {{ restaurant.name }}{% endblock %}
+
+{% block extra_styles %}
+    .layout { max-width: 1100px; }
 
     /* Hero */
     .verify-hero {
@@ -140,7 +80,7 @@
     .section-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
     .badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; font-size: 10px; font-weight: 700; }
     .badge-green  { background: var(--green-dim); color: var(--green); }
-    .badge-orange { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .badge-orange { background: rgba(249,115,22,0.12); color: #f97316; }
     .badge-muted  { background: var(--border); color: var(--muted-hi); }
 
     /* Promo cards */
@@ -150,7 +90,7 @@
       padding: 0.875rem 1rem; display: flex; align-items: flex-start; gap: 1rem;
     }
     .promo-item.matched   { border-left: 3px solid var(--green); }
-    .promo-item.new-promo { border-left: 3px solid var(--orange); }
+    .promo-item.new-promo { border-left: 3px solid #f97316; }
     .promo-item.stale     { border-left: 3px solid var(--muted); opacity: 0.7; }
     .pi-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
     .pi-body { flex: 1; }
@@ -160,16 +100,9 @@
     .pi-meta { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.4rem; font-size: 11.5px; color: var(--muted-hi); }
     .pi-price { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
     .pi-sim { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
-    .grade-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
-    .g-Ap { background: rgba(16,185,129,0.15); color: #10b981; }
-    .g-A  { background: rgba(245,166,35,0.15); color: #f5a623; }
-    .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
-    .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
-    .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
 
     .empty-section { text-align: center; padding: 2.5rem 1rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
 
-    /* idle state */
     .idle-card {
       background: var(--surface); border: 2px dashed var(--border); border-radius: 12px;
       padding: 4rem 2rem; text-align: center; color: var(--muted);
@@ -177,45 +110,36 @@
     .idle-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .idle-text { font-size: 13.5px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
 
-    /* lang */
-    .fr, .en { display: none; }
-    body.lang-fr .fr { display: inline; }
-    body.lang-en .en { display: inline; }
-
-    @media (max-width: 768px) {
-      .kpi-row { grid-template-columns: repeat(3, 1fr); }
-      .verify-hero { flex-direction: column; align-items: flex-start; gap: 1rem; }
-      .accuracy-block { flex-direction: column; align-items: flex-start; }
-    }
-    @media (max-width: 500px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-
-    /* Persistent job panel (other scans) */
-    #extJobPanel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+    /* External job panel for other scans */
+    #extJobPanel { position: fixed; bottom: 1.5rem; right: 240px; width: 380px; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
     .job-card-ext { background: var(--card); border: 1px solid var(--border-hi); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
     .jce-title { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.6rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
     .jce-name { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
     .jce-close { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 2px; border-radius: 3px; }
     .jce-body { padding: 0.75rem 0.875rem; font-size: 12px; color: var(--muted-hi); }
-  </style>
-</head>
-<body class="lang-fr">
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">🍗</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <span class="nav-label">
-    <span class="fr">Vérification</span><span class="en">Verification</span>
-  </span>
-  <div class="nav-spacer"></div>
-  <button class="nav-btn" onclick="toggleTheme()">◑</button>
-  <button class="nav-btn" onclick="toggleLang()"><span class="fr">FR</span><span class="en">EN</span></button>
-  <a href="/restaurant/{{ restaurant.id }}" class="nav-btn">← {{ restaurant.name }}</a>
-  <a href="/" class="nav-btn"><span class="fr">Dashboard</span><span class="en">Dashboard</span></a>
-</nav>
+    @media (max-width: 768px) {
+      .kpi-row { grid-template-columns: repeat(3, 1fr); }
+      .verify-hero { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .accuracy-block { flex-direction: column; align-items: flex-start; }
+      #extJobPanel { right: 0.75rem; width: calc(100% - 1.5rem); }
+    }
+    @media (max-width: 500px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+{% endblock %}
 
+{% block page_title %}
+<span class="fr">Vérification</span><span class="en">Verification</span>
+— {{ restaurant.name }}
+{% endblock %}
+
+{% block top_bar_right %}
+<a href="/restaurant/{{ restaurant.id }}" class="tb-btn">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  {{ restaurant.name }}
+</a>
+{% endblock %}
+
+{% block content %}
 <div id="extJobPanel"></div>
 <div class="layout">
 
@@ -240,7 +164,7 @@
   <div class="status-bar" id="statusBar" style="display:none">
     <div class="status-dot dot-running" id="statusDot"></div>
     <div class="status-text" id="statusText"></div>
-    <button class="nav-btn" onclick="toggleLogs()" id="btnLogs" style="display:none">
+    <button class="tb-btn" onclick="toggleLogs()" id="btnLogs" style="display:none">
       <span class="fr">Logs</span><span class="en">Logs</span>
     </button>
   </div>
@@ -258,22 +182,9 @@
   </div>
 
 </div>
+{% endblock %}
 
-<script>
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  localStorage.setItem('pref-theme', t || 'dark');
-}
-if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') { document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr'); }
-
+{% block scripts %}
 let _pollTimer = null;
 let _logsVisible = false;
 
@@ -291,8 +202,6 @@ function gradeClass(g) {
 async function startVerification() {
   const btn = document.getElementById('btnVerify');
   btn.disabled = true;
-  btn.innerHTML = '<span class="fr">Vérification en cours…</span><span class="en">Verifying…</span>';
-  // show spinner in button text
   const lang = document.body.classList.contains('lang-en') ? 'en' : 'fr';
   btn.textContent = lang === 'en' ? '⟳ Verifying…' : '⟳ Vérification…';
 
@@ -323,7 +232,6 @@ async function pollJob(jid) {
     const job  = await jResp.json();
     const logs = await lResp.json();
 
-    // Update logs
     if (logs.logs && logs.logs.length) {
       const la = document.getElementById('logArea');
       la.innerHTML = logs.logs.slice(-60).map(l => `<div>${escHtml(l)}</div>`).join('');
@@ -349,7 +257,7 @@ async function pollJob(jid) {
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ─── Restore other scan jobs (not the verify job) ─────────────────────────
+// Restore other scan jobs from sessionStorage (handled by base.html, but extJobPanel is specific to this page)
 (function() {
   const KEY = 'cw_jobs';
   function get() { try { return JSON.parse(sessionStorage.getItem(KEY)||'[]'); } catch { return []; } }
@@ -358,6 +266,7 @@ function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
   set(fresh);
   fresh.forEach(j => {
     const panel = document.getElementById('extJobPanel');
+    if (!panel) return;
     const c = document.createElement('div'); c.className='job-card-ext'; c.id='ejob-'+j.jid;
     c.innerHTML=`<div class="jce-title"><span class="jce-name"><span id="epin-${j.jid}" style="display:inline-block;animation:spin 1s linear infinite">⟳</span> ${j.name}</span><button class="jce-close" onclick="this.closest('.job-card-ext').remove()">✕</button></div><div class="jce-body" id="ejd-${j.jid}">En cours…</div>`;
     panel.prepend(c);
@@ -383,7 +292,6 @@ function renderResults(r) {
   const area = document.getElementById('resultsArea');
   area.innerHTML = '';
 
-  // Accuracy block
   const pct = r.accuracy;
   const accColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--accent)' : 'var(--red)';
   const accMsg = pct >= 80
@@ -394,28 +302,12 @@ function renderResults(r) {
 
   area.innerHTML += `
     <div class="kpi-row">
-      <div class="kpi-card">
-        <span class="kpi-val" style="color:var(--blue)">${r.scraped_count}</span>
-        <span class="kpi-label">${lang === 'en' ? 'Found on site' : 'Trouvées sur le site'}</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-val" style="color:var(--muted-hi)">${r.db_total}</span>
-        <span class="kpi-label">${lang === 'en' ? 'In database' : 'En base de données'}</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-val" style="color:var(--green)">${r.matched_count}</span>
-        <span class="kpi-label">${lang === 'en' ? 'Matched (✓ in DB)' : 'Concordantes (✓ DB)'}</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-val" style="color:var(--orange)">${r.new_count}</span>
-        <span class="kpi-label">${lang === 'en' ? 'New (not in DB)' : 'Nouvelles (absentes)'}</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-val" style="color:var(--muted)">${r.stale_count}</span>
-        <span class="kpi-label">${lang === 'en' ? 'Stale (DB only)' : 'Obsolètes (DB seule)'}</span>
-      </div>
+      <div class="kpi-card"><span class="kpi-val" style="color:var(--blue)">${r.scraped_count}</span><span class="kpi-label">${lang === 'en' ? 'Found on site' : 'Trouvées sur le site'}</span></div>
+      <div class="kpi-card"><span class="kpi-val" style="color:var(--muted-hi)">${r.db_total}</span><span class="kpi-label">${lang === 'en' ? 'In database' : 'En base de données'}</span></div>
+      <div class="kpi-card"><span class="kpi-val" style="color:var(--green)">${r.matched_count}</span><span class="kpi-label">${lang === 'en' ? 'Matched (✓ in DB)' : 'Concordantes (✓ DB)'}</span></div>
+      <div class="kpi-card"><span class="kpi-val" style="color:#f97316">${r.new_count}</span><span class="kpi-label">${lang === 'en' ? 'New (not in DB)' : 'Nouvelles (absentes)'}</span></div>
+      <div class="kpi-card"><span class="kpi-val" style="color:var(--muted)">${r.stale_count}</span><span class="kpi-label">${lang === 'en' ? 'Stale (DB only)' : 'Obsolètes (DB seule)'}</span></div>
     </div>
-
     <div class="accuracy-block">
       <div class="accuracy-circle" style="border-color:${accColor}">
         <span class="accuracy-pct" style="color:${accColor}">${pct}%</span>
@@ -433,13 +325,9 @@ function renderResults(r) {
       </div>
     </div>`;
 
-  // Matched
   area.innerHTML += `
     <div class="section-head">
-      <span class="section-title">
-        <span class="badge badge-green">✓</span>
-        ${lang === 'en' ? 'Already in database' : 'Déjà en base de données'}
-      </span>
+      <span class="section-title"><span class="badge badge-green">✓</span>${lang === 'en' ? 'Already in database' : 'Déjà en base de données'}</span>
       <span class="section-count">${r.matched_count}</span>
     </div>`;
   if (r.matched.length === 0) {
@@ -468,33 +356,25 @@ function renderResults(r) {
     area.appendChild(list);
   }
 
-  // New (missed)
   area.innerHTML += `
     <div class="section-head" style="margin-top:2rem">
-      <span class="section-title">
-        <span class="badge badge-orange">!</span>
-        ${lang === 'en' ? 'New / Missed promotions' : 'Promotions nouvelles / manquées'}
-      </span>
+      <span class="section-title"><span class="badge badge-orange">!</span>${lang === 'en' ? 'New / Missed promotions' : 'Promotions nouvelles / manquées'}</span>
       <span class="section-count">${r.new_count}</span>
     </div>`;
   if (r.new.length === 0) {
-    area.innerHTML += `<div class="empty-section" style="color:var(--green)">
-      ${lang === 'en' ? '✓ No missed promotions — the scraper captured everything.' : '✓ Aucune promo manquée — le scraper a tout capturé.'}
-    </div>`;
+    area.innerHTML += `<div class="empty-section" style="color:var(--green)">${lang === 'en' ? '✓ No missed promotions — the scraper captured everything.' : '✓ Aucune promo manquée — le scraper a tout capturé.'}</div>`;
   } else {
     const list = document.createElement('div'); list.className = 'promo-list';
     r.new.forEach(p => {
       list.innerHTML += `
         <div class="promo-item new-promo">
-          <span class="pi-icon" style="color:var(--orange)">⚑</span>
+          <span class="pi-icon" style="color:#f97316">⚑</span>
           <div class="pi-body">
-            <div class="pi-header">
-              <span class="pi-type">${p.promo_type || 'Promo'}</span>
-            </div>
+            <div class="pi-header"><span class="pi-type">${p.promo_type || 'Promo'}</span></div>
             <div class="pi-details">${escHtml(p.promo_details || '—')}</div>
             <div class="pi-meta">
               ${p.price ? `<span class="pi-price">$${p.price}</span>` : ''}
-              <span style="color:var(--orange)">${lang === 'en' ? 'Not in database' : 'Absent de la base de données'}</span>
+              <span style="color:#f97316">${lang === 'en' ? 'Not in database' : 'Absent de la base de données'}</span>
             </div>
           </div>
         </div>`;
@@ -502,13 +382,9 @@ function renderResults(r) {
     area.appendChild(list);
   }
 
-  // Stale
   area.innerHTML += `
     <div class="section-head" style="margin-top:2rem">
-      <span class="section-title">
-        <span class="badge badge-muted">⚬</span>
-        ${lang === 'en' ? 'Stale in database (not found on site)' : 'Obsolètes en base (non trouvées sur le site)'}
-      </span>
+      <span class="section-title"><span class="badge badge-muted">⚬</span>${lang === 'en' ? 'Stale in database (not found on site)' : 'Obsolètes en base (non trouvées sur le site)'}</span>
       <span class="section-count">${r.stale_count}</span>
     </div>`;
   if (r.stale.length === 0) {
@@ -536,7 +412,6 @@ function renderResults(r) {
     area.appendChild(list);
   }
 
-  // Pages crawled
   if (r.pages && r.pages.length) {
     area.innerHTML += `
       <div style="margin-top:2rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
@@ -547,6 +422,4 @@ function renderResults(r) {
       </div>`;
   }
 }
-</script>
-</body>
-</html>
+{% endblock %}

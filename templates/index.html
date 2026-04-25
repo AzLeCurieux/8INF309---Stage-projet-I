@@ -1,134 +1,8 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chicken Wings — Dashboard</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍗</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #07070c;
-      --surface: #0e0e18;
-      --card: #121220;
-      --card-hover: #16162a;
-      --border: #1e1e32;
-      --border-hi: #2e2e48;
-      --text: #e2e2f0;
-      --muted: #5a5a7a;
-      --muted-hi: #8888aa;
-      --accent: #f5a623;
-      --accent-dim: rgba(245,166,35,0.12);
-      --accent-glow: rgba(245,166,35,0.25);
-      --green: #10b981;
-      --green-dim: rgba(16,185,129,0.12);
-      --red: #ef4444;
-      --red-dim: rgba(239,68,68,0.12);
-      --blue: #6366f1;
-    }
-    [data-theme="light"] {
-      --bg: #f4f4f8;
-      --surface: #ffffff;
-      --card: #ffffff;
-      --card-hover: #f8f8fc;
-      --border: #e0e0ec;
-      --border-hi: #c8c8e0;
-      --text: #0f0f1e;
-      --muted: #8080a0;
-      --muted-hi: #505070;
-      --accent: #d4850a;
-      --accent-dim: rgba(212,133,10,0.1);
-      --accent-glow: rgba(212,133,10,0.2);
-    }
+{% extends "base.html" %}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+{% block title %}Restaurants{% endblock %}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 100vh;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
-      pointer-events: none; z-index: 9997;
-    }
-    [data-theme="light"] body::before { display: none; }
-
-    body::after {
-      content: '';
-      position: fixed;
-      top: -200px; right: -200px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
-    }
-
-    .navbar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(7,7,12,0.92);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 56px;
-      display: flex; align-items: center; gap: 1.5rem;
-    }
-    [data-theme="light"] .navbar { background: rgba(244,244,248,0.92); }
-
-    .logo {
-      display: flex; align-items: center; gap: 0.6rem;
-      text-decoration: none;
-    }
-    .logo-icon {
-      width: 28px; height: 28px;
-      background: var(--accent);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; line-height: 1;
-    }
-    .logo-text {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.05em;
-      color: var(--text);
-    }
-    .logo-text span { color: var(--accent); }
-
-    .nav-divider { width: 1px; height: 20px; background: var(--border); }
-    .nav-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
-
-    .nav-spacer { flex: 1; }
-
-    .nav-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted-hi);
-      padding: 0 0.75rem; height: 30px;
-      border-radius: 5px;
-      font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 0.4rem;
-      transition: all 0.15s;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .nav-btn-primary {
-      background: var(--accent); color: #000;
-      border-color: var(--accent); font-weight: 600;
-    }
-    .nav-btn-primary:hover { background: #fbbf24; color: #000; border-color: #fbbf24; }
-
-    .layout { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; position: relative; z-index: 1; }
-
+{% block extra_styles %}
     .add-section {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -267,130 +141,6 @@
     .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 13px; }
 
-    #jobPanel {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      width: 400px; z-index: 9999;
-      display: flex; flex-direction: column-reverse; gap: 0.75rem;
-      max-height: calc(100vh - 5rem);
-      overflow-y: auto; overflow-x: hidden;
-      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-      padding: 0.25rem 4px 0.25rem 0;
-      pointer-events: none;
-    }
-    #jobPanel > * { pointer-events: all; }
-
-    .job-card {
-      background: var(--card);
-      border: 1px solid var(--border-hi);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,166,35,0.05);
-    }
-
-    .job-card-title {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0.6rem 0.875rem;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .job-card-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 600;
-      color: var(--accent);
-      display: flex; align-items: center; gap: 0.5rem;
-      letter-spacing: 0.03em;
-    }
-    .job-card-close {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: 14px; line-height: 1;
-      padding: 2px; border-radius: 3px;
-      transition: color 0.15s;
-    }
-    .job-card-close:hover { color: var(--text); }
-
-    .job-card-body { padding: 0.75rem 0.875rem; }
-
-    .job-status {
-      font-size: 12px; color: var(--muted-hi); margin-bottom: 0.5rem;
-    }
-
-    .job-logs {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      padding: 0.5rem 0.625rem;
-      height: 100px; overflow-y: auto;
-      line-height: 1.6;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .img-confirm {
-      border-top: 1px solid var(--border);
-      padding: 0.75rem 0.875rem;
-      background: rgba(245,166,35,0.04);
-    }
-    .img-confirm-title {
-      font-size: 11px; font-weight: 600; color: var(--accent);
-      margin-bottom: 0.625rem; letter-spacing: 0.02em;
-    }
-    .img-thumbs-scroll {
-      display: flex; gap: 8px; margin-bottom: 0.75rem; overflow-x: auto;
-      padding-bottom: 8px; -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    .img-thumb-item { position: relative; flex-shrink: 0; }
-    .img-thumb-label { cursor: pointer; display: block; position: relative; }
-    .img-thumb-label img {
-      width: 85px; height: 60px; object-fit: cover;
-      border-radius: 6px; border: 2px solid var(--border);
-      transition: all 0.15s;
-    }
-    .img-thumb-label input[type="checkbox"] {
-      position: absolute; top: 4px; left: 4px; z-index: 2;
-      width: 16px; height: 16px; accent-color: var(--accent);
-    }
-    .img-thumb-label input[type="checkbox"]:checked + img {
-      border-color: var(--accent); box-shadow: 0 0 8px rgba(245,166,35,0.3);
-    }
-    .img-score {
-      position: absolute; bottom: 4px; right: 4px;
-      font-size: 8px; font-weight: 800; background: rgba(0,0,0,0.6);
-      color: #fff; padding: 1px 3px; border-radius: 3px;
-    }
-    .img-meta {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      margin-bottom: 0.625rem; line-height: 1.7;
-    }
-    .img-actions { display: flex; gap: 6px; }
-    .btn-vision {
-      flex: 1; background: var(--accent); color: #000;
-      border: none; border-radius: 5px; padding: 0.4rem;
-      font-size: 11.5px; font-weight: 700; cursor: pointer;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: background 0.15s;
-    }
-    .btn-vision:hover { background: #fbbf24; }
-    .btn-vision:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-skip {
-      background: transparent; border: 1px solid var(--border);
-      border-radius: 5px; padding: 0.4rem 0.75rem;
-      font-size: 11.5px; cursor: pointer; color: var(--muted);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.15s;
-    }
-    .btn-skip:hover { border-color: var(--muted-hi); color: var(--text); }
-
-    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    body.lang-en .fr { display: none !important; }
-    body.lang-fr .en { display: none !important; }
-
     #alert-zone { margin-bottom: 1rem; }
     .alert {
       background: var(--red-dim); border: 1px solid var(--red);
@@ -472,15 +222,108 @@
     .th.sort-asc  .sort-arrow,
     .th.sort-desc .sort-arrow { opacity: 1; color: var(--accent); }
 
+    /* ── SELECTION OF THE DAY STYLES ── */
+    .selection-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem; margin-top: 1rem;
+    }
+    .selection-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s;
+      position: relative; animation: cardIn 0.4s ease both;
+    }
+    .selection-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+    .card-img-wrap {
+      height: 150px; background: var(--surface); border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+    .selection-card:hover .card-img { transform: scale(1.04); }
+    .card-img-placeholder { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: 0.1; }
+    .card-img-favicon { height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--surface) 0%, var(--card) 100%); }
+    .card-img-favicon img { width: 56px; height: 56px; border-radius: 10px; opacity: 0.7; filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5)); }
+
+    .source-tag {
+      position: absolute; top: 10px; left: 10px;
+      display: flex; align-items: center; gap: 0.4rem;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+      padding: 0.25rem 0.5rem; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .source-icon { width: 16px; height: 16px; border-radius: 3px; }
+    .source-name { font-size: 10px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+    .card-price-row { display: flex; align-items: baseline; gap: 0.6rem; }
+    .card-price { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent); }
+    .card-type { font-size: 9px; font-weight: 700; color: var(--muted-hi); text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--border); padding: 1px 4px; border-radius: 3px; }
+    .card-details { font-size: 12.5px; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .card-footer { margin-top: auto; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .card-link { font-size: 11px; font-weight: 600; color: var(--muted-hi); text-decoration: none; transition: color 0.15s; }
+    .card-link:hover { color: var(--accent); }
+
+    /* ── Job panel extras (image confirm) ── */
+    .img-confirm {
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 0.875rem;
+      background: rgba(245,166,35,0.04);
+    }
+    .img-confirm-title {
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      margin-bottom: 0.625rem; letter-spacing: 0.02em;
+    }
+    .img-thumbs-scroll {
+      display: flex; gap: 8px; margin-bottom: 0.75rem; overflow-x: auto;
+      padding-bottom: 8px; -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .img-thumb-item { position: relative; flex-shrink: 0; }
+    .img-thumb-label { cursor: pointer; display: block; position: relative; }
+    .img-thumb-label img {
+      width: 85px; height: 60px; object-fit: cover;
+      border-radius: 6px; border: 2px solid var(--border);
+      transition: all 0.15s;
+    }
+    .img-thumb-label input[type="checkbox"] {
+      position: absolute; top: 4px; left: 4px; z-index: 2;
+      width: 16px; height: 16px; accent-color: var(--accent);
+    }
+    .img-thumb-label input[type="checkbox"]:checked + img {
+      border-color: var(--accent); box-shadow: 0 0 8px rgba(245,166,35,0.3);
+    }
+    .img-score {
+      position: absolute; bottom: 4px; right: 4px;
+      font-size: 8px; font-weight: 800; background: rgba(0,0,0,0.6);
+      color: #fff; padding: 1px 3px; border-radius: 3px;
+    }
+    .img-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      margin-bottom: 0.625rem; line-height: 1.7;
+    }
+    .img-actions { display: flex; gap: 6px; }
+    .btn-vision {
+      flex: 1; background: var(--accent); color: #000;
+      border: none; border-radius: 5px; padding: 0.4rem;
+      font-size: 11.5px; font-weight: 700; cursor: pointer;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: background 0.15s;
+    }
+    .btn-vision:hover { background: #fbbf24; }
+    .btn-vision:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-skip {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 5px; padding: 0.4rem 0.75rem;
+      font-size: 11.5px; cursor: pointer; color: var(--muted);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-skip:hover { border-color: var(--muted-hi); color: var(--text); }
+
     /* ── MOBILE RESPONSIVENESS ── */
     @media (max-width: 768px) {
-      .navbar { padding: 0 0.5rem; gap: 0.35rem; height: 50px; justify-content: space-between; overflow: hidden; }
-      .nav-label, .nav-divider, .nav-spacer { display: none; }
-      .logo { gap: 0.4rem; min-width: 0; flex-shrink: 1; }
-      .logo-text { font-size: 11px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .logo-icon { width: 22px; height: 22px; font-size: 12px; flex-shrink: 0; }
-      .nav-btn { padding: 0 0.35rem; font-size: 9.5px; height: 26px; border-radius: 4px; flex-shrink: 0; }
-
       .layout { padding: 0.75rem 0.5rem; width: 100%; overflow-x: hidden; }
       .summary-bar { margin-bottom: 0.75rem; border-radius: 8px; }
       .summary-item { padding: 0.5rem; }
@@ -513,118 +356,36 @@
       .row-actions { padding-top: 0.25rem; gap: 0.4rem; }
       .btn-row { flex: 1; justify-content: center; height: 36px; font-size: 12px; }
 
-      #jobPanel { width: calc(100% - 1rem); left: 0.5rem; right: 0.5rem; bottom: 0.5rem; max-height: 50vh; }
-    }
-
-    /* ── SELECTION OF THE DAY STYLES ── */
-    .selection-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.25rem; margin-top: 1rem;
-    }
-    .selection-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s;
-      position: relative; animation: cardIn 0.4s ease both;
-    }
-    .selection-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    
-    .card-img-wrap {
-      height: 150px; background: var(--surface); border-bottom: 1px solid var(--border);
-      position: relative; overflow: hidden;
-    }
-    .card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-    .selection-card:hover .card-img { transform: scale(1.04); }
-    .card-img-placeholder { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: 0.1; }
-    .card-img-favicon { height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--surface) 0%, var(--card) 100%); }
-    .card-img-favicon img { width: 56px; height: 56px; border-radius: 10px; opacity: 0.7; filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5)); }
-
-    .grade-badge {
-      position: absolute; top: 10px; right: 10px;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
-      padding: 0.25rem 0.5rem; border-radius: 5px; backdrop-filter: blur(8px);
-    }
-    .g-Ap { background: rgba(16,185,129,0.85); color: #fff; }
-    .g-A  { background: rgba(52,211,153,0.85); color: #000; }
-
-    .source-tag {
-      position: absolute; top: 10px; left: 10px;
-      display: flex; align-items: center; gap: 0.4rem;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
-      padding: 0.25rem 0.5rem; border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .source-icon { width: 16px; height: 16px; border-radius: 3px; }
-    .source-name { font-size: 10px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
-
-    .card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-    .card-price-row { display: flex; align-items: baseline; gap: 0.6rem; }
-    .card-price { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent); }
-    .card-type { font-size: 9px; font-weight: 700; color: var(--muted-hi); text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid var(--border); padding: 1px 4px; border-radius: 3px; }
-    .card-details { font-size: 12.5px; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    
-    .card-footer { margin-top: auto; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .card-link { font-size: 11px; font-weight: 600; color: var(--muted-hi); text-decoration: none; transition: color 0.15s; }
-    .card-link:hover { color: var(--accent); }
-
-    @media (max-width: 768px) {
       .selection-grid { grid-template-columns: 1fr; gap: 1rem; }
-      .card-img-wrap { height: 220px; } /* Larger image/logo area */
-      .source-tag { 
-        padding: 0.4rem 0.75rem; 
-        gap: 0.6rem; 
-        top: 15px; left: 15px; 
-        background: rgba(0,0,0,0.8);
-      }
-      .source-icon { width: 24px; height: 24px; } /* Larger logo icon */
-      .source-name { font-size: 12px; } /* Larger source name */
-      
-      .card-body { padding: 0.75rem; gap: 0.35rem; } /* Compact body */
+      .card-img-wrap { height: 220px; }
+      .source-tag { padding: 0.4rem 0.75rem; gap: 0.6rem; top: 15px; left: 15px; background: rgba(0,0,0,0.8); }
+      .source-icon { width: 24px; height: 24px; }
+      .source-name { font-size: 12px; }
+      .card-body { padding: 0.75rem; gap: 0.35rem; }
       .card-price { font-size: 16px; }
       .card-details { font-size: 11.5px; -webkit-line-clamp: 2; }
       .card-footer { padding-top: 0.5rem; }
       .card-link { font-size: 10.5px; }
     }
-  </style>
-</head>
-<body class="lang-fr">
+{% endblock %}
 
-<nav class="navbar">
-  <a href="/" class="logo">
-    <div class="logo-icon">🍗</div>
-    <span class="logo-text">CHICKEN<span>.</span>WINGS</span>
-  </a>
-  <div class="nav-divider"></div>
-  <span class="nav-label">
-    <span class="fr">Tableau de bord</span>
-    <span class="en">Dashboard</span>
-  </span>
-  <div class="nav-spacer"></div>
-  <button class="nav-btn" onclick="toggleTheme()" title="Toggle theme">◑</button>
-  <button class="nav-btn" onclick="toggleLang()">
-    <span class="fr">FR</span><span class="en">EN</span>
-  </button>
-  <a href="/calendar" class="nav-btn">
-    <span class="fr">Calendrier</span><span class="en">Calendar</span>
-  </a>
-  <a href="/analytics" class="nav-btn">
-    <span class="fr">Analyse</span><span class="en">Analytics</span>
-  </a>
-  <a href="/about" class="nav-btn">
-    <span class="fr">Docs</span><span class="en">Docs</span>
-  </a>
+{% block page_title %}<span class="fr">Restaurants</span><span class="en">Restaurants</span>{% endblock %}
+
+{% block top_bar_right %}
   {% if current_user.is_admin %}
-  <button class="nav-btn" onclick="crawlAll()">
-    <span class="fr">Tout scanner</span><span class="en">Scan all</span>
-  </button>
-  <a href="/admin/" class="nav-btn" style="color:var(--accent);border-color:var(--accent);">⚙ Admin</a>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <button onclick="crawlAll()" style="background:transparent;border:1px solid var(--border);color:var(--muted-hi);padding:0 0.75rem;height:28px;border-radius:5px;font-size:11px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted-hi)'">
+      <span class="fr">Tout scanner</span><span class="en">Scan all</span>
+    </button>
+  </div>
   {% endif %}
-  <div class="nav-divider"></div>
   <span style="font-size:12px;color:var(--muted-hi)">{{ current_user.display_name }}</span>
-  <a href="/auth/logout" class="nav-btn">
+  <a href="/auth/logout" style="background:transparent;border:1px solid var(--border);color:var(--muted-hi);padding:0 0.75rem;height:28px;border-radius:5px;font-size:11px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;">
     <span class="fr">Déconnexion</span><span class="en">Sign out</span>
   </a>
-</nav>
+{% endblock %}
 
+{% block content %}
 <div class="layout">
   <div id="alert-zone"></div>
 
@@ -787,28 +548,10 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
 
-<div id="jobPanel"></div>
-
-<script>
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? null : 'light';
-  if (t) document.documentElement.setAttribute('data-theme', t);
-  else document.documentElement.removeAttribute('data-theme');
-  localStorage.setItem('pref-theme', t || 'dark');
-}
-if (localStorage.getItem('pref-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
-
-function toggleLang() {
-  const isEn = document.body.classList.toggle('lang-en');
-  document.body.classList.toggle('lang-fr', !isEn);
-  localStorage.setItem('pref-lang', isEn ? 'en' : 'fr');
-}
-if (localStorage.getItem('pref-lang') === 'en') {
-  document.body.classList.add('lang-en'); document.body.classList.remove('lang-fr');
-}
-
-// ─── Persistent job panel (survives navigation via sessionStorage) ──────────
+{% block scripts %}
+// ─── Persistent job panel helpers ───────────────────────────────────────────
 const _JP_KEY = 'cw_jobs';
 function _jpGet() { try { return JSON.parse(sessionStorage.getItem(_JP_KEY)||'[]'); } catch { return []; } }
 function _jpSet(j) { sessionStorage.setItem(_JP_KEY, JSON.stringify(j)); }
@@ -853,7 +596,7 @@ function _showImageConfirm(jid, rid, images, card) {
   const inputTok  = toAnalyze.length * (85 + 350);
   const outputTok = toAnalyze.length * 400;
   const costUSD   = ((inputTok / 1e6) * 2.5 + (outputTok / 1e6) * 10).toFixed(4);
-  
+
   const thumbs = toAnalyze.map((img, i) => `
     <div class="img-thumb-item">
       <label class="img-thumb-label">
@@ -995,18 +738,6 @@ async function clearDB() {
   } catch(e) { alert('Erreur réseau'); }
 }
 
-// Restore jobs that were active on a previous page
-(function _restoreJobs() {
-  const now = Date.now();
-  const fresh = _jpGet().filter(j => now - (j.ts||0) < 30 * 60 * 1000);
-  _jpSet(fresh);
-  fresh.forEach(j => {
-    if (document.getElementById('job-' + j.jid)) return; // already shown
-    const card = _jobCard(j.jid, j.name);
-    _pollJob(j.jid, card, j.rid);
-  });
-})();
-
 let _sortCol = null, _sortDir = 1;
 function sortTable(col) {
   const list = document.querySelector('.restaurant-list');
@@ -1029,6 +760,4 @@ function sortTable(col) {
   });
   rows.forEach(r => { r.style.animation = 'none'; list.appendChild(r); });
 }
-</script>
-</body>
-</html>
+{% endblock %}
