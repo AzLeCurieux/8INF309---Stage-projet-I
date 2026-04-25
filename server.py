@@ -2275,6 +2275,9 @@ def reactivate_promo(pid):
 def api_promotions():
     restaurant = request.args.get("restaurant", "")
     active_only = request.args.get("active", "1") == "1"
+    month     = request.args.get("month", "")      # YYYY-MM
+    date_from = request.args.get("date_from", "")  # YYYY-MM-DD
+    date_to   = request.args.get("date_to", "")    # YYYY-MM-DD
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
         q = ("SELECT id, restaurant, promo_type, promo_details, price, promo_date, "
@@ -2283,7 +2286,11 @@ def api_promotions():
         params = []
         if restaurant: q += " AND restaurant=%s"; params.append(restaurant)
         if active_only: q += " AND is_active=1"
-        q += " ORDER BY last_seen DESC LIMIT 200"
+        if month:     q += " AND DATE_FORMAT(saved_date_time,'%%Y-%%m')=%s"; params.append(month)
+        if date_from: q += " AND saved_date_time >= %s"; params.append(date_from)
+        if date_to:   q += " AND saved_date_time < DATE_ADD(%s, INTERVAL 1 DAY)"; params.append(date_to)
+        limit = 500 if (month or date_from or date_to) else 200
+        q += f" ORDER BY last_seen DESC LIMIT {limit}"
         cur.execute(q, params); rows = cur.fetchall()
         cur.close(); db.close()
         for r in rows:

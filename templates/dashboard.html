@@ -30,6 +30,22 @@
     .filter-select { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:0 0.7rem; height:32px; border-radius:6px; font-size:12px; outline:none; cursor:pointer; }
     .filter-select:focus { border-color:var(--accent); }
     .filter-label { font-size:12px; color:var(--muted-hi); font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.07em; }
+    .filter-sep { width:1px; height:22px; background:var(--border); flex-shrink:0; margin:0 0.1rem; }
+    .filter-date {
+      background:var(--surface); border:1px solid var(--border); color:var(--text);
+      padding:0 0.5rem; height:32px; border-radius:6px; font-size:11.5px; outline:none;
+      cursor:pointer; font-family:'JetBrains Mono',monospace; color-scheme:dark;
+    }
+    [data-theme="light"] .filter-date { color-scheme:light; }
+    .filter-date:focus { border-color:var(--accent); }
+    .filter-clear-btn {
+      background:transparent; border:1px solid var(--border-hi); color:var(--muted-hi);
+      height:32px; padding:0 0.65rem; border-radius:6px; font-size:11px; font-weight:700;
+      cursor:pointer; transition:all 0.15s; display:none; align-items:center; gap:0.3rem;
+      white-space:nowrap;
+    }
+    .filter-clear-btn.visible { display:flex; }
+    .filter-clear-btn:hover { border-color:var(--red); color:var(--red); background:var(--red-dim); }
     .promo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
     .promo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; transition:all 0.2s; }
     .promo-card:hover { border-color:var(--border-hi); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
@@ -143,6 +159,16 @@
         <option value="1">Active only</option>
         <option value="">All (incl. inactive)</option>
       </select>
+      <span class="filter-sep"></span>
+      <select class="filter-select" id="f-month" onchange="filterPromos()">
+        <option value="">— Mois / Month —</option>
+      </select>
+      <input type="date" id="f-date-from" class="filter-date" title="De / From" onchange="filterPromos()">
+      <input type="date" id="f-date-to" class="filter-date" title="Au / To" onchange="filterPromos()">
+      <button class="filter-clear-btn" id="f-clear-date" onclick="clearDateFilters()">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="fr">Effacer</span><span class="en">Clear</span>
+      </button>
     </div>
     <div class="promo-grid" id="promo-grid">
       <div class="no-results">Loading promotions…</div>
@@ -294,7 +320,11 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 let _allPromos = [];
+
 async function loadPromos() {
   const res = await fetch('/api/promotions');
   const data = await res.json();
@@ -305,22 +335,88 @@ async function loadPromos() {
   restaurants.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; restSel.appendChild(o); });
   const catSel  = document.getElementById('f-category');
   categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+  _populateMonthSelect(_allPromos);
   filterPromos();
 }
 
+function _populateMonthSelect(promos) {
+  const seen = {};
+  promos.forEach(p => {
+    const d = p.saved_date_time || p.last_seen || '';
+    const m = String(d).substring(0, 7);
+    if (m.length === 7) seen[m] = true;
+  });
+  const sorted = Object.keys(seen).sort().reverse();
+  const isEn = document.body.classList.contains('lang-en');
+  const names = isEn ? MONTHS_EN : MONTHS_FR;
+  const sel = document.getElementById('f-month');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${isEn ? '— All months —' : '— Tous les mois —'}</option>`;
+  sorted.forEach(m => {
+    const [y, mo] = m.split('-');
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = names[parseInt(mo) - 1] + ' ' + y;
+    if (m === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 function filterPromos() {
-  const rest   = document.getElementById('f-restaurant').value;
-  const grade  = document.getElementById('f-grade').value;
-  const cat    = document.getElementById('f-category').value;
-  const active = document.getElementById('f-active').value;
+  const rest    = document.getElementById('f-restaurant').value;
+  const grade   = document.getElementById('f-grade').value;
+  const cat     = document.getElementById('f-category').value;
+  const active  = document.getElementById('f-active').value;
+  const month   = document.getElementById('f-month').value;
+  const dfrom   = document.getElementById('f-date-from').value;
+  const dto     = document.getElementById('f-date-to').value;
+
+  const hasDate = month || dfrom || dto;
+  document.getElementById('f-clear-date').classList.toggle('visible', !!hasDate);
+
   let promos = _allPromos;
   if (rest)   promos = promos.filter(p => p.restaurant === rest);
   if (grade)  promos = promos.filter(p => p.grade === grade);
   if (cat)    promos = promos.filter(p => p.category === cat);
   if (active) promos = promos.filter(p => p.is_active == active);
+
+  if (month) {
+    promos = promos.filter(p => {
+      const d = String(p.saved_date_time || p.last_seen || '');
+      return d.substring(0, 7) === month;
+    });
+  }
+  if (dfrom) {
+    promos = promos.filter(p => {
+      const d = String(p.saved_date_time || p.last_seen || '');
+      return d.substring(0, 10) >= dfrom;
+    });
+  }
+  if (dto) {
+    promos = promos.filter(p => {
+      const d = String(p.saved_date_time || p.last_seen || '');
+      return d.substring(0, 10) <= dto;
+    });
+  }
+
   document.getElementById('promo-count').textContent = promos.length;
   renderPromos(promos);
 }
+
+function clearDateFilters() {
+  document.getElementById('f-month').value = '';
+  document.getElementById('f-date-from').value = '';
+  document.getElementById('f-date-to').value = '';
+  document.getElementById('f-clear-date').classList.remove('visible');
+  filterPromos();
+}
+
+// Re-label months on lang toggle
+const _baseDashLang = window.toggleLang;
+window.toggleLang = function() {
+  _baseDashLang && _baseDashLang();
+  if (_allPromos.length) _populateMonthSelect(_allPromos);
+};
 
 function gradeClass(g) {
   if (g === 'A+') return 'g-Ap';
