@@ -2836,6 +2836,62 @@ def api_calendar():
         return jsonify({"error": str(exc)}), 500
 
 
+@app.route("/api/calendar/timeline")
+def api_calendar_timeline():
+    year = int(request.args.get("year", datetime.now().year))
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("""
+            SELECT restaurant, MONTH(saved_date_time) AS m,
+                   COUNT(*) AS cnt,
+                   SUM(CASE WHEN grade IN ('A+','A') THEN 1 ELSE 0 END) AS top_cnt
+            FROM promotions_table
+            WHERE YEAR(saved_date_time) = %s
+            GROUP BY restaurant, m
+        """, (year,))
+        rows = cur.fetchall()
+        cur.execute(
+            "SELECT DISTINCT restaurant FROM promotions_table "
+            "WHERE YEAR(saved_date_time) = %s ORDER BY restaurant", (year,))
+        restaurants = [r["restaurant"] for r in cur.fetchall()]
+        cur.close(); db.close()
+        cells = {r: {} for r in restaurants}
+        concurrent = {str(m): 0 for m in range(1, 13)}
+        for row in rows:
+            r, m = row["restaurant"], str(row["m"])
+            cells[r][m] = {"cnt": int(row["cnt"]), "top": int(row["top_cnt"])}
+            if row["cnt"] > 0:
+                concurrent[m] += 1
+        return jsonify({"year": year, "restaurants": restaurants, "cells": cells, "concurrent": concurrent})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/calendar/cell")
+def api_calendar_cell():
+    restaurant = request.args.get("restaurant", "")
+    year = int(request.args.get("year", datetime.now().year))
+    month = int(request.args.get("month", 1))
+    try:
+        db = get_db(); cur = db.cursor(dictionary=True)
+        cur.execute("""
+            SELECT id, restaurant, promo_type, promo_details, price, grade,
+                   category, saved_date_time, is_active
+            FROM promotions_table
+            WHERE restaurant=%s AND YEAR(saved_date_time)=%s AND MONTH(saved_date_time)=%s
+            ORDER BY FIELD(grade,'A+','A','B','C','D','N/A'), saved_date_time DESC
+            LIMIT 25
+        """, (restaurant, year, month))
+        promos = cur.fetchall()
+        for p in promos:
+            if p.get("saved_date_time"):
+                p["saved_date_time"] = str(p["saved_date_time"])
+        cur.close(); db.close()
+        return jsonify({"promos": promos, "restaurant": restaurant, "month": month, "year": year})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 # ─── Promotions Verification ──────────────────────────────────────────────────
 
 def _background_verify(jid: str, restaurant_name: str, url: str, rid: int):

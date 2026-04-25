@@ -3,155 +3,165 @@
 {% block title %}Calendrier{% endblock %}
 
 {% block extra_styles %}
-    /* Year selector */
-    .year-bar { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
-    .year-btn {
-      background: var(--surface); border: 1px solid var(--border); color: var(--muted-hi);
-      width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
-      font-size: 16px; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-    }
-    .year-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .year-label { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; }
-
-    /* Calendar grid */
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-
-    .month-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-      overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.15s;
-      position: relative;
-    }
-    .month-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
-    .month-card.current { border-color: var(--accent); }
-    .month-card.past { opacity: 0.65; }
-    .month-card.has-promos { border-color: var(--green); }
-    .month-card.current.has-promos { border-color: var(--accent); }
-
-    .month-header {
-      padding: 1rem 1.25rem 0.75rem;
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;
-    }
-    .month-emoji { font-size: 22px; line-height: 1; }
-    .month-info { flex: 1; }
-    .month-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-    .month-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; margin-top: 2px; }
-    .month-event { font-size: 11px; color: var(--muted-hi); margin-top: 2px; }
-    .promo-count-badge {
-      background: var(--green-dim); color: var(--green);
-      border: 1px solid rgba(16,185,129,0.25);
-      border-radius: 20px; font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 700;
-      padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
-    }
-    .promo-count-badge.zero { background: var(--border); color: var(--muted); border-color: var(--border); }
-
-    .month-footer {
-      padding: 0.6rem 1.25rem 0.75rem;
-      border-top: 1px solid var(--border);
-      display: flex; flex-wrap: wrap; gap: 0.3rem;
-      min-height: 36px;
-    }
-    .promo-chip {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 4px; padding: 2px 7px;
-      font-size: 10.5px; color: var(--muted-hi);
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .promo-chip.grade-Ap { border-color: rgba(16,185,129,0.3); color: #10b981; }
-    .promo-chip.grade-A  { border-color: rgba(245,166,35,0.3); color: #f5a623; }
-    .no-promos-hint { font-size: 11px; color: var(--muted); font-style: italic; }
-
-    /* Current month indicator */
-    .current-dot {
-      position: absolute; top: 10px; right: 10px;
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
-    }
-
-    /* Detail panel (slide in from side) */
-    .detail-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-      display: none; align-items: flex-start; justify-content: flex-end;
-    }
-    .detail-overlay.open { display: flex; }
-    .detail-panel {
-      background: var(--surface); border-left: 1px solid var(--border);
-      width: 480px; max-width: 95vw; height: 100vh;
-      overflow-y: auto; padding: 2rem;
-      animation: slideIn 0.2s ease;
-    }
-    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-    .detail-close {
-      background: var(--card); border: 1px solid var(--border); color: var(--muted-hi);
-      width: 30px; height: 30px; border-radius: 6px; cursor: pointer;
-      font-size: 14px; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; margin-bottom: 1.5rem;
-    }
-    .detail-close:hover { border-color: var(--red); color: var(--red); }
-    .detail-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; margin-bottom: 0.25rem; }
-    .detail-subtitle { font-size: 12px; color: var(--muted-hi); margin-bottom: 1.5rem; }
-    .promo-card-detail {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 0.875rem 1rem; margin-bottom: 0.75rem;
-    }
-    .promo-card-detail:hover { border-color: var(--border-hi); }
-    .pcd-header { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.5rem; }
-    .pcd-restaurant { font-weight: 600; font-size: 12px; color: var(--accent); }
-    .pcd-type { font-size: 10px; color: var(--muted); background: var(--border); border-radius: 3px; padding: 1px 5px; }
-    .pcd-details { font-size: 13px; color: var(--text); line-height: 1.5; }
-    .pcd-meta { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
-    .pcd-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--green); }
-    .grade-badge-sm { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
-    .g-B  { background: rgba(99,102,241,0.15); color: #6366f1; }
-    .g-C  { background: rgba(168,85,247,0.15); color: #a855f7; }
-    .g-D  { background: rgba(239,68,68,0.15); color: #ef4444; }
-    .empty-detail { text-align: center; padding: 3rem 1rem; color: var(--muted); }
-    .empty-detail .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    /* Year nav */
+    .year-bar { display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; }
+    .year-btn { background:var(--surface); border:1px solid var(--border); color:var(--muted-hi); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .year-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+    .year-label { font-family:'Syne',sans-serif; font-weight:800; font-size:22px; }
 
     /* Legend */
-    .legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 11.5px; color: var(--muted-hi); }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend { display:flex; gap:1.5rem; margin-bottom:1.75rem; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:0.4rem; font-size:11.5px; color:var(--muted-hi); }
+    .legend-swatch { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
 
-    @media (max-width: 1000px) { .cal-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 700px) { .cal-grid { grid-template-columns: repeat(2, 1fr); } .detail-panel { width: 100vw; } }
-    @media (max-width: 480px) { .cal-grid { grid-template-columns: 1fr; } }
+    /* Timeline table wrapper */
+    .tl-wrap { overflow-x:auto; }
+    .tl-table { width:100%; border-collapse:separate; border-spacing:3px; }
+
+    /* Header */
+    .tl-table thead th {
+      font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase;
+      letter-spacing:0.08em; color:var(--muted); text-align:center; padding:0.3rem 0.1rem;
+    }
+    .tl-table thead th.tl-corner { width:150px; min-width:150px; text-align:left; padding-left:0; }
+    .tl-month-cur { color:var(--accent) !important; }
+
+    /* Restaurant label */
+    .tl-rest-name {
+      font-size:12px; font-weight:500; color:var(--muted-hi);
+      width:150px; min-width:150px; max-width:150px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      padding:0.25rem 0.75rem 0.25rem 0; text-align:left;
+      cursor:default;
+    }
+    .tl-rest-name:hover { color:var(--text); }
+
+    /* Concurrent row label */
+    .tl-conc-label {
+      font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase;
+      letter-spacing:0.1em; color:var(--muted); padding:0.25rem 0.5rem 0.25rem 0;
+      white-space:nowrap; width:150px; min-width:150px;
+    }
+
+    /* Data cell */
+    .tl-cell {
+      height:36px; min-width:52px;
+      border-radius:6px; cursor:pointer;
+      text-align:center; vertical-align:middle;
+      font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+      color:rgba(255,255,255,0.6);
+      transition:transform 0.1s, filter 0.12s, box-shadow 0.12s;
+      position:relative;
+    }
+    .tl-cell:hover { transform:scale(1.1); filter:brightness(1.3); z-index:2; }
+    .tl-cell.empty { color:var(--muted); cursor:default; }
+    .tl-cell.empty:hover { transform:none; filter:none; }
+    .tl-cell.cur-month { box-shadow:inset 0 0 0 1.5px var(--accent); }
+    [data-theme="light"] .tl-cell { color:rgba(0,0,0,0.65); }
+
+    /* A+/A dot indicator */
+    .top-dot {
+      position:absolute; top:4px; right:4px;
+      width:5px; height:5px; border-radius:50%; background:var(--green);
+      box-shadow:0 0 4px rgba(16,185,129,0.6);
+    }
+
+    /* Concurrent cell */
+    .conc-cell {
+      height:26px; min-width:52px; border-radius:5px;
+      text-align:center; vertical-align:middle;
+      font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+      color:rgba(255,255,255,0.7);
+    }
+    [data-theme="light"] .conc-cell { color:rgba(0,0,0,0.65); }
+
+    /* Spacer */
+    .tl-spacer td { height:8px; }
+
+    /* Section label row */
+    .tl-section-lbl td {
+      font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase;
+      letter-spacing:0.12em; color:var(--muted); padding:0.5rem 0 0.2rem;
+    }
+
+    /* Detail panel */
+    .detail-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); display:none; align-items:flex-start; justify-content:flex-end; }
+    .detail-overlay.open { display:flex; }
+    .detail-panel { background:var(--surface); border-left:1px solid var(--border); width:460px; max-width:95vw; height:100vh; overflow-y:auto; padding:1.75rem; animation:slideIn 0.2s ease; }
+    @keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
+    .detail-close { background:var(--card); border:1px solid var(--border); color:var(--muted-hi); width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; margin-bottom:1.25rem; }
+    .detail-close:hover { border-color:var(--red); color:var(--red); }
+    .detail-title { font-family:'Syne',sans-serif; font-weight:800; font-size:18px; margin-bottom:0.2rem; }
+    .detail-subtitle { font-size:11px; color:var(--muted-hi); margin-bottom:1.25rem; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.06em; }
+    .promo-item-d { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:0.8rem 0.9rem; margin-bottom:0.6rem; }
+    .promo-item-d:hover { border-color:var(--border-hi); }
+    .pid-head { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; margin-bottom:0.35rem; }
+    .pid-type { font-size:10px; color:var(--muted); background:var(--border); border-radius:3px; padding:1px 5px; }
+    .pid-details { font-size:12.5px; color:var(--text); line-height:1.5; }
+    .pid-meta { display:flex; align-items:center; gap:0.75rem; margin-top:0.4rem; flex-wrap:wrap; }
+    .pid-price { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--green); }
+    .pid-active { font-size:11px; }
+    .empty-d { text-align:center; padding:3rem 1rem; color:var(--muted); font-size:13px; }
+
+    @media (max-width:800px) {
+      .tl-rest-name, .tl-table thead th.tl-corner, .tl-conc-label { width:90px; min-width:90px; max-width:90px; }
+    }
 {% endblock %}
 
 {% block page_title %}<span class="fr">Calendrier</span><span class="en">Calendar</span>{% endblock %}
 
 {% block content %}
 <div class="layout">
+
   <div class="year-bar">
     <button class="year-btn" onclick="changeYear(-1)">‹</button>
-    <span class="year-label" id="yearLabel">2026</span>
+    <span class="year-label" id="yearLabel"></span>
     <button class="year-btn" onclick="changeYear(+1)">›</button>
     <span style="font-size:12px;color:var(--muted);margin-left:0.5rem">
-      <span class="fr">— Cliquez sur un mois pour voir les promotions correspondantes</span>
-      <span class="en">— Click a month to see matching promotions</span>
+      <span class="fr">— Vue synoptique des campagnes concurrentes</span>
+      <span class="en">— Synoptic view of concurrent campaigns</span>
     </span>
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><span class="fr">Promos trouvées</span><span class="en">Promos found</span></div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span class="fr">Mois en cours</span><span class="en">Current month</span></div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div><span class="fr">Aucune promo trouvée</span><span class="en">No promos found</span></div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(99,102,241,0.18)"></div>
+      <span>1–3 promos</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(99,102,241,0.45)"></div>
+      <span>4–9 promos</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(99,102,241,0.78)"></div>
+      <span>10+ promos</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(16,185,129,0.5)"></div>
+      <span><span class="fr">Contient A+/A</span><span class="en">Has A+/A grades</span></span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="border:1px solid var(--border);background:rgba(255,255,255,0.03)"></div>
+      <span><span class="fr">Aucune promo</span><span class="en">No promos</span></span>
+    </div>
   </div>
 
-  <div id="loadingState" class="loading"><span class="spin">⟳</span> <span class="fr">Chargement…</span><span class="en">Loading…</span></div>
-  <div id="calGrid" class="cal-grid" style="display:none"></div>
+  <div id="loadingState" class="loading">
+    <span class="spin">⟳</span>
+    <span class="fr">Chargement…</span><span class="en">Loading…</span>
+  </div>
+
+  <div id="tlWrap" style="display:none">
+    <div class="tl-wrap">
+      <table class="tl-table" id="tlTable"></table>
+    </div>
+  </div>
+
 </div>
 
 <!-- Detail panel -->
 <div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
-  <div class="detail-panel" id="detailPanel">
+  <div class="detail-panel">
     <button class="detail-close" onclick="closeDetailBtn()">✕</button>
     <div class="detail-title" id="detailTitle"></div>
     <div class="detail-subtitle" id="detailSubtitle"></div>
@@ -161,136 +171,170 @@
 {% endblock %}
 
 {% block scripts %}
-const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_FR  = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_EN  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MFULL_FR   = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MFULL_EN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth() + 1;
-let calendarData = null;
+const NOW_MONTH  = new Date().getMonth() + 1;
+const NOW_YEAR   = new Date().getFullYear();
+let tlData = null;
 
 function isEn() { return document.body.classList.contains('lang-en'); }
 
-function gradeClass(g) {
-  if (g === 'A+') return 'g-Ap'; if (g === 'A') return 'g-A';
-  if (g === 'B')  return 'g-B';  if (g === 'C') return 'g-C';
-  if (g === 'D')  return 'g-D';  return '';
-}
+document.getElementById('yearLabel').textContent = currentYear;
 
-function changeYear(delta) {
-  currentYear += delta;
+function changeYear(d) {
+  currentYear += d;
   document.getElementById('yearLabel').textContent = currentYear;
-  loadCalendar();
+  loadTimeline();
 }
 
-async function loadCalendar() {
+function cellBg(cnt, top) {
+  if (cnt === 0) return 'rgba(255,255,255,0.03)';
+  const i = Math.min(cnt / 14, 1);
+  if (top > 0) return `rgba(16,185,129,${(0.16 + i * 0.58).toFixed(2)})`;
+  return `rgba(99,102,241,${(0.14 + i * 0.64).toFixed(2)})`;
+}
+
+function concBg(n, max) {
+  if (n === 0) return 'rgba(255,255,255,0.03)';
+  const i = n / Math.max(max, 1);
+  if (i <= 0.33) return `rgba(16,185,129,${(0.18 + i * 0.5).toFixed(2)})`;
+  if (i <= 0.66) return `rgba(245,166,35,${(0.22 + i * 0.45).toFixed(2)})`;
+  return `rgba(239,68,68,${(0.22 + i * 0.48).toFixed(2)})`;
+}
+
+async function loadTimeline() {
   document.getElementById('loadingState').style.display = 'flex';
-  document.getElementById('calGrid').style.display = 'none';
-  const resp = await fetch('/api/calendar?year=' + currentYear);
-  const d = await resp.json();
-  if (d.error) { document.getElementById('loadingState').textContent = 'Error: ' + d.error; return; }
-  calendarData = d.events;
-  renderCalendar(d.events);
+  document.getElementById('tlWrap').style.display = 'none';
+  const resp = await fetch('/api/calendar/timeline?year=' + currentYear);
+  tlData = await resp.json();
+  if (tlData.error) {
+    document.getElementById('loadingState').textContent = 'Error: ' + tlData.error;
+    return;
+  }
+  renderTimeline();
 }
 
-function renderCalendar(events) {
+function renderTimeline() {
   document.getElementById('loadingState').style.display = 'none';
-  const grid = document.getElementById('calGrid');
-  grid.style.display = '';
-  grid.innerHTML = '';
+  document.getElementById('tlWrap').style.display = '';
 
   const lang = isEn() ? 'en' : 'fr';
-  events.forEach(ev => {
-    const isPast    = currentYear < new Date().getFullYear() || (currentYear === new Date().getFullYear() && ev.month < currentMonth);
-    const isCurrent = currentYear === new Date().getFullYear() && ev.month === currentMonth;
-    const hasPromos = ev.promo_count > 0;
+  const months = lang === 'en' ? MONTHS_EN : MONTHS_FR;
+  const table  = document.getElementById('tlTable');
+  table.innerHTML = '';
 
-    const card = document.createElement('div');
-    card.className = 'month-card' + (isCurrent ? ' current' : '') + (isPast && !isCurrent ? ' past' : '') + (hasPromos ? ' has-promos' : '');
+  const maxConc = Math.max(...Object.values(tlData.concurrent).map(Number), 1);
 
-    const monthNames = lang === 'en' ? MONTH_NAMES_EN : MONTH_NAMES_FR;
-    const eventName  = lang === 'en' ? ev.name_en : ev.name_fr;
+  // ── Header ──────────────────────────────────────────────────────────────────
+  const thead = document.createElement('thead');
+  let hHtml = '<tr><th class="tl-corner"></th>';
+  for (let m = 1; m <= 12; m++) {
+    const isCur = currentYear === NOW_YEAR && m === NOW_MONTH;
+    hHtml += `<th${isCur ? ' class="tl-month-cur"' : ''}>${months[m-1]}</th>`;
+  }
+  thead.innerHTML = hHtml + '</tr>';
+  table.appendChild(thead);
 
-    const topPromos = ev.promos.slice(0, 3);
-    const chipsHtml = hasPromos
-      ? topPromos.map(p => {
-          const gc = p.grade === 'A+' ? 'grade-Ap' : p.grade === 'A' ? 'grade-A' : '';
-          const label = p.promo_type || p.category || 'Promo';
-          return `<span class="promo-chip ${gc}">${label}</span>`;
-        }).join('') + (ev.promo_count > 3 ? `<span class="promo-chip">+${ev.promo_count - 3}</span>` : '')
-      : `<span class="no-promos-hint">${lang === 'en' ? 'No promos yet' : 'Aucune promo'}</span>`;
+  const tbody = document.createElement('tbody');
 
-    card.innerHTML = `
-      ${isCurrent ? '<div class="current-dot"></div>' : ''}
-      <div class="month-header">
-        <div>
-          <div class="month-num">${monthNames[ev.month - 1]}</div>
-          <div class="month-name">${ev.emoji} ${eventName}</div>
-        </div>
-        <div class="promo-count-badge ${hasPromos ? '' : 'zero'}">${ev.promo_count} promo${ev.promo_count !== 1 ? 's' : ''}</div>
-      </div>
-      <div class="month-footer">${chipsHtml}</div>`;
+  // ── Concurrent row ───────────────────────────────────────────────────────────
+  const concRow = document.createElement('tr');
+  let cHtml = `<td><div class="tl-conc-label"><span class="fr">Concurrents actifs</span><span class="en">Active competitors</span></div></td>`;
+  for (let m = 1; m <= 12; m++) {
+    const n = parseInt(tlData.concurrent[String(m)] || 0);
+    const bg = concBg(n, maxConc);
+    const isCur = currentYear === NOW_YEAR && m === NOW_MONTH;
+    cHtml += `<td><div class="conc-cell${isCur ? ' cur-month' : ''}" style="background:${bg}" title="${n} restaurant${n!==1?'s':''} actif${n>1?'s':''}">${n > 0 ? n : '·'}</div></td>`;
+  }
+  concRow.innerHTML = cHtml;
+  tbody.appendChild(concRow);
 
-    card.addEventListener('click', () => openDetail(ev));
-    grid.appendChild(card);
-  });
-}
+  // ── Spacer ───────────────────────────────────────────────────────────────────
+  const spacer = document.createElement('tr');
+  spacer.className = 'tl-spacer';
+  spacer.innerHTML = '<td colspan="13"></td>';
+  tbody.appendChild(spacer);
 
-function openDetail(ev) {
-  const lang = isEn() ? 'en' : 'fr';
-  const monthNames = lang === 'en' ? MONTH_NAMES_EN : MONTH_NAMES_FR;
-  const eventName  = lang === 'en' ? ev.name_en : ev.name_fr;
-
-  document.getElementById('detailTitle').textContent = ev.emoji + '  ' + eventName;
-  document.getElementById('detailSubtitle').textContent =
-    monthNames[ev.month - 1] + ' · ' + ev.promo_count + (lang === 'en' ? ' matching promotion(s)' : ' promotion(s) correspondante(s)');
-
-  const body = document.getElementById('detailBody');
-  body.innerHTML = '';
-
-  if (!ev.promos || ev.promos.length === 0) {
-    body.innerHTML = `<div class="empty-detail">
-      <div class="empty-icon">🗓️</div>
-      <p>${lang === 'en' ? 'No promotions found for this season yet.' : 'Aucune promotion trouvée pour cette saison.'}</p>
-    </div>`;
+  // ── Restaurant rows ──────────────────────────────────────────────────────────
+  if (tlData.restaurants.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = `<td colspan="13" style="text-align:center;padding:3rem;color:var(--muted);font-size:13px;">
+      <span class="fr">Aucune donnée pour ${currentYear}.</span>
+      <span class="en">No data for ${currentYear}.</span>
+    </td>`;
+    tbody.appendChild(emptyRow);
   } else {
-    ev.promos.forEach(p => {
-      const gc = gradeClass(p.grade);
-      const activeLabel = p.is_active
-        ? (lang === 'en' ? '✓ Active' : '✓ Active')
-        : (lang === 'en' ? '⚬ Inactive' : '⚬ Inactive');
-      const activeColor = p.is_active ? 'var(--green)' : 'var(--muted)';
-      body.innerHTML += `
-        <div class="promo-card-detail">
-          <div class="pcd-header">
-            <div style="flex:1">
-              <div class="pcd-restaurant">${p.restaurant}</div>
-              <div class="pcd-type">${p.promo_type || 'Promo'}</div>
-            </div>
-            <span class="grade-badge-sm ${gc}">${p.grade || '—'}</span>
-          </div>
-          <div class="pcd-details">${p.promo_details || '—'}</div>
-          <div class="pcd-meta">
-            ${p.price ? `<span class="pcd-price">$${p.price}</span>` : ''}
-            <span style="font-size:11px;color:${activeColor}">${activeLabel}</span>
-            ${p.category ? `<span style="font-size:11px;color:var(--muted)">${p.category}</span>` : ''}
-          </div>
-        </div>`;
+    tlData.restaurants.forEach(rest => {
+      const tr = document.createElement('tr');
+      let rowHtml = `<td><div class="tl-rest-name" title="${rest}">${rest}</div></td>`;
+      for (let m = 1; m <= 12; m++) {
+        const cell = ((tlData.cells[rest] || {})[String(m)]) || {cnt: 0, top: 0};
+        const isCur  = currentYear === NOW_YEAR && m === NOW_MONTH;
+        const bg     = cellBg(cell.cnt, cell.top);
+        const topDot = cell.top > 0 ? '<span class="top-dot"></span>' : '';
+        const label  = cell.cnt > 0 ? cell.cnt : '·';
+        const cls    = `tl-cell${cell.cnt === 0 ? ' empty' : ''}${isCur ? ' cur-month' : ''}`;
+        const tip    = cell.cnt > 0
+          ? `${rest} · ${months[m-1]} · ${cell.cnt} promo${cell.cnt!==1?'s':''}${cell.top>0?' ('+cell.top+' A+/A)':''}`
+          : `${rest} · ${months[m-1]} · —`;
+        const click  = cell.cnt > 0 ? `onclick="openCell('${rest.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}',${m})"` : '';
+        rowHtml += `<td><div class="${cls}" style="background:${bg}" title="${tip}" ${click}>${label}${topDot}</div></td>`;
+      }
+      tr.innerHTML = rowHtml;
+      tbody.appendChild(tr);
     });
   }
 
+  table.appendChild(tbody);
+}
+
+async function openCell(restaurant, month) {
+  const lang = isEn() ? 'en' : 'fr';
+  const fullMonths = lang === 'en' ? MFULL_EN : MFULL_FR;
+
+  document.getElementById('detailTitle').textContent = restaurant;
+  document.getElementById('detailSubtitle').textContent = `${fullMonths[month-1]} ${currentYear}`;
+  document.getElementById('detailBody').innerHTML = '<div class="loading" style="height:80px"><span class="spin">⟳</span></div>';
   document.getElementById('detailOverlay').classList.add('open');
+
+  const r = await fetch(`/api/calendar/cell?restaurant=${encodeURIComponent(restaurant)}&year=${currentYear}&month=${month}`);
+  const d = await r.json();
+
+  const body = document.getElementById('detailBody');
+  if (d.error || !d.promos || d.promos.length === 0) {
+    body.innerHTML = `<div class="empty-d"><span class="fr">Aucune promotion pour cette période.</span><span class="en">No promotions for this period.</span></div>`;
+    return;
+  }
+
+  body.innerHTML = d.promos.map(p => {
+    const gc = p.grade === 'A+' ? 'g-Ap' : p.grade === 'A' ? 'g-A' : p.grade === 'B' ? 'g-B' : p.grade === 'C' ? 'g-C' : p.grade === 'D' ? 'g-D' : '';
+    const activeColor = p.is_active ? 'var(--green)' : 'var(--muted)';
+    const activeLabel = p.is_active ? '✓ Active' : '⚬ Inactive';
+    return `<div class="promo-item-d">
+      <div class="pid-head">
+        <span class="pid-type">${p.promo_type || 'Promo'}</span>
+        ${p.grade ? `<span class="grade-badge ${gc}">${p.grade}</span>` : ''}
+      </div>
+      <div class="pid-details">${p.promo_details || '—'}</div>
+      <div class="pid-meta">
+        ${p.price && p.price !== 'Not Provided' ? `<span class="pid-price">$${p.price}</span>` : ''}
+        <span class="pid-active" style="color:${activeColor}">${activeLabel}</span>
+        ${p.category ? `<span style="font-size:11px;color:var(--muted)">${p.category}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function closeDetail(e) { if (e.target === document.getElementById('detailOverlay')) closeDetailBtn(); }
 function closeDetailBtn() { document.getElementById('detailOverlay').classList.remove('open'); }
 
-// Re-render on lang toggle (override base toggleLang to also re-render)
+// Re-render on lang toggle
 const _baseLang = window.toggleLang;
-window.toggleLang = function() {
-  _baseLang && _baseLang();
-  if (calendarData) renderCalendar(calendarData);
-};
+window.toggleLang = function() { _baseLang && _baseLang(); if (tlData) renderTimeline(); };
 
-document.getElementById('yearLabel').textContent = currentYear;
-loadCalendar();
+loadTimeline();
 {% endblock %}
