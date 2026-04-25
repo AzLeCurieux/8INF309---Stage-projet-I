@@ -248,40 +248,6 @@
       </div>
     </div>
 
-    <!-- Row 7: Top deals table + Recent Activity (side by side) -->
-    <div class="charts-2col" style="margin-bottom:0">
-      <!-- Top savings table -->
-      <div class="chart-card">
-        <div>
-          <div class="chart-title"><span class="fr">Meilleures offres du moment</span><span class="en">Best current deals</span></div>
-          <div class="chart-sub"><span class="fr">Top 10 promos actives par économie estimée</span><span class="en">Top 10 active promos by estimated savings</span></div>
-        </div>
-        <div style="overflow-x:auto">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
-                <th><span class="fr">Détails</span><span class="en">Details</span></th>
-                <th><span class="fr">Prix</span><span class="en">Price</span></th>
-                <th><span class="fr">Grade</span><span class="en">Grade</span></th>
-                <th><span class="fr">Écon.</span><span class="en">Saved</span></th>
-              </tr>
-            </thead>
-            <tbody id="topSavingsBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Recent activity feed -->
-      <div class="chart-card">
-        <div>
-          <div class="chart-title"><span class="fr">Activité récente</span><span class="en">Recent activity</span></div>
-          <div class="chart-sub"><span class="fr">Dernières promotions indexées</span><span class="en">Latest indexed promotions</span></div>
-        </div>
-        <div class="activity-list" id="activityFeed"></div>
-      </div>
-    </div>
-
   </div><!-- /mainContent -->
 </div>
 {% endblock %}
@@ -309,8 +275,7 @@ async function refreshData() {
   document.getElementById('cacheDot').style.background = 'var(--accent)';
   Object.keys(_charts).forEach(id => destroyChart(id));
   document.getElementById('catBars').innerHTML = '';
-  document.getElementById('topSavingsBody').innerHTML = '';
-  document.getElementById('activityFeed').innerHTML = '';
+
   document.getElementById('insightsPills').innerHTML = '';
   document.getElementById('competitorBars').innerHTML = '';
   document.getElementById('pivotTableWrap').innerHTML = '<div class="loading"><span class="spin">⟳</span></div>';
@@ -516,41 +481,6 @@ async function loadData() {
         y2: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { callback: v => '$'+v } }
       }
     }
-  });
-
-  // Top savings table
-  const tbody = document.getElementById('topSavingsBody');
-  tbody.innerHTML = '';
-  (d.top_savings || []).forEach(p => {
-    const gc = gradeClass(p.grade);
-    const link = p.link ? `<a href="${p.link}" target="_blank" style="color:var(--muted-hi);font-size:11px;margin-left:4px" title="View promo">↗</a>` : '';
-    tbody.innerHTML += `
-      <tr>
-        <td style="font-weight:600;font-size:12px">${p.restaurant}</td>
-        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${p.promo_details}">${p.promo_details}${link}</td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:12px">${p.price ? '$'+p.price : '—'}</td>
-        <td><span class="grade-badge ${gc}">${p.grade}</span></td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--green);font-size:12px">$${p.savings_estimate ? p.savings_estimate.toFixed(2) : '0.00'}</td>
-      </tr>`;
-  });
-
-  // Recent activity feed
-  const feed = document.getElementById('activityFeed');
-  feed.innerHTML = '';
-  (d.recent_activity || []).forEach(r => {
-    const dt = r.saved_date_time ? new Date(r.saved_date_time).toLocaleString() : '';
-    const gc = gradeClass(r.grade || '');
-    const gradeHtml = r.grade ? `<span class="grade-badge ${gc}" style="font-size:10px">${r.grade}</span>` : '';
-    const item = document.createElement('div');
-    item.className = 'activity-item';
-    item.innerHTML = `
-      <div class="activity-dot" style="background:${GRADE_COLORS[r.grade]||'var(--accent)'}"></div>
-      <div class="activity-body">
-        <div class="activity-rest">${r.restaurant} ${gradeHtml}</div>
-        <div class="activity-detail">${r.promo_type ? '['+r.promo_type+'] ' : ''}${r.promo_details||'—'}</div>
-      </div>
-      <div class="activity-meta">${dt}</div>`;
-    feed.appendChild(item);
   });
 
   // ── Insights: Price vs Branding ──────────────────────────────────────────

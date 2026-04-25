@@ -132,15 +132,6 @@
     </div>
   </div>
 
-  <!-- Restaurant price cards -->
-  <div class="card" style="margin-bottom:1.5rem">
-    <div class="card-title"><span class="fr">Prix moyens par restaurant</span><span class="en">Average prices by restaurant</span></div>
-    <div class="card-sub"><span class="fr">Classé par prix moyen croissant — le plus bas = meilleure valeur</span><span class="en">Sorted by ascending avg price — lowest = best value</span></div>
-    <div id="restCards" class="rest-grid">
-      <div class="loading-inline"><span class="spin">⟳</span> <span class="fr">Chargement…</span><span class="en">Loading…</span></div>
-    </div>
-  </div>
-
   <!-- Price comparison chart -->
   <div class="grid-2">
     <div class="card">
@@ -152,28 +143,6 @@
       <div class="card-title"><span class="fr">Volume de promos actives</span><span class="en">Active promo volume</span></div>
       <div class="card-sub"><span class="fr">Nombre de promos actives vs. grade A+</span><span class="en">Active promos count vs. A+ grade</span></div>
       <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Best deals table -->
-  <div class="card" style="margin-bottom:1.5rem">
-    <div class="card-title"><span class="fr">Meilleures offres actives (toutes sources)</span><span class="en">Best active deals (all sources)</span></div>
-    <div class="card-sub"><span class="fr">Classé par prix croissant — opportunités immédiates</span><span class="en">Sorted by lowest price — immediate opportunities</span></div>
-    <div style="overflow-x:auto">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
-            <th><span class="fr">Catégorie</span><span class="en">Category</span></th>
-            <th><span class="fr">Promotion</span><span class="en">Promotion</span></th>
-            <th><span class="fr">Prix</span><span class="en">Price</span></th>
-            <th><span class="fr">Grade</span><span class="en">Grade</span></th>
-            <th><span class="fr">Économie</span><span class="en">Savings</span></th>
-          </tr>
-        </thead>
-        <tbody id="dealsBody"></tbody>
-      </table>
     </div>
   </div>
 
@@ -234,32 +203,6 @@ async function loadComparison() {
     document.getElementById('kpiGap').textContent = '$' + gap;
   }
 
-  // Restaurant cards
-  const maxAvg = Math.max(1, ...rests.map(r => r.avg_price || 0));
-  document.getElementById('restCards').innerHTML = '';
-  rests.forEach(rest => {
-    const pct = Math.round((rest.avg_price || 0) / maxAvg * 100);
-    const div = document.createElement('div');
-    div.className = 'rest-card';
-    div.innerHTML = `
-      <div class="rest-name">${rest.restaurant}</div>
-      <div class="rest-price">${rest.avg_price ? '$'+rest.avg_price : '—'}</div>
-      <div class="rest-price-label">avg price</div>
-      <div class="rest-meta">
-        <span class="rest-tag tag-active">${rest.active_promos||0} actives</span>
-        ${rest.aplus_count > 0 ? `<span class="rest-tag tag-aplus">${rest.aplus_count} A+</span>` : ''}
-        ${rest.avg_savings ? `<span class="rest-tag tag-savings">~$${rest.avg_savings} saved</span>` : ''}
-      </div>
-      <div class="price-bar">
-        <div class="price-bar-label">
-          <span>$${rest.min_price||'—'}</span>
-          <span>$${rest.max_price||'—'}</span>
-        </div>
-        <div class="price-bar-track"><div class="price-bar-fill" style="width:${pct}%"></div></div>
-      </div>`;
-    document.getElementById('restCards').appendChild(div);
-  });
-
   // Price comparison chart
   const PAL = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399'];
   new Chart(document.getElementById('chartPrices'), {
@@ -302,22 +245,6 @@ async function loadComparison() {
     }
   });
 
-  // Deals table
-  const tbody = document.getElementById('dealsBody');
-  deals.slice(0,20).forEach((d, i) => {
-    const gc = gradeClass(d.grade);
-    const link = d.link ? `<a href="${d.link}" target="_blank" style="color:var(--muted-hi);margin-left:4px">↗</a>` : '';
-    tbody.innerHTML += `
-      <tr>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--muted)">${i+1}</td>
-        <td style="font-weight:600">${d.restaurant}</td>
-        <td style="color:var(--muted-hi)">${d.category||'—'}</td>
-        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.promo_details}">${d.promo_details||'—'}${link}</td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:700">$${d.price_num||d.price||'—'}</td>
-        <td><span class="grade-badge ${gc}">${d.grade||'—'}</span></td>
-        <td style="font-family:'JetBrains Mono',monospace;color:var(--blue)">${d.savings_estimate ? '$'+d.savings_estimate.toFixed(2) : '—'}</td>
-      </tr>`;
-  });
 }
 
 async function runAnalysis() {
