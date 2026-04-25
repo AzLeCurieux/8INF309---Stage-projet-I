@@ -2278,6 +2278,8 @@ def api_promotions():
     month     = request.args.get("month", "")      # YYYY-MM
     date_from = request.args.get("date_from", "")  # YYYY-MM-DD
     date_to   = request.args.get("date_to", "")    # YYYY-MM-DD
+    grade     = request.args.get("grade", "")      # A+, A, B, C, D
+    category  = request.args.get("category", "")
     try:
         db = get_db(); cur = db.cursor(dictionary=True)
         q = ("SELECT id, restaurant, promo_type, promo_details, price, promo_date, "
@@ -2289,7 +2291,9 @@ def api_promotions():
         if month:     q += " AND DATE_FORMAT(saved_date_time,'%%Y-%%m')=%s"; params.append(month)
         if date_from: q += " AND saved_date_time >= %s"; params.append(date_from)
         if date_to:   q += " AND saved_date_time < DATE_ADD(%s, INTERVAL 1 DAY)"; params.append(date_to)
-        limit = 500 if (month or date_from or date_to) else 200
+        if grade:     q += " AND grade=%s"; params.append(grade)
+        if category:  q += " AND category=%s"; params.append(category)
+        limit = 500 if (month or date_from or date_to or grade or category) else 200
         q += f" ORDER BY last_seen DESC LIMIT {limit}"
         cur.execute(q, params); rows = cur.fetchall()
         cur.close(); db.close()

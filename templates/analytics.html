@@ -95,6 +95,58 @@
       .charts-3col { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr 1fr; } }
+
+    /* ── Drill-down modal ──────────────────────────────────── */
+    .drill-overlay {
+      position: fixed; inset: 0; z-index: 9998;
+      background: rgba(0,0,0,0.72); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    .drill-overlay.open { display: flex; }
+    .drill-card {
+      background: var(--card); border: 1px solid var(--border-hi);
+      border-radius: 14px; width: 100%; max-width: 780px;
+      max-height: 82vh; display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+      animation: drillIn 0.18s ease;
+    }
+    @keyframes drillIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:none; } }
+    .drill-hdr {
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .drill-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+    .drill-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-left: 0.75rem; }
+    .drill-close {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .drill-close:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+    .drill-body { overflow-y: auto; padding: 0.75rem 1.25rem 1.25rem; flex: 1; }
+    .drill-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .drill-table th {
+      font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+      padding: 0.5rem 0.65rem; text-align: left;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--card); z-index: 1;
+    }
+    .drill-table td { padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .drill-table tr:last-child td { border-bottom: none; }
+    .drill-table tr:hover td { background: var(--card-hover); }
+    .drill-rest { font-weight: 600; white-space: nowrap; font-size: 12.5px; }
+    .drill-details { color: var(--muted-hi); max-width: 260px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .drill-price { font-family: 'JetBrains Mono', monospace; color: var(--accent); white-space: nowrap; }
+    .drill-empty { color: var(--muted); text-align: center; padding: 3rem; font-size: 13px; }
+    .drill-loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--muted); gap: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .clickable-chart { cursor: pointer; }
+    .bar-item.clickable { cursor: pointer; transition: opacity 0.15s; }
+    .bar-item.clickable:hover { opacity: 0.8; }
+    .pt-cell { cursor: pointer; transition: filter 0.15s; }
+    .pt-cell:hover { filter: brightness(1.4); }
 {% endblock %}
 
 {% block page_title %}<span class="fr">Analyse</span><span class="en">Analytics</span>{% endblock %}
@@ -250,11 +302,77 @@
 
   </div><!-- /mainContent -->
 </div>
+
+<!-- ── Drill-down modal ─────────────────────────────────────────────────── -->
+<div class="drill-overlay" id="drillModal">
+  <div class="drill-card">
+    <div class="drill-hdr">
+      <div style="display:flex;align-items:center;flex:1;min-width:0">
+        <span class="drill-title" id="drillTitle"></span>
+        <span class="drill-count" id="drillCount"></span>
+      </div>
+      <button class="drill-close" onclick="closeDrill()">✕</button>
+    </div>
+    <div class="drill-body" id="drillBody"></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 const GRADE_COLORS = { 'A+': '#10b981', 'A': '#f5a623', 'B': '#6366f1', 'C': '#a855f7', 'D': '#ef4444', 'N/A': '#5a5a7a' };
 const CAT_PALETTE = ['#f5a623','#10b981','#6366f1','#a855f7','#ef4444','#60a5fa','#fb923c','#34d399','#818cf8','#c084fc'];
+
+// ── Drill-down modal ─────────────────────────────────────────────────────
+async function openDrill(title, params) {
+  const modal = document.getElementById('drillModal');
+  const body  = document.getElementById('drillBody');
+  const countEl = document.getElementById('drillCount');
+  document.getElementById('drillTitle').textContent = title;
+  countEl.textContent = '';
+  body.innerHTML = '<div class="drill-loading"><span class="spin">⟳</span> Chargement…</div>';
+  modal.classList.add('open');
+
+  const qs = new URLSearchParams(params);
+  try {
+    const resp = await fetch('/api/promotions?' + qs);
+    const rows = await resp.json();
+    if (rows.error) throw new Error(rows.error);
+    countEl.textContent = rows.length + ' promo' + (rows.length !== 1 ? 's' : '');
+    if (!rows.length) {
+      body.innerHTML = '<div class="drill-empty"><span class="fr">Aucune promotion trouvée</span><span class="en">No promotions found</span></div>';
+      return;
+    }
+    let html = `<table class="drill-table"><thead><tr>
+      <th><span class="fr">Restaurant</span><span class="en">Restaurant</span></th>
+      <th>Type</th>
+      <th><span class="fr">Détails</span><span class="en">Details</span></th>
+      <th><span class="fr">Prix</span><span class="en">Price</span></th>
+      <th>Grade</th>
+      <th><span class="fr">Économie</span><span class="en">Savings</span></th>
+    </tr></thead><tbody>`;
+    rows.forEach(p => {
+      html += `<tr>
+        <td class="drill-rest">${p.restaurant}</td>
+        <td>${p.promo_type || '—'}</td>
+        <td class="drill-details" title="${(p.promo_details||'').replace(/"/g,'&quot;')}">${p.promo_details || '—'}</td>
+        <td class="drill-price">${p.price && p.price !== 'Not Provided' ? '$'+p.price : '—'}</td>
+        <td><span class="grade-badge ${gradeClass(p.grade)}">${p.grade || '—'}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted-hi)">${p.savings_estimate ? '$'+parseFloat(p.savings_estimate).toFixed(2) : '—'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = '<div class="drill-empty" style="color:var(--red)">Erreur : ' + e.message + '</div>';
+  }
+}
+function closeDrill() {
+  document.getElementById('drillModal').classList.remove('open');
+}
+document.getElementById('drillModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeDrill();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrill(); });
 
 function gradeClass(g) {
   if (g === 'A+') return 'g-Ap'; if (g === 'A') return 'g-A';
@@ -329,7 +447,8 @@ async function loadData() {
         borderColor: '#10b981',
         backgroundColor: 'rgba(16,185,129,0.08)',
         borderWidth: 2,
-        pointRadius: 4,
+        pointRadius: 5,
+        pointHoverRadius: 8,
         pointBackgroundColor: '#10b981',
         tension: 0.4,
         fill: true,
@@ -337,13 +456,24 @@ async function loadData() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { footer: () => '→ Cliquer pour explorer' } } },
       scales: {
         x: { grid: { color: '#1e1e32' } },
         y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const weekStart = wLabels[idx];
+        if (!weekStart) return;
+        const d = new Date(weekStart);
+        const end = new Date(d); end.setDate(end.getDate() + 6);
+        const fmt = dt => dt.toISOString().slice(0,10);
+        openDrill('Semaine du ' + weekStart, { date_from: weekStart, date_to: fmt(end), active: '0' });
       }
     }
   });
+  document.getElementById('chartWeekly').style.cursor = 'pointer';
 
   // Monthly timeline
   const tlLabels = (d.timeline || []).map(t => t.month);
@@ -360,17 +490,26 @@ async function loadData() {
         borderColor: '#f5a623',
         borderWidth: 1,
         borderRadius: 4,
+        hoverBackgroundColor: 'rgba(245,166,35,0.85)',
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { footer: () => '→ Cliquer pour explorer' } } },
       scales: {
         x: { grid: { color: '#1e1e32' } },
         y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } }
+      },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const month = tlLabels[idx];
+        if (!month) return;
+        openDrill('Mois : ' + month, { month, active: '0' });
       }
     }
   });
+  document.getElementById('chartTimeline').style.cursor = 'pointer';
 
   // Grade donut
   const gradeLabels = (d.grade_dist || []).map(g => g.grade);
@@ -381,13 +520,23 @@ async function loadData() {
     type: 'doughnut',
     data: {
       labels: gradeLabels,
-      datasets: [{ data: gradeData, backgroundColor: gradeColors, borderColor: '#0e0e18', borderWidth: 2, hoverOffset: 6 }]
+      datasets: [{ data: gradeData, backgroundColor: gradeColors, borderColor: '#0e0e18', borderWidth: 2, hoverOffset: 8 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } } }
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } },
+        tooltip: { callbacks: { footer: () => '→ Cliquer pour explorer' } }
+      },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const grade = gradeLabels[elements[0].index];
+        if (!grade) return;
+        openDrill('Grade ' + grade + ' — Promos actives', { grade, active: '1' });
+      }
     }
   });
+  document.getElementById('chartGrade').style.cursor = 'pointer';
 
   // Price distribution
   const pLabels = (d.price_dist || []).map(p => p.bucket);
@@ -422,13 +571,15 @@ async function loadData() {
   (d.cat_dist || []).forEach((c, i) => {
     const pct = Math.round(c.count / maxCat * 100);
     const el = document.createElement('div');
-    el.className = 'bar-item';
+    el.className = 'bar-item clickable';
+    el.title = c.category + ' — cliquer pour explorer';
     el.innerHTML = `
       <div class="bar-meta">
         <span class="bar-name">${c.category}</span>
         <span class="bar-count">${c.count}</span>
       </div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CAT_PALETTE[i%CAT_PALETTE.length]}"></div></div>`;
+    el.addEventListener('click', () => openDrill('Catégorie : ' + c.category, { category: c.category, active: '1' }));
     catBarsEl.appendChild(el);
   });
 
@@ -467,21 +618,32 @@ async function loadData() {
     data: {
       labels: rests.map(r => r.restaurant),
       datasets: [
-        { label: 'Active', data: rests.map(r => r.active), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
-        { label: 'A+',     data: rests.map(r => r.a_plus), backgroundColor: 'rgba(245,166,35,0.7)', borderRadius: 4 },
-        { label: 'Avg $savings', data: rests.map(r => r.avg_savings || 0), backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 4, yAxisID: 'y2' },
+        { label: 'Active', data: rests.map(r => r.active), backgroundColor: 'rgba(16,185,129,0.7)', hoverBackgroundColor: '#10b981', borderRadius: 4 },
+        { label: 'A+',     data: rests.map(r => r.a_plus), backgroundColor: 'rgba(245,166,35,0.7)', hoverBackgroundColor: '#f5a623', borderRadius: 4 },
+        { label: 'Avg $savings', data: rests.map(r => r.avg_savings || 0), backgroundColor: 'rgba(99,102,241,0.7)', hoverBackgroundColor: '#6366f1', borderRadius: 4, yAxisID: 'y2' },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { callbacks: { footer: () => '→ Cliquer pour explorer' } }
+      },
       scales: {
         x: { grid: { color: '#1e1e32' } },
         y: { grid: { color: '#1e1e32' }, beginAtZero: true, ticks: { precision: 0 } },
         y2: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { callback: v => '$'+v } }
+      },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const restaurant = rests[idx]?.restaurant;
+        if (!restaurant) return;
+        openDrill(restaurant + ' — Promos actives', { restaurant, active: '1' });
       }
     }
   });
+  document.getElementById('chartRestaurants').style.cursor = 'pointer';
 
   // ── Insights: Price vs Branding ──────────────────────────────────────────
   const split = d.insights_split || {};
@@ -519,18 +681,27 @@ async function loadData() {
   sortedByActive.forEach((r, i) => {
     const pct = Math.round((r.active||0) / maxActive * 100);
     const el = document.createElement('div');
-    el.className = 'bar-item';
+    el.className = 'bar-item clickable';
+    el.title = r.restaurant + ' — cliquer pour explorer';
     el.innerHTML = `
       <div class="bar-meta">
         <span class="bar-name">${r.restaurant}</span>
         <span class="bar-count">${r.active||0}</span>
       </div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CAT_PALETTE[i%CAT_PALETTE.length]}"></div></div>`;
+    el.addEventListener('click', () => openDrill(r.restaurant + ' — Promos actives', { restaurant: r.restaurant, active: '1' }));
     compEl.appendChild(el);
   });
 
   // ── Pivot table ───────────────────────────────────────────────────────────
   document.getElementById('pivotTableWrap').innerHTML = buildPivotTable(d.pivot_data || [], sortedByActive);
+  document.getElementById('pivotTableWrap').addEventListener('click', e => {
+    const cell = e.target.closest('[data-month][data-rest]');
+    if (!cell) return;
+    const month = cell.dataset.month, rest = cell.dataset.rest;
+    if (!month || !rest) return;
+    openDrill(rest + ' · ' + month, { restaurant: rest, month, active: '0' });
+  });
 }
 
 function buildPivotTable(pivotData, rests) {
@@ -554,7 +725,8 @@ function buildPivotTable(pivotData, rests) {
       rowTotal += cnt;
       const alpha = cnt ? (0.1 + (cnt / maxCnt) * 0.75).toFixed(2) : 0;
       const bg = cnt ? `rgba(245,166,35,${alpha})` : 'transparent';
-      html += `<td class="pt-cell" style="background:${bg}">${cnt || '<span class="pt-empty">—</span>'}</td>`;
+      const drillAttr = cnt ? `class="pt-cell" data-month="${m}" data-rest="${r.replace(/"/g,'&quot;')}" title="${r} · ${m} — cliquer pour explorer"` : 'class="pt-cell"';
+      html += `<td ${drillAttr} style="background:${bg}">${cnt || '<span class="pt-empty">—</span>'}</td>`;
     });
     html += `<td class="pt-grand">${rowTotal}</td></tr>`;
   });
