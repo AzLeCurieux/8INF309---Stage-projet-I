@@ -48,19 +48,17 @@
     /* ── Sidebar ───────────────────────────────────────────── */
     .sidebar {
       width: 220px; flex-shrink: 0;
-      position: fixed; right: 0; top: 0; bottom: 0;
-      background: #09090f; border-left: 1px solid var(--border);
+      position: fixed; left: 0; top: 0; bottom: 0;
+      background: #09090f; border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       overflow-y: auto; z-index: 100;
     }
     [data-theme="light"] .sidebar { background: #f0f0f8; }
 
-    .sb-logo { padding: 1.1rem 1.1rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .sb-logo-link { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
-    .sb-logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .sb-logo-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.05em; color: var(--text); }
-    .sb-logo-name span { color: var(--accent); }
-    .sb-logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px; }
+    .sb-logo { padding: 0.85rem; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; justify-content: center; }
+    .sb-logo-link { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+    .sb-logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.15s; }
+    .sb-logo-link:hover .sb-logo-icon { opacity: 0.85; }
 
     .sb-nav { flex: 1; padding: 0.4rem 0 0.5rem; overflow-y: auto; }
 
@@ -72,11 +70,11 @@
     .sb-link {
       display: flex; align-items: center; gap: 0.6rem;
       padding: 0.45rem 1.1rem; font-size: 12.5px; color: var(--muted-hi);
-      text-decoration: none; border-right: 2px solid transparent;
+      text-decoration: none; border-left: 2px solid transparent;
       transition: all 0.12s; white-space: nowrap; line-height: 1.4;
     }
-    .sb-link:hover { color: var(--text); background: rgba(255,255,255,0.04); border-right-color: var(--border-hi); }
-    .sb-link.sb-active { color: var(--accent); background: var(--accent-dim); border-right-color: var(--accent); font-weight: 600; }
+    .sb-link:hover { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--border-hi); }
+    .sb-link.sb-active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); font-weight: 600; }
     .sb-link svg { flex-shrink: 0; opacity: 0.75; }
     .sb-link:hover svg, .sb-link.sb-active svg { opacity: 1; }
 
@@ -123,7 +121,7 @@
     .tb-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
     /* ── Main area ─────────────────────────────────────────── */
-    .main-area { margin-right: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .main-area { margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
     .top-bar {
       position: sticky; top: 0; z-index: 50;
       background: rgba(7,7,12,0.94); backdrop-filter: blur(20px);
@@ -165,7 +163,7 @@
     .job-logs { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); padding: 0.5rem; height: 80px; overflow-y: auto; line-height: 1.6; }
 
     /* ── Responsive ────────────────────────────────────────── */
-    @media (max-width: 900px) { .sidebar { display: none; } .main-area { margin-right: 0; } }
+    @media (max-width: 900px) { .sidebar { display: none; } .main-area { margin-left: 0; } }
 
     {% block extra_styles %}{% endblock %}
   </style>
@@ -178,15 +176,11 @@
 <aside class="sidebar">
 
   <div class="sb-logo">
-    <a href="/" class="sb-logo-link">
+    <a href="/" class="sb-logo-link" title="Chicken Wings — Promo Dashboard">
       <div class="sb-logo-icon">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="6"/><line x1="12" y1="20" x2="12" y2="3"/><line x1="6" y1="20" x2="6" y2="12"/>
         </svg>
-      </div>
-      <div>
-        <div class="sb-logo-name">CHICKEN<span>.</span>WINGS</div>
-        <div class="sb-logo-sub">Promo Dashboard</div>
       </div>
     </a>
   </div>
