@@ -52,7 +52,7 @@
     .card-img-wrap { height:140px; background:var(--surface); border-bottom:1px solid var(--border); position:relative; overflow:hidden; }
     .card-img { width:100%; height:100%; object-fit:cover; }
     .card-img-placeholder { height:100%; display:flex; align-items:center; justify-content:center; font-size:2rem; opacity:0.1; }
-    .grade-badge { position:absolute; top:8px; right:8px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:0.2rem 0.45rem; border-radius:4px; backdrop-filter:blur(8px); }
+    .grade-badge { position:absolute; top:8px; right:8px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:0.2rem 0.45rem; border-radius:4px; backdrop-filter:blur(8px); cursor:help; }
     .g-Ap { background:rgba(16,185,129,0.85); color:#fff; }
     .g-A  { background:rgba(52,211,153,0.85); color:#000; }
     .g-B  { background:rgba(99,102,241,0.85); color:#fff; }
@@ -62,6 +62,7 @@
     .card-body { padding:0.875rem; flex:1; display:flex; flex-direction:column; gap:0.4rem; }
     .card-price { font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700; color:var(--accent); }
     .card-type { font-size:9px; font-weight:700; color:var(--muted-hi); text-transform:uppercase; letter-spacing:0.05em; border:1px solid var(--border); padding:1px 4px; border-radius:3px; }
+    .card-cat  { font-size:9px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.05em; border:1px solid rgba(99,102,241,0.28); background:rgba(99,102,241,0.09); padding:1px 5px; border-radius:3px; white-space:nowrap; }
     .card-details { font-size:12px; color:var(--text); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
     .card-footer { margin-top:auto; padding:0.6rem 0.875rem; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
     .scraped-at { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
@@ -102,7 +103,7 @@
     .sub-hint { font-size:11px; color:var(--muted); line-height:1.4; }
 {% endblock %}
 
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}<span class="fr">Tableau de bord</span><span class="en">Dashboard</span>{% endblock %}
 
 {% block top_bar_right %}
 <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -117,34 +118,48 @@
 <div class="layout" style="position:relative;z-index:1;">
   {% if not current_user.is_verified %}
   <div class="alert alert-warn">
-    <span>⚠ Your email is not verified.</span>
+    <span>⚠ <span class="fr">Votre courriel n'est pas vérifié.</span><span class="en">Your email is not verified.</span></span>
     <form method="POST" action="/auth/resend-verification" style="margin:0">
-      <button type="submit" class="alert-btn">Resend verification email</button>
+      <button type="submit" class="alert-btn">
+        <span class="fr">Renvoyer l'email de vérification</span>
+        <span class="en">Resend verification email</span>
+      </button>
     </form>
   </div>
   {% endif %}
 
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('promos', this)">All Promotions</button>
-    <button class="tab-btn" onclick="switchTab('subscriptions', this)">Subscriptions</button>
-    <button class="tab-btn" onclick="switchTab('account', this)">My Account</button>
+    <button class="tab-btn active" onclick="switchTab('promos', this)">
+      <span class="fr">Toutes les promotions</span><span class="en">All Promotions</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('subscriptions', this)">
+      <span class="fr">Abonnements</span><span class="en">Subscriptions</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('account', this)">
+      <span class="fr">Mon compte</span><span class="en">My Account</span>
+    </button>
   </div>
 
-  <!-- PROMOTIONS TAB -->
+  <!-- ONGLET PROMOTIONS -->
   <div id="tab-promos" class="tab-pane active">
     <div class="section-head">
       <div>
-        <div class="section-title">Active Promotions</div>
-        <div class="section-sub">All restaurants · <span id="promo-count">–</span> promos</div>
+        <div class="section-title">
+          <span class="fr">Promotions actives</span><span class="en">Active Promotions</span>
+        </div>
+        <div class="section-sub">
+          <span class="fr">Tous les restaurants</span><span class="en">All restaurants</span>
+          · <span id="promo-count">–</span> promos
+        </div>
       </div>
     </div>
     <div class="promo-filters">
-      <span class="filter-label">Filter:</span>
+      <span class="filter-label"><span class="fr">Filtrer :</span><span class="en">Filter:</span></span>
       <select class="filter-select" id="f-restaurant" onchange="filterPromos()">
-        <option value="">All restaurants</option>
+        <option value="" data-fr="Tous les restaurants" data-en="All restaurants">Tous les restaurants</option>
       </select>
       <select class="filter-select" id="f-grade" onchange="filterPromos()">
-        <option value="">All grades</option>
+        <option value="" data-fr="Toutes les notes" data-en="All grades">Toutes les notes</option>
         <option value="A+">A+</option>
         <option value="A">A</option>
         <option value="B">B</option>
@@ -153,15 +168,15 @@
         <option value="N/A">N/A</option>
       </select>
       <select class="filter-select" id="f-category" onchange="filterPromos()">
-        <option value="">All categories</option>
+        <option value="" data-fr="Toutes les catégories" data-en="All categories">Toutes les catégories</option>
       </select>
       <select class="filter-select" id="f-active" onchange="filterPromos()">
-        <option value="1">Active only</option>
-        <option value="">All (incl. inactive)</option>
+        <option value="1" data-fr="Actives seulement" data-en="Active only">Actives seulement</option>
+        <option value="" data-fr="Toutes (incl. inactives)" data-en="All (incl. inactive)">Toutes (incl. inactives)</option>
       </select>
       <span class="filter-sep"></span>
       <select class="filter-select" id="f-month" onchange="filterPromos()">
-        <option value="">— Mois / Month —</option>
+        <option value=""></option>
       </select>
       <input type="date" id="f-date-from" class="filter-date" title="De / From" onchange="filterPromos()">
       <input type="date" id="f-date-to" class="filter-date" title="Au / To" onchange="filterPromos()">
@@ -171,16 +186,23 @@
       </button>
     </div>
     <div class="promo-grid" id="promo-grid">
-      <div class="no-results">Loading promotions…</div>
+      <div class="no-results">
+        <span class="fr">Chargement des promotions…</span><span class="en">Loading promotions…</span>
+      </div>
     </div>
   </div>
 
-  <!-- SUBSCRIPTIONS TAB -->
+  <!-- ONGLET ABONNEMENTS -->
   <div id="tab-subscriptions" class="tab-pane">
     <div class="section-head">
       <div>
-        <div class="section-title">Restaurant Subscriptions</div>
-        <div class="section-sub">Get notified by email when new promotions are found.</div>
+        <div class="section-title">
+          <span class="fr">Abonnements par restaurant</span><span class="en">Restaurant Subscriptions</span>
+        </div>
+        <div class="section-sub">
+          <span class="fr">Recevez un email quand de nouvelles promotions sont trouvées.</span>
+          <span class="en">Get notified by email when new promotions are found.</span>
+        </div>
       </div>
     </div>
     <div class="rest-sub-list">
@@ -197,79 +219,103 @@
           </label>
         </div>
         <div class="rest-sub-row" id="sub-freq-row-{{ r.id }}" style="{% if not freq %}display:none{% endif %}">
-          <span class="sub-hint">Notification frequency</span>
+          <span class="sub-hint">
+            <span class="fr">Fréquence de notification</span>
+            <span class="en">Notification frequency</span>
+          </span>
           <select class="freq-select" id="sub-freq-{{ r.id }}"
                   onchange="updateFreq({{ r.id }}, this.value)">
-            <option value="instant" {% if freq == 'instant' %}selected{% endif %}>Instant</option>
-            <option value="weekly"  {% if freq == 'weekly' or not freq %}selected{% endif %}>Weekly digest</option>
-            <option value="monthly" {% if freq == 'monthly' %}selected{% endif %}>Monthly digest</option>
+            <option value="instant" {% if freq == 'instant' %}selected{% endif %}
+                    data-fr="Instantané" data-en="Instant">Instantané</option>
+            <option value="weekly"  {% if freq == 'weekly' or not freq %}selected{% endif %}
+                    data-fr="Digest hebdo" data-en="Weekly digest">Digest hebdo</option>
+            <option value="monthly" {% if freq == 'monthly' %}selected{% endif %}
+                    data-fr="Digest mensuel" data-en="Monthly digest">Digest mensuel</option>
           </select>
         </div>
         <span class="inline-msg" id="sub-msg-{{ r.id }}" style="margin-left:0;display:block;"></span>
       </div>
       {% else %}
-      <p style="color:var(--muted-hi);font-size:13px;">No restaurants configured.</p>
+      <p style="color:var(--muted-hi);font-size:13px;">
+        <span class="fr">Aucun restaurant configuré.</span>
+        <span class="en">No restaurants configured.</span>
+      </p>
       {% endfor %}
     </div>
   </div>
 
-  <!-- ACCOUNT TAB -->
+  <!-- ONGLET MON COMPTE -->
   <div id="tab-account" class="tab-pane">
     <div class="section-head">
       <div>
-        <div class="section-title">My Account</div>
+        <div class="section-title">
+          <span class="fr">Mon compte</span><span class="en">My Account</span>
+        </div>
         <div class="section-sub">{{ current_user.email }}</div>
       </div>
     </div>
     <div class="settings-grid">
-      <!-- Profile -->
+      <!-- Profil -->
       <div class="settings-card">
-        <h3>Profile</h3>
+        <h3><span class="fr">Profil</span><span class="en">Profile</span></h3>
         <form id="profile-form">
           <div class="field">
-            <label>First name</label>
+            <label><span class="fr">Prénom</span><span class="en">First name</span></label>
             <input type="text" name="first_name" value="{{ current_user.first_name }}" placeholder="Jane">
           </div>
           <div class="field">
-            <label>Last name</label>
+            <label><span class="fr">Nom de famille</span><span class="en">Last name</span></label>
             <input type="text" name="last_name" value="{{ current_user.last_name }}" placeholder="Doe">
           </div>
           <div class="field">
-            <label>Email</label>
+            <label><span class="fr">Courriel</span><span class="en">Email</span></label>
             <input type="email" value="{{ current_user.email }}" disabled>
           </div>
-          <button type="button" class="btn-save" onclick="saveProfile()">Save</button>
-          <span class="inline-msg" id="profile-msg">Saved!</span>
+          <button type="button" class="btn-save" onclick="saveProfile()">
+            <span class="fr">Enregistrer</span><span class="en">Save</span>
+          </button>
+          <span class="inline-msg" id="profile-msg"></span>
         </form>
       </div>
-      <!-- Password -->
+      <!-- Mot de passe -->
       <div class="settings-card">
-        <h3>Change Password</h3>
+        <h3><span class="fr">Changer de mot de passe</span><span class="en">Change Password</span></h3>
         <form id="pw-form">
           <div class="field">
-            <label>Current password</label>
+            <label><span class="fr">Mot de passe actuel</span><span class="en">Current password</span></label>
             <input type="password" name="current_password" placeholder="••••••••">
           </div>
           <div class="field">
-            <label>New password</label>
-            <input type="password" name="new_password" placeholder="At least 8 characters">
+            <label><span class="fr">Nouveau mot de passe</span><span class="en">New password</span></label>
+            <input type="password" name="new_password"
+                   data-placeholder-fr="8 caractères minimum"
+                   data-placeholder-en="At least 8 characters"
+                   placeholder="8 caractères minimum">
           </div>
           <div class="field">
-            <label>Confirm new password</label>
-            <input type="password" name="new_password2" placeholder="Repeat new password">
+            <label><span class="fr">Confirmer le nouveau mot de passe</span><span class="en">Confirm new password</span></label>
+            <input type="password" name="new_password2"
+                   data-placeholder-fr="Répéter le mot de passe"
+                   data-placeholder-en="Repeat new password"
+                   placeholder="Répéter le mot de passe">
           </div>
-          <button type="button" class="btn-save" onclick="changePassword()">Update password</button>
-          <span class="inline-msg" id="pw-msg" style="color:var(--green)">Updated!</span>
+          <button type="button" class="btn-save" onclick="changePassword()">
+            <span class="fr">Mettre à jour</span><span class="en">Update password</span>
+          </button>
+          <span class="inline-msg" id="pw-msg" style="color:var(--green)"></span>
         </form>
       </div>
-      <!-- Newsletter -->
+      <!-- Infolettre -->
       <div class="settings-card">
         <h3>Newsletter</h3>
         <p style="color:var(--muted-hi);font-size:13px;margin-bottom:1.25rem;">
-          Receive curated promotions and weekly digests by email.
+          <span class="fr">Recevez les meilleures promotions et résumés hebdomadaires par courriel.</span>
+          <span class="en">Receive curated promotions and weekly digests by email.</span>
         </p>
         <div class="newsletter-row">
-          <span style="font-size:13px;">Email newsletter</span>
+          <span style="font-size:13px;">
+            <span class="fr">Infolettre par courriel</span><span class="en">Email newsletter</span>
+          </span>
           <label class="toggle-switch">
             <input type="checkbox" id="newsletter-toggle"
                    {% if current_user.newsletter_subscribed %}checked{% endif %}
@@ -277,30 +323,42 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <span class="inline-msg" id="nl-msg" style="margin-left:0;display:block;margin-top:0.5rem;">Saved!</span>
+        <span class="inline-msg" id="nl-msg" style="margin-left:0;display:block;margin-top:0.5rem;"></span>
       </div>
-      <!-- Account info -->
+      <!-- Infos compte -->
       <div class="settings-card">
-        <h3>Account Info</h3>
+        <h3><span class="fr">Informations du compte</span><span class="en">Account Info</span></h3>
         <div style="display:flex;flex-direction:column;gap:0.75rem;">
           <div style="display:flex;justify-content:space-between;font-size:13px;">
-            <span style="color:var(--muted-hi)">Email status</span>
+            <span style="color:var(--muted-hi)">
+              <span class="fr">Statut du courriel</span><span class="en">Email status</span>
+            </span>
             <span style="color:{% if current_user.is_verified %}var(--green){% else %}var(--accent){% endif %}">
-              {% if current_user.is_verified %}Verified{% else %}Unverified{% endif %}
+              {% if current_user.is_verified %}
+                <span class="fr">Vérifié</span><span class="en">Verified</span>
+              {% else %}
+                <span class="fr">Non vérifié</span><span class="en">Unverified</span>
+              {% endif %}
             </span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px;">
-            <span style="color:var(--muted-hi)">Role</span>
+            <span style="color:var(--muted-hi)">
+              <span class="fr">Rôle</span><span class="en">Role</span>
+            </span>
             <span>{{ current_user.role | capitalize }}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px;">
-            <span style="color:var(--muted-hi)">Member since</span>
+            <span style="color:var(--muted-hi)">
+              <span class="fr">Membre depuis</span><span class="en">Member since</span>
+            </span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">
               {{ current_user.created_at.strftime('%b %d, %Y') if current_user.created_at else '—' }}
             </span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px;">
-            <span style="color:var(--muted-hi)">Last login</span>
+            <span style="color:var(--muted-hi)">
+              <span class="fr">Dernière connexion</span><span class="en">Last login</span>
+            </span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">
               {{ current_user.last_login.strftime('%b %d, %Y') if current_user.last_login else '—' }}
             </span>
@@ -325,6 +383,22 @@ const MONTHS_EN = ['January','February','March','April','May','June','July','Aug
 
 let _allPromos = [];
 
+function isEn() { return document.body.classList.contains('lang-en'); }
+function t(fr, en) { return isEn() ? en : fr; }
+
+function applyI18nOptions() {
+  const en = isEn();
+  document.querySelectorAll('option[data-fr]').forEach(o => {
+    o.textContent = en ? o.dataset.en : o.dataset.fr;
+  });
+  document.querySelectorAll('input[data-placeholder-fr]').forEach(inp => {
+    inp.placeholder = en ? inp.dataset.placeholderEn : inp.dataset.placeholderFr;
+  });
+}
+
+// Run once on load (in case user pref is EN)
+applyI18nOptions();
+
 async function loadPromos() {
   const res = await fetch('/api/promotions');
   const data = await res.json();
@@ -347,11 +421,10 @@ function _populateMonthSelect(promos) {
     if (m.length === 7) seen[m] = true;
   });
   const sorted = Object.keys(seen).sort().reverse();
-  const isEn = document.body.classList.contains('lang-en');
-  const names = isEn ? MONTHS_EN : MONTHS_FR;
+  const names = isEn() ? MONTHS_EN : MONTHS_FR;
   const sel = document.getElementById('f-month');
   const cur = sel.value;
-  sel.innerHTML = `<option value="">${isEn ? '— All months —' : '— Tous les mois —'}</option>`;
+  sel.innerHTML = `<option value="">${t('— Tous les mois —', '— All months —')}</option>`;
   sorted.forEach(m => {
     const [y, mo] = m.split('-');
     const opt = document.createElement('option');
@@ -411,11 +484,15 @@ function clearDateFilters() {
   filterPromos();
 }
 
-// Re-label months on lang toggle
+// Re-label months and options on lang toggle
 const _baseDashLang = window.toggleLang;
 window.toggleLang = function() {
   _baseDashLang && _baseDashLang();
-  if (_allPromos.length) _populateMonthSelect(_allPromos);
+  applyI18nOptions();
+  if (_allPromos.length) {
+    _populateMonthSelect(_allPromos);
+    filterPromos();
+  }
 };
 
 function gradeClass(g) {
@@ -427,28 +504,63 @@ function gradeClass(g) {
   return '';
 }
 
+const GRADE_TIPS = {
+  fr: {
+    'A+': 'A+ — Prix < 7 $ : deal exceptionnel, économie maximale',
+    'A':  'A  — Prix < 12 $ : très bon rapport qualité/prix',
+    'B':  'B  — Prix < 16 $ : bon rapport qualité/prix',
+    'C':  'C  — Prix < 20 $ : rapport qualité/prix correct',
+    'D':  'D  — Prix ≥ 20 $ : faible économie par rapport au marché',
+    'N/A':'N/A — Prix non détecté dans la promotion',
+  },
+  en: {
+    'A+': 'A+ — Price < $7: exceptional deal, maximum savings',
+    'A':  'A  — Price < $12: great value for money',
+    'B':  'B  — Price < $16: good value for money',
+    'C':  'C  — Price < $20: fair value',
+    'D':  'D  — Price ≥ $20: low savings vs market',
+    'N/A':'N/A — No price detected in promotion',
+  }
+};
+
+function gradeTooltip(grade) {
+  const tips = isEn() ? GRADE_TIPS.en : GRADE_TIPS.fr;
+  return tips[grade] || '';
+}
+
 function renderPromos(promos) {
   const grid = document.getElementById('promo-grid');
-  if (!promos.length) { grid.innerHTML = '<div class="no-results">No promotions match your filters.</div>'; return; }
+  if (!promos.length) {
+    grid.innerHTML = `<div class="no-results">${t('Aucune promotion ne correspond à vos filtres.', 'No promotions match your filters.')}</div>`;
+    return;
+  }
+  const locale = isEn() ? 'en-CA' : 'fr-CA';
   grid.innerHTML = promos.map(p => {
     const img = p.image_url && !p.image_url.includes('placehold')
       ? `<img class="card-img" src="${p.image_url}" loading="lazy" onerror="this.style.display='none'">`
       : `<div class="card-img-placeholder">🍗</div>`;
     const gc = gradeClass(p.grade);
+    const tip = p.grade ? gradeTooltip(p.grade) : '';
     const scrapedAt = p.last_seen
-      ? 'Retrieved ' + new Date(p.last_seen).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+      ? t('Récupéré le ', 'Retrieved ') + new Date(p.last_seen).toLocaleDateString(locale, {month:'short', day:'numeric', year:'numeric'})
       : '';
-    const viewLink = p.link ? `<a href="${p.link}" target="_blank" rel="noopener" class="card-link">View offer →</a>` : '<span></span>';
+    const viewLink = p.link
+      ? `<a href="${p.link}" target="_blank" rel="noopener" class="card-link">${t('Voir l\'offre →', 'View offer →')}</a>`
+      : '<span></span>';
+    const catTag = (p.category && p.category !== 'Autre' && p.category !== 'Other')
+      ? `<span class="card-cat">${p.category}</span>`
+      : '';
     return `<div class="promo-card">
       <div class="card-img-wrap">
         ${img}
-        ${p.grade && gc ? `<span class="grade-badge ${gc}">${p.grade}</span>` : ''}
+        ${p.grade && gc ? `<span class="grade-badge ${gc}" title="${tip}">${p.grade}</span>` : ''}
         <span class="rest-tag">${p.restaurant}</span>
       </div>
       <div class="card-body">
         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
           ${p.price ? `<span class="card-price">${p.price}</span>` : ''}
           ${p.promo_type ? `<span class="card-type">${p.promo_type}</span>` : ''}
+          ${catTag}
         </div>
         <div class="card-details">${p.promo_details || ''}</div>
       </div>
@@ -468,7 +580,7 @@ async function saveProfile() {
   const res = await fetch('/auth/account/profile', { method:'POST', body:fd });
   const data = await res.json();
   const msg = document.getElementById('profile-msg');
-  msg.textContent = data.ok ? 'Saved!' : 'Error saving.';
+  msg.textContent = data.ok ? t('Enregistré !', 'Saved!') : t('Erreur lors de la sauvegarde.', 'Error saving.');
   msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
   msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 2500);
@@ -480,7 +592,7 @@ async function changePassword() {
   const res = await fetch('/auth/account/password', { method:'POST', body:fd });
   const data = await res.json();
   const msg = document.getElementById('pw-msg');
-  msg.textContent = data.ok ? 'Updated!' : (data.error || 'Error.');
+  msg.textContent = data.ok ? t('Mis à jour !', 'Updated!') : (data.error || t('Erreur.', 'Error.'));
   msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
   msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 2500);
@@ -493,7 +605,9 @@ async function toggleNewsletter(el) {
   const res = await fetch('/auth/account/newsletter', { method:'POST', body:fd });
   const data = await res.json();
   const msg = document.getElementById('nl-msg');
-  msg.textContent = data.ok ? (data.subscribed ? 'Subscribed!' : 'Unsubscribed.') : 'Error.';
+  msg.textContent = data.ok
+    ? (data.subscribed ? t('Abonné !', 'Subscribed!') : t('Désabonné.', 'Unsubscribed.'))
+    : t('Erreur.', 'Error.');
   msg.classList.add('show');
   setTimeout(() => msg.classList.remove('show'), 2500);
 }
@@ -510,7 +624,9 @@ async function toggleSub(rid, el) {
   const data = await res.json();
   const msg = document.getElementById('sub-msg-' + rid);
   if (msg) {
-    msg.textContent = data.ok ? (el.checked ? 'Subscribed!' : 'Unsubscribed.') : 'Error.';
+    msg.textContent = data.ok
+      ? (el.checked ? t('Abonné !', 'Subscribed!') : t('Désabonné.', 'Unsubscribed.'))
+      : t('Erreur.', 'Error.');
     msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
     msg.classList.add('show');
     setTimeout(() => { msg.classList.remove('show'); msg.textContent = ''; }, 2500);
@@ -528,7 +644,7 @@ async function updateFreq(rid, freq) {
   const data = await res.json();
   const msg = document.getElementById('sub-msg-' + rid);
   if (msg) {
-    msg.textContent = data.ok ? 'Saved!' : 'Error.';
+    msg.textContent = data.ok ? t('Enregistré !', 'Saved!') : t('Erreur.', 'Error.');
     msg.style.color = data.ok ? 'var(--green)' : 'var(--red)';
     msg.classList.add('show');
     setTimeout(() => { msg.classList.remove('show'); msg.textContent = ''; }, 2000);
