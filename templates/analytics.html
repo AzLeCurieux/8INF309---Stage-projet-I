@@ -4,7 +4,7 @@
 
 {% block head_scripts %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 {% endblock %}
 
 {% block extra_styles %}
@@ -751,37 +751,112 @@ function exportToExcel() {
   const d = window._analyticsData || {};
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1 — Monthly pivot
+  // ── Style helpers ─────────────────────────────────────────
+  const GREEN  = '217346';
+  const WHITE  = 'FFFFFF';
+  const GRAY   = 'F2F2F2';
+  const BORDER_COLOR = 'CCCCCC';
+
+  function border() {
+    const s = { style: 'thin', color: { rgb: BORDER_COLOR } };
+    return { top: s, bottom: s, left: s, right: s };
+  }
+
+  function hdrCell(v) {
+    return { v, t: 's', s: {
+      font: { bold: true, color: { rgb: WHITE }, sz: 11 },
+      fill: { fgColor: { rgb: GREEN } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: border()
+    }};
+  }
+
+  function dataCell(v, fmt, align, bold, bg) {
+    const cell = { v, t: typeof v === 'number' ? 'n' : 's', s: {
+      font: { bold: !!bold, sz: 10 },
+      fill: bg ? { fgColor: { rgb: bg } } : { fgColor: { rgb: WHITE } },
+      alignment: { horizontal: align || (typeof v === 'number' ? 'right' : 'left'), vertical: 'center' },
+      border: border()
+    }};
+    if (fmt) cell.z = fmt;
+    return cell;
+  }
+
+  function setColWidths(ws, widths) {
+    ws['!cols'] = widths.map(w => ({ wch: w }));
+  }
+
+  function addFreezeRow(ws) {
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  }
+
+  // ── Sheet 1 — Monthly pivot ───────────────────────────────
   const pivotData = d.pivot_data || [];
   const rests = [...(d.rest_comparison || [])].sort((a,b) => (b.active||0)-(a.active||0));
   const months = [...new Set(pivotData.map(r => r.month))].sort().reverse();
   const restaurants = rests.map(r => r.restaurant);
   const pivMap = {};
   pivotData.forEach(r => { if (!pivMap[r.month]) pivMap[r.month] = {}; pivMap[r.month][r.restaurant] = r.cnt; });
-  const pivRows = [['Mois', ...restaurants, 'Total']];
-  months.forEach(m => {
-    const row = [m];
+
+  const pivAoa = [[hdrCell('Mois'), ...restaurants.map(r => hdrCell(r)), hdrCell('Total')]];
+  months.forEach((m, idx) => {
+    const bg = idx % 2 === 1 ? GRAY : WHITE;
+    const row = [dataCell(m, null, 'left', false, bg)];
     let rowT = 0;
-    restaurants.forEach(r => { const c = pivMap[m]?.[r] || 0; row.push(c); rowT += c; });
-    row.push(rowT);
-    pivRows.push(row);
+    restaurants.forEach(r => { const c = pivMap[m]?.[r] || 0; row.push(dataCell(c, '0', 'center', false, bg)); rowT += c; });
+    row.push(dataCell(rowT, '0', 'center', true, bg));
+    pivAoa.push(row);
   });
-  const totRow = ['Total'];
+  const totRow = [dataCell('Total', null, 'left', true, GRAY)];
   let grand = 0;
-  restaurants.forEach(r => { const c = months.reduce((s,m) => s+(pivMap[m]?.[r]||0), 0); totRow.push(c); grand += c; });
-  totRow.push(grand);
-  pivRows.push(totRow);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivRows), 'Vue comparative');
+  restaurants.forEach(r => { const c = months.reduce((s,m2) => s+(pivMap[m2]?.[r]||0), 0); totRow.push(dataCell(c, '0', 'center', true, GRAY)); grand += c; });
+  totRow.push(dataCell(grand, '0', 'center', true, GRAY));
+  pivAoa.push(totRow);
 
-  // Sheet 2 — Restaurant comparison
-  const restRows = [['Restaurant','Total promos','Actives','Grade A+','Économie moy. ($)']];
-  (d.rest_comparison||[]).forEach(r => restRows.push([r.restaurant, r.total, r.active, r.a_plus, r.avg_savings||0]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(restRows), 'Concurrents');
+  const ws1 = XLSX.utils.aoa_to_sheet(pivAoa);
+  setColWidths(ws1, [12, ...restaurants.map(() => 18), 10]);
+  addFreezeRow(ws1);
+  ws1['!rows'] = [{ hpt: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Vue comparative');
 
-  // Sheet 3 — Top deals
-  const dealsRows = [['Restaurant','Type','Détails','Prix','Grade','Économie ($)']];
-  (d.top_savings||[]).forEach(p => dealsRows.push([p.restaurant, p.promo_type, p.promo_details, p.price, p.grade, p.savings_estimate||0]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dealsRows), 'Meilleures offres');
+  // ── Sheet 2 — Restaurant comparison ──────────────────────
+  const restHeaders = ['Restaurant', 'Total promos', 'Actives', 'Grade A+', 'Économie moy. ($)'];
+  const restAoa = [restHeaders.map(hdrCell)];
+  (d.rest_comparison||[]).forEach((r, idx) => {
+    const bg = idx % 2 === 1 ? GRAY : WHITE;
+    restAoa.push([
+      dataCell(r.restaurant, null, 'left', false, bg),
+      dataCell(r.total || 0, '0', 'right', false, bg),
+      dataCell(r.active || 0, '0', 'right', false, bg),
+      dataCell(r.a_plus || 0, '0', 'right', false, bg),
+      dataCell(r.avg_savings ? parseFloat(r.avg_savings) : 0, '"$"#,##0.00', 'right', false, bg),
+    ]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(restAoa);
+  setColWidths(ws2, [28, 14, 10, 10, 16]);
+  addFreezeRow(ws2);
+  ws2['!rows'] = [{ hpt: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Concurrents');
+
+  // ── Sheet 3 — Top deals ───────────────────────────────────
+  const dealHeaders = ['Restaurant', 'Type', 'Détails', 'Prix', 'Grade', 'Économie ($)'];
+  const dealAoa = [dealHeaders.map(hdrCell)];
+  (d.top_savings||[]).forEach((p, idx) => {
+    const bg = idx % 2 === 1 ? GRAY : WHITE;
+    dealAoa.push([
+      dataCell(p.restaurant || '', null, 'left', false, bg),
+      dataCell(p.promo_type || '', null, 'left', false, bg),
+      dataCell(p.promo_details || '', null, 'left', false, bg),
+      dataCell(p.price || '', null, 'right', false, bg),
+      dataCell(p.grade || '', null, 'center', true, bg),
+      dataCell(p.savings_estimate ? parseFloat(p.savings_estimate) : 0, '"$"#,##0.00', 'right', false, bg),
+    ]);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(dealAoa);
+  setColWidths(ws3, [28, 18, 50, 12, 8, 14]);
+  addFreezeRow(ws3);
+  ws3['!rows'] = [{ hpt: 28 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Meilleures offres');
 
   XLSX.writeFile(wb, `chicken-wings-${new Date().toISOString().slice(0,10)}.xlsx`);
 }
