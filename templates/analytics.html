@@ -821,8 +821,6 @@ async function exportToExcel(btn) {
   setColWidths(ws1, [12, ...restaurants.map(() => 18), 10]);
   addFreezeRow(ws1);
   ws1['!rows'] = [{ hpt: 28 }];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Vue comparative');
-
   // ── Sheet 2 — Restaurant comparison ──────────────────────
   const restHeaders = ['Restaurant', 'Total promos', 'Actives', 'Grade A+', 'Économie moy. ($)'];
   const restAoa = [restHeaders.map(h => hdrCell(h))];
@@ -840,8 +838,6 @@ async function exportToExcel(btn) {
   setColWidths(ws2, [28, 14, 10, 10, 16]);
   addFreezeRow(ws2);
   ws2['!rows'] = [{ hpt: 28 }];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Concurrents');
-
   // ── Sheet 3 — Top deals ───────────────────────────────────
   const dealHeaders = ['Restaurant', 'Type', 'Détails', 'Prix', 'Grade', 'Économie ($)'];
   const dealAoa = [dealHeaders.map(h => hdrCell(h))];
@@ -860,8 +856,6 @@ async function exportToExcel(btn) {
   setColWidths(ws3, [28, 18, 50, 12, 8, 14]);
   addFreezeRow(ws3);
   ws3['!rows'] = [{ hpt: 28 }];
-  XLSX.utils.book_append_sheet(wb, ws3, 'Meilleures offres');
-
   // ── Sheet 4 — Toutes les promos (par mois, code couleur) ──
   const MONTH_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const MONTH_PAL = [
@@ -960,7 +954,12 @@ async function exportToExcel(btn) {
   addFreezeRow(ws4, 0);
   ws4['!merges'] = allMerges;
   ws4['!rows'] = allRowMeta;
+
+  // Toutes les promos en premier, puis les autres feuilles
   XLSX.utils.book_append_sheet(wb, ws4, 'Toutes les promos');
+  XLSX.utils.book_append_sheet(wb, ws1, 'Vue comparative');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Concurrents');
+  XLSX.utils.book_append_sheet(wb, ws3, 'Meilleures offres');
 
   XLSX.writeFile(wb, `chicken-wings-${new Date().toISOString().slice(0,10)}.xlsx`);
 
