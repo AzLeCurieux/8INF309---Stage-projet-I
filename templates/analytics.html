@@ -9,7 +9,7 @@
 
 {% block extra_styles %}
     /* KPI row */
-    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .kpi-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .kpi-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
       padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;
@@ -153,7 +153,7 @@
 {% block page_title %}<span class="fr">Analyse</span><span class="en">Analytics</span>{% endblock %}
 
 {% block sidebar_excel %}
-    <button class="sb-excel-btn" onclick="exportToExcel()">
+    <button class="sb-excel-btn" onclick="exportToExcel(this)">
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
         <rect width="20" height="20" rx="3.5" fill="#217346"/>
         <path d="M5.5 5.5L10 10L5.5 14.5M10 10L14.5 5.5M10 10L14.5 14.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -744,11 +744,14 @@ function buildPivotTable(pivotData, rests) {
   return html;
 }
 
-function exportToExcel() {
+async function exportToExcel(btn) {
   if (typeof XLSX === 'undefined') {
     alert('SheetJS not loaded yet — please wait a moment and try again.');
     return;
   }
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+
   const d = window._analyticsData || {};
   const wb = XLSX.utils.book_new();
 
@@ -763,20 +766,20 @@ function exportToExcel() {
     return { top: s, bottom: s, left: s, right: s };
   }
 
-  function hdrCell(v) {
+  function hdrCell(v, bg) {
     return { v, t: 's', s: {
       font: { bold: true, color: { rgb: WHITE }, sz: 11 },
-      fill: { patternType: 'solid', fgColor: { rgb: GREEN } },
+      fill: { patternType: 'solid', fgColor: { rgb: bg || GREEN } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
       border: border()
     }};
   }
 
-  function dataCell(v, fmt, align, bold, bg) {
+  function dataCell(v, fmt, align, bold, bg, fontColor) {
     const cell = { v, t: typeof v === 'number' ? 'n' : 's', s: {
-      font: { bold: !!bold, sz: 10 },
+      font: { bold: !!bold, sz: 10, ...(fontColor ? { color: { rgb: fontColor } } : {}) },
       fill: { patternType: 'solid', fgColor: { rgb: bg || WHITE } },
-      alignment: { horizontal: align || (typeof v === 'number' ? 'right' : 'left'), vertical: 'center' },
+      alignment: { horizontal: align || (typeof v === 'number' ? 'right' : 'left'), vertical: 'center', wrapText: false },
       border: border()
     }};
     if (fmt) cell.z = fmt;
@@ -787,20 +790,20 @@ function exportToExcel() {
     ws['!cols'] = widths.map(w => ({ wch: w }));
   }
 
-  function addFreezeRow(ws) {
-    ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+  function addFreezeRow(ws, col) {
+    ws['!views'] = [{ state: 'frozen', xSplit: col || 0, ySplit: 1 }];
   }
 
   // ── Sheet 1 — Monthly pivot ───────────────────────────────
   const pivotData = d.pivot_data || [];
   const rests = [...(d.rest_comparison || [])].sort((a,b) => (b.active||0)-(a.active||0));
-  const months = [...new Set(pivotData.map(r => r.month))].sort().reverse();
+  const pivMonths = [...new Set(pivotData.map(r => r.month))].sort().reverse();
   const restaurants = rests.map(r => r.restaurant);
   const pivMap = {};
   pivotData.forEach(r => { if (!pivMap[r.month]) pivMap[r.month] = {}; pivMap[r.month][r.restaurant] = r.cnt; });
 
   const pivAoa = [[hdrCell('Mois'), ...restaurants.map(r => hdrCell(r)), hdrCell('Total')]];
-  months.forEach((m, idx) => {
+  pivMonths.forEach((m, idx) => {
     const bg = idx % 2 === 1 ? GRAY : WHITE;
     const row = [dataCell(m, null, 'left', false, bg)];
     let rowT = 0;
@@ -810,7 +813,7 @@ function exportToExcel() {
   });
   const totRow = [dataCell('Total', null, 'left', true, GRAY)];
   let grand = 0;
-  restaurants.forEach(r => { const c = months.reduce((s,m2) => s+(pivMap[m2]?.[r]||0), 0); totRow.push(dataCell(c, '0', 'center', true, GRAY)); grand += c; });
+  restaurants.forEach(r => { const c = pivMonths.reduce((s,m2) => s+(pivMap[m2]?.[r]||0), 0); totRow.push(dataCell(c, '0', 'center', true, GRAY)); grand += c; });
   totRow.push(dataCell(grand, '0', 'center', true, GRAY));
   pivAoa.push(totRow);
 
@@ -822,7 +825,7 @@ function exportToExcel() {
 
   // ── Sheet 2 — Restaurant comparison ──────────────────────
   const restHeaders = ['Restaurant', 'Total promos', 'Actives', 'Grade A+', 'Économie moy. ($)'];
-  const restAoa = [restHeaders.map(hdrCell)];
+  const restAoa = [restHeaders.map(h => hdrCell(h))];
   (d.rest_comparison||[]).forEach((r, idx) => {
     const bg = idx % 2 === 1 ? GRAY : WHITE;
     restAoa.push([
@@ -841,7 +844,7 @@ function exportToExcel() {
 
   // ── Sheet 3 — Top deals ───────────────────────────────────
   const dealHeaders = ['Restaurant', 'Type', 'Détails', 'Prix', 'Grade', 'Économie ($)'];
-  const dealAoa = [dealHeaders.map(hdrCell)];
+  const dealAoa = [dealHeaders.map(h => hdrCell(h))];
   (d.top_savings||[]).forEach((p, idx) => {
     const bg = idx % 2 === 1 ? GRAY : WHITE;
     dealAoa.push([
@@ -859,7 +862,111 @@ function exportToExcel() {
   ws3['!rows'] = [{ hpt: 28 }];
   XLSX.utils.book_append_sheet(wb, ws3, 'Meilleures offres');
 
+  // ── Sheet 4 — Toutes les promos (par mois, code couleur) ──
+  const MONTH_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const MONTH_PAL = [
+    { hdr: '1A5276', bg: 'D6EAF8' },  // bleu
+    { hdr: '1E8449', bg: 'D5F5E3' },  // vert
+    { hdr: 'B7770D', bg: 'FDEBD0' },  // orange
+    { hdr: '6C3483', bg: 'F5EEF8' },  // violet
+    { hdr: '148F77', bg: 'D1F2EB' },  // teal
+    { hdr: 'A93226', bg: 'FDEDEC' },  // rouge
+    { hdr: '1B4F72', bg: 'EBF5FB' },  // bleu clair
+    { hdr: '145A32', bg: 'EAFAF1' },  // vert clair
+    { hdr: '7D6608', bg: 'FDFDE7' },  // jaune
+    { hdr: '4A235A', bg: 'F9EBFF' },  // mauve
+    { hdr: '0E6655', bg: 'E8F8F5' },  // émeraude
+    { hdr: '784212', bg: 'FEF5E7' },  // brun
+  ];
+  const GRADE_FC = { 'A+': '1E8449', 'A': 'B7770D', 'B': '1F618D', 'C': '6C3483', 'D': 'A93226' };
+
+  let allPromos = [];
+  try {
+    const r = await fetch('/api/promotions?export=1');
+    allPromos = await r.json();
+    if (allPromos.error) allPromos = [];
+  } catch(e) { allPromos = []; }
+
+  // Group by YYYY-MM (already sorted DESC by server)
+  const promoGroups = {};
+  allPromos.forEach(p => {
+    const key = (p.saved_date_time || '').slice(0, 7);
+    if (!promoGroups[key]) promoGroups[key] = [];
+    promoGroups[key].push(p);
+  });
+  const sortedKeys = Object.keys(promoGroups).sort().reverse();
+
+  const NUM_COLS = 11;
+  const allAoa = [];
+  const allMerges = [];
+  const allRowMeta = [];
+
+  // Frozen header row
+  const colHdrs = ['#', 'Restaurant', 'Type', 'Détails', 'Prix ($)', 'Grade', 'Économie ($)', 'Catégorie', 'Statut', 'Date découverte', 'Lien'];
+  allAoa.push(colHdrs.map(h => hdrCell(h)));
+  allRowMeta.push({ hpt: 28 });
+
+  sortedKeys.forEach((key, mIdx) => {
+    const pal = MONTH_PAL[mIdx % MONTH_PAL.length];
+    const [y, m] = key.split('-');
+    const mName = MONTH_FR[parseInt(m, 10) - 1];
+    const group = promoGroups[key];
+    const label = `${mName} ${y}  —  ${group.length} promotion${group.length > 1 ? 's' : ''}`;
+
+    // Month separator row
+    const sepRowIdx = allAoa.length;
+    const sepRow = [];
+    for (let c = 0; c < NUM_COLS; c++) {
+      sepRow.push({ v: c === 0 ? label : '', t: 's', s: {
+        font: { bold: true, sz: 11, color: { rgb: WHITE } },
+        fill: { patternType: 'solid', fgColor: { rgb: pal.hdr } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: border()
+      }});
+    }
+    allAoa.push(sepRow);
+    allMerges.push({ s: { r: sepRowIdx, c: 0 }, e: { r: sepRowIdx, c: NUM_COLS - 1 } });
+    allRowMeta.push({ hpt: 22 });
+
+    // Data rows
+    group.forEach((p, i) => {
+      const bg = i % 2 === 0 ? pal.bg : WHITE;
+      const priceRaw = p.price && p.price !== 'Not Provided' ? p.price : '';
+      const priceVal = priceRaw !== '' ? (isNaN(parseFloat(priceRaw)) ? priceRaw : parseFloat(priceRaw)) : '';
+      const savVal = p.savings_estimate ? parseFloat(p.savings_estimate) : '';
+      const priceFmt = typeof priceVal === 'number' ? '"$"#,##0.00' : null;
+      const savFmt = typeof savVal === 'number' ? '"$"#,##0.00' : null;
+      const gradeFC = GRADE_FC[p.grade] || '444444';
+
+      allAoa.push([
+        dataCell(p.id || '', null, 'right', false, bg),
+        dataCell(p.restaurant || '', null, 'left', false, bg),
+        dataCell(p.promo_type || '', null, 'left', false, bg),
+        dataCell(p.promo_details || '', null, 'left', false, bg),
+        dataCell(priceVal, priceFmt, 'right', false, bg),
+        dataCell(p.grade || '—', null, 'center', true, bg, gradeFC),
+        dataCell(savVal, savFmt, 'right', false, bg),
+        dataCell(p.category || '', null, 'left', false, bg),
+        dataCell(p.is_active ? 'Active' : 'Inactive', null, 'center', false, bg, p.is_active ? '1E8449' : 'A93226'),
+        dataCell((p.saved_date_time || '').slice(0, 16), null, 'left', false, bg),
+        dataCell(p.link || '', null, 'left', false, bg),
+      ]);
+      allRowMeta.push({ hpt: 18 });
+    });
+  });
+
+  const ws4 = XLSX.utils.aoa_to_sheet(allAoa);
+  setColWidths(ws4, [7, 24, 16, 52, 10, 8, 12, 18, 10, 18, 40]);
+  addFreezeRow(ws4, 0);
+  ws4['!merges'] = allMerges;
+  ws4['!rows'] = allRowMeta;
+  XLSX.utils.book_append_sheet(wb, ws4, 'Toutes les promos');
+
   XLSX.writeFile(wb, `chicken-wings-${new Date().toISOString().slice(0,10)}.xlsx`);
+
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
 }
 
 loadData();

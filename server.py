@@ -2274,7 +2274,8 @@ def reactivate_promo(pid):
 @app.route("/api/promotions")
 def api_promotions():
     restaurant = request.args.get("restaurant", "")
-    active_only = request.args.get("active", "1") == "1"
+    is_export = request.args.get("export") == "1"
+    active_only = False if is_export else (request.args.get("active", "1") == "1")
     month     = request.args.get("month", "")      # YYYY-MM
     date_from = request.args.get("date_from", "")  # YYYY-MM-DD
     date_to   = request.args.get("date_to", "")    # YYYY-MM-DD
@@ -2293,8 +2294,11 @@ def api_promotions():
         if date_to:   q += " AND saved_date_time < DATE_ADD(%s, INTERVAL 1 DAY)"; params.append(date_to)
         if grade:     q += " AND grade=%s"; params.append(grade)
         if category:  q += " AND category=%s"; params.append(category)
-        limit = 500 if (month or date_from or date_to or grade or category) else 200
-        q += f" ORDER BY last_seen DESC LIMIT {limit}"
+        if is_export:
+            q += " ORDER BY saved_date_time DESC"
+        else:
+            limit = 500 if (month or date_from or date_to or grade or category) else 200
+            q += f" ORDER BY last_seen DESC LIMIT {limit}"
         cur.execute(q, params); rows = cur.fetchall()
         cur.close(); db.close()
         for r in rows:
